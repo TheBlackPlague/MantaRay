@@ -11,7 +11,7 @@
 namespace Cerebrum
 {
 
-    enum AccumulatorOperation
+    enum class AccumulatorOperation
     {
         Activate,
         Deactivate

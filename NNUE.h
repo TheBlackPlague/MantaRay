@@ -54,6 +54,8 @@ namespace Cerebrum
 
             inline void PullAccumulator()
             {
+                static_assert(CurrentAccumulator > 0, "Calling PullAccumulator() with CurrentAccumulator = 0.");
+
                 CurrentAccumulator--;
             }
 

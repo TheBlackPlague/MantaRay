@@ -3,7 +3,6 @@
 // Licensed under MIT.
 //
 
-#include "BenchmarkRunner.h"
 #include "NNUE.h"
 #include "ActivationFunction.h"
 
@@ -17,12 +16,6 @@ using PerspectiveNetworkClippedReLU = Cerebrum::PerspectiveNetwork<
 
 static PerspectiveNetworkClippedReLU network = PerspectiveNetworkClippedReLU();
 
-int main()
-{
-    network.RefreshAccumulator();
-    BenchmarkEvaluate(1000000);
-}
-
 void BenchmarkEvaluate(const int samples)
 {
     long long timeSum = 0;
@@ -35,4 +28,11 @@ void BenchmarkEvaluate(const int samples)
     }
     auto timeAvg = (double)timeSum / samples;
     std::cout << "Evaluation output was " << output << " and took " << timeAvg << "ns!" << std::endl;
+}
+
+
+int main()
+{
+    network.RefreshAccumulator();
+    BenchmarkEvaluate(1000000);
 }
