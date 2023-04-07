@@ -22,8 +22,8 @@ namespace Cerebrum
                                         const std::array<Type, DeltaSize> &delta,
                                         const int offsetA, const int offsetB)
             {
-                for (int i = 0; i < InputSize; i++) inputA[i] += delta[offsetA + i];
-                for (int i = 0; i < InputSize; i++) inputB[i] += delta[offsetB + i];
+                for (size_t i = 0; i < InputSize; i++) inputA[i] += delta[offsetA + i];
+                for (size_t i = 0; i < InputSize; i++) inputB[i] += delta[offsetB + i];
             }
 
             template<typename Type, size_t InputSize, size_t DeltaSize>
@@ -31,8 +31,8 @@ namespace Cerebrum
                                                const std::array<Type, DeltaSize> &delta,
                                                const int offsetA, const int offsetB)
             {
-                for (int i = 0; i < InputSize; i++) inputA[i] -= delta[offsetA + i];
-                for (int i = 0; i < InputSize; i++) inputB[i] -= delta[offsetB + i];
+                for (size_t i = 0; i < InputSize; i++) inputA[i] -= delta[offsetA + i];
+                for (size_t i = 0; i < InputSize; i++) inputB[i] -= delta[offsetB + i];
             }
 
             template<typename Type, size_t InputSize, size_t DeltaSize>
@@ -41,10 +41,10 @@ namespace Cerebrum
                                                    const std::array<Type, DeltaSize> &delta, const int offsetAS,
                                                    const int offsetAA, const int offsetBS, const int offsetBA)
             {
-                for (int i = 0; i < InputSize; i++) inputA[i] -= delta[offsetAS + i];
-                for (int i = 0; i < InputSize; i++) inputA[i] += delta[offsetAA + i];
-                for (int i = 0; i < InputSize; i++) inputB[i] -= delta[offsetBS + i];
-                for (int i = 0; i < InputSize; i++) inputB[i] += delta[offsetBA + i];
+                for (size_t i = 0; i < InputSize; i++) inputA[i] -= delta[offsetAS + i];
+                for (size_t i = 0; i < InputSize; i++) inputA[i] += delta[offsetAA + i];
+                for (size_t i = 0; i < InputSize; i++) inputB[i] -= delta[offsetBS + i];
+                for (size_t i = 0; i < InputSize; i++) inputB[i] += delta[offsetBA + i];
             }
 
             template<typename InputType, typename ActivationFunction, size_t InputSize, size_t OutputSize>
@@ -57,13 +57,13 @@ namespace Cerebrum
             {
                 int weightStride = 0;
 
-                for (int i = 0; i < OutputSize; i++) {
+                for (size_t i = 0; i < OutputSize; i++) {
 #ifdef __AVX2__
                     __m256i ymm0 = SIMDBackend<int32_t>::Zero();
                     __m256i ymm1;
                     __m256i ymm2;
 
-                    for (int j = 0; j < InputSize; j += 16) {
+                    for (size_t j = 0; j < InputSize; j += 16) {
                         ymm1 = SIMDBackend<InputType>::From(inputA, j);
                         ymm2 = SIMDBackend<InputType>::From(weight, weightStride + j);
                         ymm1 = ActivationFunction::Activate(ymm1);
@@ -82,7 +82,7 @@ namespace Cerebrum
 #else
                     int32_t sum = 0;
 
-                    for (int j = 0; j < InputSize; j++) {
+                    for (size_t j = 0; j < InputSize; j++) {
                         sum += ActivationFunction::Activate(inputA[j]) * weight[weightStride + j];
                         sum += ActivationFunction::Activate(inputB[j]) * weight[InputSize + weightStride + j];
                     }

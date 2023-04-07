@@ -17,7 +17,7 @@ namespace Cerebrum
 {
 
     template<typename BaseType, typename ActivationFunction,
-            size_t InputSize, size_t HiddenSize, size_t OutputSize, size_t AccumulatorStackSize,
+            uint16_t InputSize, uint16_t HiddenSize, uint16_t OutputSize, uint16_t AccumulatorStackSize,
             uint16_t Scale, uint16_t QuantizationFeature, uint16_t QuantizationOutput>
     class PerspectiveNetwork
     {
