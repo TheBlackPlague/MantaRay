@@ -8,6 +8,7 @@
 
 #include <array>
 #include <cstdint>
+#include <cassert>
 
 #include "Accumulator.h"
 #include "SIMDOperation.h"
@@ -54,7 +55,7 @@ namespace Cerebrum
 
             inline void PullAccumulator()
             {
-                static_assert(CurrentAccumulator > 0, "Calling PullAccumulator() with CurrentAccumulator = 0.");
+                assert(CurrentAccumulator > 0);
 
                 CurrentAccumulator--;
             }
