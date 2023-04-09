@@ -13,12 +13,14 @@
 #include "PerspectiveAccumulator.h"
 #include "../SIMD.h"
 #include "../AccumulatorOperation.h"
+#include "../IO/BinaryStream.h"
+#include "../IO/MarlinflowStream.h"
 
 namespace Cerebrum
 {
 
     template<typename T, typename OT, typename Activation, uint16_t InputSize, uint16_t HiddenSize, uint16_t OutputSize,
-            uint16_t AccumulatorStackSize, uint16_t Scale, uint16_t QuantizationFeature, uint16_t QuantizationOutput>
+            uint16_t AccumulatorStackSize, T Scale, T QuantizationFeature, T QuantizationOutput>
     class PerspectiveNetwork
     {
 
@@ -30,17 +32,54 @@ namespace Cerebrum
         std::array<OT, OutputSize> Output;
 
         std::array<PerspectiveAccumulator<T, HiddenSize>, AccumulatorStackSize> Accumulators;
-        uint16_t CurrentAccumulator;
+        uint16_t CurrentAccumulator = 0;
 
         const uint16_t ColorStride = 64 * 6;
         const uint8_t PieceStride = 64;
 
-    public:
-        PerspectiveNetwork()
+    private:
+        void InitializeAccumulatorStack()
         {
             PerspectiveAccumulator<T, HiddenSize> accumulator;
             std::fill(std::begin(Accumulators), std::end(Accumulators), accumulator);
-            CurrentAccumulator = 0;
+        }
+
+    public:
+        __attribute__((unused)) PerspectiveNetwork()
+        {
+            InitializeAccumulatorStack();
+        }
+
+        __attribute__((unused)) explicit PerspectiveNetwork(BinaryStream &stream)
+        {
+            InitializeAccumulatorStack();
+
+            stream.ReadArray(FeatureWeight);
+            stream.ReadArray(FeatureBias);
+            stream.ReadArray(OutputWeight);
+            stream.ReadArray(OutputBias);
+        }
+
+        __attribute__((unused)) explicit PerspectiveNetwork(MarlinflowStream &stream)
+        {
+            InitializeAccumulatorStack();
+
+            stream.Read2DArray("ft.weight", FeatureWeight, HiddenSize, QuantizationFeature,
+                               true);
+            stream.Read2DArray("out.weight", OutputWeight, HiddenSize * 2, QuantizationOutput,
+                               false);
+            stream.ReadArray("ft.bias", FeatureBias, QuantizationFeature);
+            stream.ReadArray("out.bias", OutputBias, QuantizationFeature * QuantizationOutput);
+        }
+
+        __attribute__((unused)) void WriteTo(BinaryStream &stream)
+        {
+            stream.WriteMode();
+
+            stream.WriteArray(FeatureWeight);
+            stream.WriteArray(FeatureBias);
+            stream.WriteArray(OutputWeight);
+            stream.WriteArray(OutputBias);
         }
 
         __attribute__((unused)) inline void ResetAccumulator()
