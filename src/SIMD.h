@@ -62,7 +62,7 @@ namespace Cerebrum
             {
                 int stride = 0;
                 for (size_t i = 0; i < OutputSize; i++) {
-#ifdef __AVX__
+#ifdef __AVX2__ // Change this to AVX when MultiplyAndAddAdjacent replacement is found for AVX (not AVX-2).
                     Vec256I ymm0 = Avx<OT>::Zero();
                     Vec256I ymm1;
                     Vec256I ymm2;

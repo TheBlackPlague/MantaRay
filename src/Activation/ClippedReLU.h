@@ -7,9 +7,7 @@
 #define CEREBRUM_CLIPPEDRELU_H
 
 #include <utility>
-#ifdef __AVX__
 #include "../Backend/Avx.h"
-#endif
 
 namespace Cerebrum
 {
@@ -19,7 +17,6 @@ namespace Cerebrum
     {
 
         public:
-#ifdef __AVX__
             static inline Vec256I Activate(Vec256I arg)
             {
                 const Vec256I min = Avx<T>::From(Minimum);
@@ -27,12 +24,11 @@ namespace Cerebrum
 
                 return Avx<T>::Max(min, Avx<T>::Min(max, arg));
             }
-#else
+
             static inline T Activate(T arg)
             {
                 return std::max(Minimum, std::min(Maximum, arg));
             }
-#endif
 
     };
 
