@@ -3,8 +3,8 @@
 // Licensed under MIT.
 //
 
-#include "NNUE.h"
-#include "ActivationFunction.h"
+#include "Perspective/PerspectiveNNUE.h"
+#include "Activation/ClippedReLU.h"
 
 #include <iostream>
 #include <chrono>
@@ -12,7 +12,7 @@
 // Benchmarking helper class to evaluate performance of Cerebrum.
 
 using PerspectiveNetworkClippedReLU = Cerebrum::PerspectiveNetwork<
-        int16_t, Cerebrum::ClippedReLU<int16_t, 0, 255>, 768, 256, 1, 512, 400, 255, 64>;
+        int16_t, int32_t, Cerebrum::ClippedReLU<int16_t, 0, 255>, 768, 256, 1, 512, 400, 255, 64>;
 
 static PerspectiveNetworkClippedReLU network = PerspectiveNetworkClippedReLU();
 
@@ -29,7 +29,6 @@ void BenchmarkEvaluate(const int samples)
     auto timeAvg = (double)timeSum / samples;
     std::cout << "Evaluation output was " << output << " and took " << timeAvg << "ns!" << std::endl;
 }
-
 
 int main()
 {

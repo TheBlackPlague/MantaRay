@@ -3,41 +3,35 @@
 // Licensed under MIT.
 //
 
-#ifndef CEREBRUM_ACCUMULATOR_H
-#define CEREBRUM_ACCUMULATOR_H
+#ifndef CEREBRUM_PERSPECTIVEACCUMULATOR_H
+#define CEREBRUM_PERSPECTIVEACCUMULATOR_H
 
 #include <array>
 
 namespace Cerebrum
 {
 
-    enum class AccumulatorOperation
-    {
-        Activate,
-        Deactivate
-    };
-
-    template<typename AccumulatorType, size_t AccumulatorSize>
-    class Accumulator
+    template<typename T, size_t AccumulatorSize>
+    class PerspectiveAccumulator
     {
 
         public:
-            std::array<AccumulatorType, AccumulatorSize> White;
-            std::array<AccumulatorType, AccumulatorSize> Black;
+            std::array<T, AccumulatorSize> White;
+            std::array<T, AccumulatorSize> Black;
 
-            Accumulator()
+            PerspectiveAccumulator()
             {
                 std::fill(std::begin(White), std::end(White), 0);
                 std::fill(std::begin(Black), std::end(Black), 0);
             }
 
-            void CopyTo(Accumulator<AccumulatorType, AccumulatorSize> &accumulator)
+            void CopyTo(PerspectiveAccumulator<T, AccumulatorSize> &accumulator)
             {
                 std::copy(std::begin(White), std::end(White), std::begin(accumulator.White));
                 std::copy(std::begin(Black), std::end(Black), std::begin(accumulator.Black));
             }
 
-            void LoadBias(std::array<AccumulatorType, AccumulatorSize> &bias)
+            void LoadBias(std::array<T, AccumulatorSize> &bias)
             {
                 std::copy(std::begin(bias), std::end(bias), std::begin(White));
                 std::copy(std::begin(bias), std::end(bias), std::begin(Black));
@@ -53,4 +47,4 @@ namespace Cerebrum
 
 } // Cerebrum
 
-#endif //CEREBRUM_ACCUMULATOR_H
+#endif //CEREBRUM_PERSPECTIVEACCUMULATOR_H
