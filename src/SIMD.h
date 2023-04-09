@@ -47,8 +47,7 @@ namespace Cerebrum
                                                    const uint32_t oAS, const uint32_t oAA,
                                                    const uint32_t oBS, const uint32_t oBA)
             {
-                for (size_t i = 0; i < InputSize; i++)
-                {
+                for (size_t i = 0; i < InputSize; i++) {
                     inputA[i] = inputA[i] - delta[oAS + i] + delta[oAA + i];
                     inputB[i] = inputB[i] - delta[oBS + i] + delta[oBA + i];
                 }
@@ -92,7 +91,7 @@ namespace Cerebrum
 
                     stride += InputSize * 2;
 
-                    output[o + 1] = Avx<OT>::Sum(ymm0) + bias[o + 1];
+                    output[o + i] = Avx<OT>::Sum(ymm0) + bias[o + i];
 #else
                     OT sum = 0;
 
