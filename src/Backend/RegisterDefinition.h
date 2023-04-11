@@ -8,6 +8,7 @@
 
 #include "immintrin.h"
 
+using Vec512I = __m512i;
 using Vec256I = __m256i;
 using Vec128I = __m128i;
 
