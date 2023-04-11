@@ -25,11 +25,19 @@ namespace Cerebrum
     {
 
         private:
+#ifdef __AVX2__
+            alignas(32) std::array<T, InputSize * HiddenSize> FeatureWeight;
+            alignas(32) std::array<T, HiddenSize> FeatureBias;
+            alignas(32) std::array<T, HiddenSize * 2 * OutputSize> OutputWeight;
+            alignas(32) std::array<T, OutputSize> OutputBias;
+            alignas(32) std::array<OT, OutputSize> Output;
+#else
             std::array<T, InputSize * HiddenSize> FeatureWeight;
             std::array<T, HiddenSize> FeatureBias;
             std::array<T, HiddenSize * 2 * OutputSize> OutputWeight;
             std::array<T, OutputSize> OutputBias;
             std::array<OT, OutputSize> Output;
+#endif
 
             std::array<PerspectiveAccumulator<T, HiddenSize>, AccumulatorStackSize> Accumulators;
             uint16_t CurrentAccumulator = 0;

@@ -16,8 +16,13 @@ namespace Cerebrum
     {
 
         public:
+#ifdef __AVX2__
+            alignas(32) std::array<T, AccumulatorSize> White;
+            alignas(32) std::array<T, AccumulatorSize> Black;
+#else
             std::array<T, AccumulatorSize> White;
             std::array<T, AccumulatorSize> Black;
+#endif
 
             PerspectiveAccumulator()
             {

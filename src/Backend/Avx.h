@@ -42,6 +42,12 @@ namespace Cerebrum
                 return _mm256_load_si256((Vec256I const*) &array[index]);
             }
 
+            template<size_t Size>
+            static inline void Store(const Vec256I &ymm0, std::array<T, Size> &array, const uint32_t index)
+            {
+                _mm256_store_si256((Vec256I *) &array[index], ymm0);
+            }
+
     };
 
 } // Cerebrum

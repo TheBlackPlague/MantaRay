@@ -21,31 +21,91 @@ namespace Cerebrum
                                         const std::array<T, DeltaSize> &delta,
                                         const uint32_t oA, const uint32_t oB)
             {
+#ifdef __AVX2__
+                Vec256I ymm0;
+                Vec256I ymm1;
+
+                for (size_t i = 0; i < InputSize; i += 16) {
+                    ymm0 = Avx<T>::From(inputA, i);
+                    ymm1 = Avx<T>::From(delta, oA + i);
+                    ymm0 = Avx2<T>::Add(ymm0, ymm1);
+                    Avx<T>::Store(ymm0, inputA, i);
+                }
+
+                for (size_t i = 0; i < InputSize; i += 16) {
+                    ymm0 = Avx<T>::From(inputB, i);
+                    ymm1 = Avx<T>::From(delta, oB + i);
+                    ymm0 = Avx2<T>::Add(ymm0, ymm1);
+                    Avx<T>::Store(ymm0, inputB, i);
+                }
+#else
                 for (size_t i = 0; i < InputSize; i++) inputA[i] += delta[oA + i];
                 for (size_t i = 0; i < InputSize; i++) inputB[i] += delta[oB + i];
+#endif
             }
 
             template<typename T, size_t InputSize, size_t DeltaSize>
-            static inline void SubtractFromAll(std::array<T, InputSize> &inputA,
-                                               std::array<T, InputSize> &inputB,
+            static inline void SubtractFromAll(std::array<T, InputSize> &inputA, std::array<T, InputSize> &inputB,
                                                const std::array<T, DeltaSize> &delta,
                                                const uint32_t oA, const uint32_t oB)
             {
-                for (size_t i = 0; i < InputSize; i++) inputA[i] += delta[oA + i];
-                for (size_t i = 0; i < InputSize; i++) inputB[i] += delta[oB + i];
+#ifdef __AVX2__
+                Vec256I ymm0;
+                Vec256I ymm1;
+
+                for (size_t i = 0; i < InputSize; i += 16) {
+                    ymm0 = Avx<T>::From(inputA, i);
+                    ymm1 = Avx<T>::From(delta, oA + i);
+                    ymm0 = Avx2<T>::Subtract(ymm0, ymm1);
+                    Avx<T>::Store(ymm0, inputA, i);
+                }
+
+                for (size_t i = 0; i < InputSize; i += 16) {
+                    ymm0 = Avx<T>::From(inputB, i);
+                    ymm1 = Avx<T>::From(delta, oB + i);
+                    ymm0 = Avx2<T>::Subtract(ymm0, ymm1);
+                    Avx<T>::Store(ymm0, inputB, i);
+                }
+#else
+                for (size_t i = 0; i < InputSize; i++) inputA[i] -= delta[oA + i];
+                for (size_t i = 0; i < InputSize; i++) inputB[i] -= delta[oB + i];
+#endif
             }
 
             template<typename T, size_t InputSize, size_t DeltaSize>
-            static inline void SubtractAndAddToAll(std::array<T, InputSize> &inputA,
-                                                   std::array<T, InputSize> &inputB,
+            static inline void SubtractAndAddToAll(std::array<T, InputSize> &inputA, std::array<T, InputSize> &inputB,
                                                    const std::array<T, DeltaSize> &delta,
                                                    const uint32_t oAS, const uint32_t oAA,
                                                    const uint32_t oBS, const uint32_t oBA)
             {
+#ifdef __AVX2__
+                Vec256I ymm0;
+                Vec256I ymm1;
+                Vec256I ymm2;
+
+                for (size_t i = 0; i < InputSize; i += 16) {
+                    ymm0 = Avx<T>::From(inputA, i);
+                    ymm1 = Avx<T>::From(delta, oAS + i);
+                    ymm2 = Avx<T>::From(delta, oAA + i);
+                    ymm0 = Avx2<T>::Subtract(ymm0, ymm1);
+                    ymm0 = Avx2<T>::Add(ymm0, ymm2);
+                    Avx<T>::Store(ymm0, inputA, i);
+                }
+
+                for (size_t i = 0; i < InputSize; i += 16) {
+                    ymm0 = Avx<T>::From(inputB, i);
+                    ymm1 = Avx<T>::From(delta, oBS + i);
+                    ymm2 = Avx<T>::From(delta, oBA + i);
+                    ymm0 = Avx2<T>::Subtract(ymm0, ymm1);
+                    ymm0 = Avx2<T>::Add(ymm0, ymm2);
+                    Avx<T>::Store(ymm0, inputB, i);
+                }
+#else
                 for (size_t i = 0; i < InputSize; i++) {
                     inputA[i] = inputA[i] - delta[oAS + i] + delta[oAA + i];
                     inputB[i] = inputB[i] - delta[oBS + i] + delta[oBA + i];
                 }
+#endif
             }
 
             template<typename Activation, typename T, typename OT, size_t InputSize, size_t OutputSize>
