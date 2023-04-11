@@ -8,12 +8,7 @@
 
 #include <array>
 
-#ifdef __AVX__
-#include "Backend/Avx.h"
-#endif
-#ifdef __AVX2__
 #include "Backend/Avx2.h"
-#endif
 
 namespace Cerebrum
 {
