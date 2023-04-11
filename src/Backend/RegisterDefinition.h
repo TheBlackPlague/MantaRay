@@ -8,7 +8,7 @@
 
 #include <immintrin.h>
 
-#define Vec256I __m256i
-#define Vec128I __m128i
+using Vec256I = __m256i;
+using Vec128I = __m128i;
 
 #endif //CEREBRUM_REGISTERDEFINITION_H
