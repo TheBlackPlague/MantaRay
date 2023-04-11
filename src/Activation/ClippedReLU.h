@@ -8,6 +8,7 @@
 
 #include <utility>
 #include "../Backend/Avx.h"
+#include "../Backend/Avx2.h"
 
 namespace Cerebrum
 {
@@ -22,7 +23,7 @@ namespace Cerebrum
                 const Vec256I min = Avx<T>::From(Minimum);
                 const Vec256I max = Avx<T>::From(Maximum);
 
-                return Avx<T>::Max(min, Avx<T>::Min(max, arg));
+                return Avx2<T>::Max(min, Avx2<T>::Min(max, arg));
             }
 
             static inline T Activate(T arg)

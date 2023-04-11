@@ -6,7 +6,7 @@
 #ifndef CEREBRUM_REGISTERDEFINITION_H
 #define CEREBRUM_REGISTERDEFINITION_H
 
-#include <immintrin.h>
+#include "immintrin.h"
 
 using Vec256I = __m256i;
 using Vec128I = __m128i;

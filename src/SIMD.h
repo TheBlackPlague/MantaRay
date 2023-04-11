@@ -62,7 +62,7 @@ namespace Cerebrum
             {
                 int stride = 0;
                 for (size_t i = 0; i < OutputSize; i++) {
-#ifdef __AVX2__ // Change this to AVX when MultiplyAndAddAdjacent replacement is found for AVX (not AVX-2).
+#ifdef __AVX2__
                     Vec256I ymm0 = Avx<OT>::Zero();
                     Vec256I ymm1;
                     Vec256I ymm2;
@@ -72,26 +72,22 @@ namespace Cerebrum
                         ymm1 = Avx<T>::From(inputA, j);
                         ymm2 = Avx<T>::From(weight, stride + j);
                         ymm1 = Activation::Activate(ymm1);
-#ifdef __AVX2__
                         ymm1 = Avx2<T>::MultiplyAndAddAdjacent(ymm1, ymm2);
-#endif
-                        ymm0 = Avx<OT>::Add(ymm0, ymm1);
+                        ymm0 = Avx2<OT>::Add(ymm0, ymm1);
                         // END INPUT A
 
                         // START INPUT B
                         ymm1 = Avx<T>::From(inputB, j);
                         ymm2 = Avx<T>::From(weight, InputSize + stride + j);
                         ymm1 = Activation::Activate(ymm1);
-#ifdef __AVX2__
                         ymm1 = Avx2<T>::MultiplyAndAddAdjacent(ymm1, ymm2);
-#endif
-                        ymm0 = Avx<OT>::Add(ymm0, ymm1);
+                        ymm0 = Avx2<OT>::Add(ymm0, ymm1);
                         // END INPUT B
                     }
 
                     stride += InputSize * 2;
 
-                    output[o + i] = Avx<OT>::Sum(ymm0) + bias[o + i];
+                    output[o + i] = Avx2<OT>::Sum(ymm0) + bias[o + i];
 #else
                     OT sum = 0;
 
