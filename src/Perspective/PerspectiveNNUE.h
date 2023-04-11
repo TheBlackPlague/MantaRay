@@ -25,7 +25,13 @@ namespace Cerebrum
     {
 
         private:
-#ifdef __AVX2__
+#ifdef __AVX512BW__
+            alignas(64) std::array<T, InputSize * HiddenSize> FeatureWeight;
+            alignas(64) std::array<T, HiddenSize> FeatureBias;
+            alignas(64) std::array<T, HiddenSize * 2 * OutputSize> OutputWeight;
+            alignas(64) std::array<T, OutputSize> OutputBias;
+            alignas(64) std::array<OT, OutputSize> Output;
+#elifdef __AVX2__
             alignas(32) std::array<T, InputSize * HiddenSize> FeatureWeight;
             alignas(32) std::array<T, HiddenSize> FeatureBias;
             alignas(32) std::array<T, HiddenSize * 2 * OutputSize> OutputWeight;

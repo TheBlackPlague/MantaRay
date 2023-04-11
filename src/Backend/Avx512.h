@@ -40,7 +40,7 @@ namespace Cerebrum
             }
 
             template<size_t Size>
-            static inline void Store(const Vec256I &zmm0, std::array<T, Size> &array, const uint32_t index)
+            static inline void Store(const Vec512I &zmm0, std::array<T, Size> &array, const uint32_t index)
             {
                 _mm512_store_si512((Vec512I *) &array[index], zmm0);
             }
@@ -86,6 +86,19 @@ namespace Cerebrum
                 static_assert(std::is_same_v<T, int16_t>, "Unsupported type provided.");
 
                 return _mm512_madd_epi16(zmm0, zmm1);
+            }
+
+            static inline T Sum(const Vec512I &zmm0)
+            {
+                static_assert(std::is_same_v<T, int32_t>, "Unsupported type provided.");
+
+                Vec256I ymm0;
+                Vec256I ymm1;
+
+                ymm0 = _mm512_castsi512_si256(zmm0);
+                ymm1 = _mm512_extracti64x4_epi64(zmm0, 1);
+                ymm0 = Avx2<T>::Add(ymm0, ymm1);
+                return Avx2<T>::Sum(ymm0);
             }
 
     };

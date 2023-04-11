@@ -16,7 +16,10 @@ namespace Cerebrum
     {
 
         public:
-#ifdef __AVX2__
+#ifdef __AVX512BW__
+            alignas(64) std::array<T, AccumulatorSize> White;
+            alignas(64) std::array<T, AccumulatorSize> Black;
+#elifdef __AVX2__
             alignas(32) std::array<T, AccumulatorSize> White;
             alignas(32) std::array<T, AccumulatorSize> Black;
 #else

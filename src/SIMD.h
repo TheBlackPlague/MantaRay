@@ -8,7 +8,11 @@
 
 #include <array>
 
+#ifdef __AVX512BW__
+#include "Backend/Avx512.h"
+#elif __AVX2__
 #include "Backend/Avx2.h"
+#endif
 
 namespace Cerebrum
 {
@@ -21,7 +25,24 @@ namespace Cerebrum
                                         const std::array<T, DeltaSize> &delta,
                                         const uint32_t oA, const uint32_t oB)
             {
-#ifdef __AVX2__
+#ifdef __AVX512BW__
+                Vec512I zmm0;
+                Vec512I zmm1;
+
+                for (size_t i = 0; i < InputSize; i += 32) {
+                    zmm0 = Avx512<T>::From(inputA, i);
+                    zmm1 = Avx512<T>::From(delta, oA + i);
+                    zmm0 = Avx512<T>::Add(zmm0, zmm1);
+                    Avx512<T>::Store(zmm0, inputA, i);
+                }
+
+                for (size_t i = 0; i < InputSize; i += 32) {
+                    zmm0 = Avx512<T>::From(inputB, i);
+                    zmm1 = Avx512<T>::From(delta, oB + i);
+                    zmm0 = Avx512<T>::Add(zmm0, zmm1);
+                    Avx512<T>::Store(zmm0, inputB, i);
+                }
+#elifdef __AVX2__
                 Vec256I ymm0;
                 Vec256I ymm1;
 
@@ -49,7 +70,24 @@ namespace Cerebrum
                                                const std::array<T, DeltaSize> &delta,
                                                const uint32_t oA, const uint32_t oB)
             {
-#ifdef __AVX2__
+#ifdef __AVX512BW__
+                Vec512I zmm0;
+                Vec512I zmm1;
+
+                for (size_t i = 0; i < InputSize; i += 32) {
+                    zmm0 = Avx512<T>::From(inputA, i);
+                    zmm1 = Avx512<T>::From(delta, oA + i);
+                    zmm0 = Avx512<T>::Subtract(zmm0, zmm1);
+                    Avx512<T>::Store(zmm0, inputA, i);
+                }
+
+                for (size_t i = 0; i < InputSize; i += 32) {
+                    zmm0 = Avx512<T>::From(inputB, i);
+                    zmm1 = Avx512<T>::From(delta, oB + i);
+                    zmm0 = Avx512<T>::Subtract(zmm0, zmm1);
+                    Avx512<T>::Store(zmm0, inputB, i);
+                }
+#elifdef __AVX2__
                 Vec256I ymm0;
                 Vec256I ymm1;
 
@@ -78,7 +116,29 @@ namespace Cerebrum
                                                    const uint32_t oAS, const uint32_t oAA,
                                                    const uint32_t oBS, const uint32_t oBA)
             {
-#ifdef __AVX2__
+#ifdef __AVX512BW__
+                Vec512I zmm0;
+                Vec512I zmm1;
+                Vec512I zmm2;
+
+                for (size_t i = 0; i < InputSize; i += 32) {
+                    zmm0 = Avx512<T>::From(inputA, i);
+                    zmm1 = Avx512<T>::From(delta, oAS + i);
+                    zmm2 = Avx512<T>::From(delta, oAA + i);
+                    zmm0 = Avx512<T>::Subtract(zmm0, zmm1);
+                    zmm0 = Avx512<T>::Add(zmm0, zmm2);
+                    Avx512<T>::Store(zmm0, inputA, i);
+                }
+
+                for (size_t i = 0; i < InputSize; i += 32) {
+                    zmm0 = Avx512<T>::From(inputB, i);
+                    zmm1 = Avx512<T>::From(delta, oBS + i);
+                    zmm2 = Avx512<T>::From(delta, oBA + i);
+                    zmm0 = Avx512<T>::Subtract(zmm0, zmm1);
+                    zmm0 = Avx512<T>::Add(zmm0, zmm2);
+                    Avx512<T>::Store(zmm0, inputB, i);
+                }
+#elifdef __AVX2__
                 Vec256I ymm0;
                 Vec256I ymm1;
                 Vec256I ymm2;
@@ -109,6 +169,7 @@ namespace Cerebrum
             }
 
             template<typename Activation, typename T, typename OT, size_t InputSize, size_t OutputSize>
+            [[clang::noinline]]
             static void ActivateFlattenAndForward(
                     const std::array<T, InputSize> &inputA, const std::array<T, InputSize> &inputB,
                     const std::array<T, InputSize * 2 * OutputSize> &weight,
@@ -117,7 +178,33 @@ namespace Cerebrum
             {
                 int stride = 0;
                 for (size_t i = 0; i < OutputSize; i++) {
-#ifdef __AVX2__
+#ifdef __AVX512BW__
+                    Vec512I zmm0 = Avx512<OT>::Zero();
+                    Vec512I zmm1;
+                    Vec512I zmm2;
+
+                    for (size_t j = 0; j < InputSize; j += 32) {
+                        // START INPUT A
+                        zmm1 = Avx512<T>::From(inputA, j);
+                        zmm2 = Avx512<T>::From(weight, stride + j);
+                        zmm1 = Activation::Activate(zmm1);
+                        zmm1 = Avx512<T>::MultiplyAndAddAdjacent(zmm1, zmm2);
+                        zmm0 = Avx512<OT>::Add(zmm0, zmm1);
+                        // END INPUT A
+
+                        // START INPUT B
+                        zmm1 = Avx512<T>::From(inputB, j);
+                        zmm2 = Avx512<T>::From(weight, InputSize + stride + j);
+                        zmm1 = Activation::Activate(zmm1);
+                        zmm1 = Avx512<T>::MultiplyAndAddAdjacent(zmm1, zmm2);
+                        zmm0 = Avx512<OT>::Add(zmm0, zmm1);
+                        // END INPUT B
+                    }
+
+                    stride += InputSize * 2;
+
+                    output[o + i] = Avx512<OT>::Sum(zmm0) + bias[o + i];
+#elifdef __AVX2__
                     Vec256I ymm0 = Avx<OT>::Zero();
                     Vec256I ymm1;
                     Vec256I ymm2;
