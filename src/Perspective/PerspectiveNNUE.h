@@ -153,7 +153,7 @@ namespace MantaRay
                                           whiteIndexTo * HiddenSize,
                                           blackIndexFrom * HiddenSize,
                                           blackIndexTo * HiddenSize);
-        }
+            }
 
             template<AccumulatorOperation Operation>
             __attribute__((unused)) inline void EfficientlyUpdateAccumulator(const uint8_t piece, const uint8_t color,

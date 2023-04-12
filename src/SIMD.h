@@ -176,7 +176,7 @@ namespace MantaRay
                     const std::array<T, OutputSize> &bias,
                     std::array<OT, OutputSize> &output, const uint32_t o)
             {
-                int stride = 0;
+                size_t stride = 0;
                 for (size_t i = 0; i < OutputSize; i++) {
 #ifdef __AVX512BW__
                     Vec512I zmm0 = Avx512<OT>::Zero();
