@@ -1,10 +1,10 @@
 //
-// Copyright (c) 2023 Cerebrum authors. See the list of authors for more details.
+// Copyright (c) 2023 MantaRay authors. See the list of authors for more details.
 // Licensed under MIT.
 //
 
-#ifndef CEREBRUM_SIMD_H
-#define CEREBRUM_SIMD_H
+#ifndef MANTARAY_SIMD_H
+#define MANTARAY_SIMD_H
 
 #include <array>
 
@@ -14,7 +14,7 @@
 #include "Backend/Avx2.h"
 #endif
 
-namespace Cerebrum
+namespace MantaRay
 {
 
     class SIMD
@@ -245,6 +245,6 @@ namespace Cerebrum
             }
 
     };
-} // Cerebrum
+} // MantaRay
 
-#endif //CEREBRUM_SIMD_H
+#endif //MANTARAY_SIMD_H

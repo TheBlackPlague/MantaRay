@@ -1,14 +1,14 @@
 //
-// Copyright (c) 2023 Cerebrum authors. See the list of authors for more details.
+// Copyright (c) 2023 MantaRay authors. See the list of authors for more details.
 // Licensed under MIT.
 //
 
-#ifndef CEREBRUM_PERSPECTIVEACCUMULATOR_H
-#define CEREBRUM_PERSPECTIVEACCUMULATOR_H
+#ifndef MANTARAY_PERSPECTIVEACCUMULATOR_H
+#define MANTARAY_PERSPECTIVEACCUMULATOR_H
 
 #include <array>
 
-namespace Cerebrum
+namespace MantaRay
 {
 
     template<typename T, size_t AccumulatorSize>
@@ -53,6 +53,6 @@ namespace Cerebrum
 
     };
 
-} // Cerebrum
+} // MantaRay
 
-#endif //CEREBRUM_PERSPECTIVEACCUMULATOR_H
+#endif //MANTARAY_PERSPECTIVEACCUMULATOR_H

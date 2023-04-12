@@ -1,10 +1,10 @@
 //
-// Copyright (c) 2023 Cerebrum authors. See the list of authors for more details.
+// Copyright (c) 2023 MantaRay authors. See the list of authors for more details.
 // Licensed under MIT.
 //
 
-#ifndef CEREBRUM_REGISTERDEFINITION_H
-#define CEREBRUM_REGISTERDEFINITION_H
+#ifndef MANTARAY_REGISTERDEFINITION_H
+#define MANTARAY_REGISTERDEFINITION_H
 
 #include "immintrin.h"
 
@@ -19,4 +19,4 @@ using Vec128I = __m128i;
 using Vec128I = __m128i;
 #endif
 
-#endif //CEREBRUM_REGISTERDEFINITION_H
+#endif //MANTARAY_REGISTERDEFINITION_H

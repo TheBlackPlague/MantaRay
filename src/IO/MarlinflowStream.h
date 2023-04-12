@@ -1,10 +1,10 @@
 //
-// Copyright (c) 2023 Cerebrum authors. See the list of authors for more details.
+// Copyright (c) 2023 MantaRay authors. See the list of authors for more details.
 // Licensed under MIT.
 //
 
-#ifndef CEREBRUM_MARLINFLOWSTREAM_H
-#define CEREBRUM_MARLINFLOWSTREAM_H
+#ifndef MANTARAY_MARLINFLOWSTREAM_H
+#define MANTARAY_MARLINFLOWSTREAM_H
 
 #include <array>
 #include <cstdint>
@@ -13,7 +13,7 @@
 
 using JSON = nlohmann::json;
 
-namespace Cerebrum
+namespace MantaRay
 {
 
     class MarlinflowStream : DataStream<std::ios::in>
@@ -65,6 +65,6 @@ namespace Cerebrum
 
     };
 
-} // Cerebrum
+} // MantaRay
 
-#endif //CEREBRUM_MARLINFLOWSTREAM_H
+#endif //MANTARAY_MARLINFLOWSTREAM_H

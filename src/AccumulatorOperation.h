@@ -1,12 +1,12 @@
 //
-// Copyright (c) 2023 Cerebrum authors. See the list of authors for more details.
+// Copyright (c) 2023 MantaRay authors. See the list of authors for more details.
 // Licensed under MIT.
 //
 
-#ifndef CEREBRUM_ACCUMULATOROPERATION_H
-#define CEREBRUM_ACCUMULATOROPERATION_H
+#ifndef MANTARAY_ACCUMULATOROPERATION_H
+#define MANTARAY_ACCUMULATOROPERATION_H
 
-namespace Cerebrum
+namespace MantaRay
 {
 
     enum class AccumulatorOperation
@@ -15,6 +15,6 @@ namespace Cerebrum
         Deactivate __attribute__((unused))
     };
 
-} // Cerebrum
+} // MantaRay
 
-#endif //CEREBRUM_ACCUMULATOROPERATION_H
+#endif //MANTARAY_ACCUMULATOROPERATION_H

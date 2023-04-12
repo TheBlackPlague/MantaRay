@@ -1,10 +1,10 @@
 //
-// Copyright (c) 2023 Cerebrum authors. See the list of authors for more details.
+// Copyright (c) 2023 MantaRay authors. See the list of authors for more details.
 // Licensed under MIT.
 //
 
-#ifndef CEREBRUM_PERSPECTIVENNUE_H
-#define CEREBRUM_PERSPECTIVENNUE_H
+#ifndef MANTARAY_PERSPECTIVENNUE_H
+#define MANTARAY_PERSPECTIVENNUE_H
 
 #include <array>
 #include <cstdint>
@@ -16,7 +16,7 @@
 #include "../IO/BinaryStream.h"
 #include "../IO/MarlinflowStream.h"
 
-namespace Cerebrum
+namespace MantaRay
 {
 
     template<typename T, typename OT, typename Activation, uint16_t InputSize, uint16_t HiddenSize, uint16_t OutputSize,
@@ -191,6 +191,6 @@ namespace Cerebrum
 
     };
 
-} // Cerebrum
+} // MantaRay
 
-#endif //CEREBRUM_PERSPECTIVENNUE_H
+#endif //MANTARAY_PERSPECTIVENNUE_H

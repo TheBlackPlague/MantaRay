@@ -1,16 +1,16 @@
 //
-// Copyright (c) 2023 Cerebrum authors. See the list of authors for more details.
+// Copyright (c) 2023 MantaRay authors. See the list of authors for more details.
 // Licensed under MIT.
 //
 
-#ifndef CEREBRUM_CLIPPEDRELU_H
-#define CEREBRUM_CLIPPEDRELU_H
+#ifndef MANTARAY_CLIPPEDRELU_H
+#define MANTARAY_CLIPPEDRELU_H
 
 #include <utility>
 #include "../Backend/Avx.h"
 #include "../Backend/Avx2.h"
 
-namespace Cerebrum
+namespace MantaRay
 {
 
     template<typename T, T Minimum, T Maximum>
@@ -43,6 +43,6 @@ namespace Cerebrum
 
     };
 
-} // Cerebrum
+} // MantaRay
 
-#endif //CEREBRUM_CLIPPEDRELU_H
+#endif //MANTARAY_CLIPPEDRELU_H

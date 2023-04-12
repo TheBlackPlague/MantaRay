@@ -1,17 +1,17 @@
 //
-// Copyright (c) 2023 Cerebrum authors. See the list of authors for more details.
+// Copyright (c) 2023 MantaRay authors. See the list of authors for more details.
 // Licensed under MIT.
 //
 
-#ifndef CEREBRUM_AVX_H
-#define CEREBRUM_AVX_H
+#ifndef MANTARAY_AVX_H
+#define MANTARAY_AVX_H
 
 #include <xtr1common>
 #include <cstdint>
 #include <array>
 #include "RegisterDefinition.h"
 
-namespace Cerebrum
+namespace MantaRay
 {
 
     template<typename T>
@@ -50,6 +50,6 @@ namespace Cerebrum
 
     };
 
-} // Cerebrum
+} // MantaRay
 
-#endif //CEREBRUM_AVX_H
+#endif //MANTARAY_AVX_H

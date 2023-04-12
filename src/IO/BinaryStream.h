@@ -1,16 +1,16 @@
 //
-// Copyright (c) 2023 Cerebrum authors. See the list of authors for more details.
+// Copyright (c) 2023 MantaRay authors. See the list of authors for more details.
 // Licensed under MIT.
 //
 
-#ifndef CEREBRUM_BINARYSTREAM_H
-#define CEREBRUM_BINARYSTREAM_H
+#ifndef MANTARAY_BINARYSTREAM_H
+#define MANTARAY_BINARYSTREAM_H
 
 #include <array>
 #include <cstdint>
 #include "DataStream.h"
 
-namespace Cerebrum
+namespace MantaRay
 {
 
     class BinaryStream : DataStream<std::ios::binary | std::ios::in>
@@ -46,6 +46,6 @@ namespace Cerebrum
 
     };
 
-} // Cerebrum
+} // MantaRay
 
-#endif //CEREBRUM_BINARYSTREAM_H
+#endif //MANTARAY_BINARYSTREAM_H

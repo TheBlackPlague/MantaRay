@@ -1,10 +1,10 @@
 //
-// Copyright (c) 2023 Cerebrum authors. See the list of authors for more details.
+// Copyright (c) 2023 MantaRay authors. See the list of authors for more details.
 // Licensed under MIT.
 //
 
-#ifndef CEREBRUM_DATASTREAM_H
-#define CEREBRUM_DATASTREAM_H
+#ifndef MANTARAY_DATASTREAM_H
+#define MANTARAY_DATASTREAM_H
 
 #include <iostream>
 #include <fstream>
@@ -12,7 +12,7 @@
 
 #define FileStream std::fstream
 
-namespace Cerebrum
+namespace MantaRay
 {
 
     template<std::ios_base::openmode O>
@@ -29,6 +29,6 @@ namespace Cerebrum
             }
     };
 
-} // Cerebrum
+} // MantaRay
 
-#endif //CEREBRUM_DATASTREAM_H
+#endif //MANTARAY_DATASTREAM_H
