@@ -24,6 +24,20 @@ namespace Cerebrum
     class PerspectiveNetwork
     {
 
+        // Support more types in the future, but currently disable all others.
+        static_assert(std::is_same_v<T, int16_t> && std::is_same_v<OT, int32_t>,
+                "This type is currently not supported.");
+
+        // Support less sizes in the future, but currently disable.
+        static_assert(InputSize > 32 && HiddenSize > 32, "This network size is currently not supported.");
+
+        // The accumulator stack size should not be 0 or less.
+        static_assert(AccumulatorStackSize > 0, "The accumulator stack size must at least be greater than zero.");
+
+        // The constants used should make sense. Change this later if requested.
+        static_assert(Scale > 0 && QuantizationFeature > 127 && QuantizationOutput > 31,
+                "These scale and quantization constants don't seem right.");
+
         private:
 #ifdef __AVX512BW__
             alignas(64) std::array<T, InputSize * HiddenSize> FeatureWeight;
@@ -103,6 +117,8 @@ namespace Cerebrum
             __attribute__((unused)) inline void PushAccumulator()
             {
                 Accumulators[CurrentAccumulator].CopyTo(Accumulators[++CurrentAccumulator]);
+
+                assert(CurrentAccumulator < AccumulatorStackSize);
             }
 
             __attribute__((unused)) inline void PullAccumulator()
