@@ -6,7 +6,6 @@
 #ifndef MANTARAY_AVX_H
 #define MANTARAY_AVX_H
 
-#include <xtr1common>
 #include <cstdint>
 #include <array>
 #include "RegisterDefinition.h"
