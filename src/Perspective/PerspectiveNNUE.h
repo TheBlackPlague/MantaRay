@@ -19,7 +19,8 @@
 namespace MantaRay
 {
 
-    template<typename T, typename OT, typename Activation, uint16_t InputSize, uint16_t HiddenSize, uint16_t OutputSize,
+    template<typename T, typename OT, typename Activation,
+            uint16_t InputSize, uint16_t HiddenSize, uint16_t OutputSize,
             uint16_t AccumulatorStackSize, T Scale, T QuantizationFeature, T QuantizationOutput>
     class PerspectiveNetwork
     {
@@ -40,30 +41,30 @@ namespace MantaRay
 
         private:
 #ifdef __AVX512BW__
-            alignas(64) std::array<T, InputSize * HiddenSize> FeatureWeight;
-            alignas(64) std::array<T, HiddenSize> FeatureBias;
-            alignas(64) std::array<T, HiddenSize * 2 * OutputSize> OutputWeight;
-            alignas(64) std::array<T, OutputSize> OutputBias;
-            alignas(64) std::array<OT, OutputSize> Output;
+            alignas(64) std::array<T , InputSize * HiddenSize     > FeatureWeight;
+            alignas(64) std::array<T , HiddenSize                 > FeatureBias  ;
+            alignas(64) std::array<T , HiddenSize * 2 * OutputSize> OutputWeight ;
+            alignas(64) std::array<T , OutputSize                 > OutputBias   ;
+            alignas(64) std::array<OT, OutputSize                 > Output       ;
 #elifdef __AVX2__
-            alignas(32) std::array<T, InputSize * HiddenSize> FeatureWeight;
-            alignas(32) std::array<T, HiddenSize> FeatureBias;
-            alignas(32) std::array<T, HiddenSize * 2 * OutputSize> OutputWeight;
-            alignas(32) std::array<T, OutputSize> OutputBias;
-            alignas(32) std::array<OT, OutputSize> Output;
+            alignas(32) std::array<T , InputSize * HiddenSize     > FeatureWeight;
+            alignas(32) std::array<T , HiddenSize                 > FeatureBias  ;
+            alignas(32) std::array<T , HiddenSize * 2 * OutputSize> OutputWeight ;
+            alignas(32) std::array<T , OutputSize                 > OutputBias   ;
+            alignas(32) std::array<OT, OutputSize                 > Output       ;
 #else
-            std::array<T, InputSize * HiddenSize> FeatureWeight;
-            std::array<T, HiddenSize> FeatureBias;
-            std::array<T, HiddenSize * 2 * OutputSize> OutputWeight;
-            std::array<T, OutputSize> OutputBias;
-            std::array<OT, OutputSize> Output;
+            std::array<T , InputSize * HiddenSize     > FeatureWeight;
+            std::array<T , HiddenSize                 > FeatureBias  ;
+            std::array<T , HiddenSize * 2 * OutputSize> OutputWeight ;
+            std::array<T , OutputSize                 > OutputBias   ;
+            std::array<OT, OutputSize                 > Output       ;
 #endif
 
             std::array<PerspectiveAccumulator<T, HiddenSize>, AccumulatorStackSize> Accumulators;
             uint16_t CurrentAccumulator = 0;
 
             const uint16_t ColorStride = 64 * 6;
-            const uint8_t PieceStride = 64;
+            const uint8_t  PieceStride = 64    ;
 
             void InitializeAccumulatorStack()
             {
@@ -82,21 +83,22 @@ namespace MantaRay
                 InitializeAccumulatorStack();
 
                 stream.ReadArray(FeatureWeight);
-                stream.ReadArray(FeatureBias);
-                stream.ReadArray(OutputWeight);
-                stream.ReadArray(OutputBias);
+                stream.ReadArray(FeatureBias  );
+                stream.ReadArray(OutputWeight );
+                stream.ReadArray(OutputBias   );
             }
 
             __attribute__((unused)) explicit PerspectiveNetwork(MarlinflowStream &stream)
             {
                 InitializeAccumulatorStack();
 
-                stream.Read2DArray("ft.weight", FeatureWeight, HiddenSize, QuantizationFeature,
-                                   true);
-                stream.Read2DArray("out.weight", OutputWeight, HiddenSize * 2, QuantizationOutput,
+                stream.Read2DArray("ft.weight" , FeatureWeight, HiddenSize    , QuantizationFeature,
+                                   true );
+                stream.Read2DArray("out.weight", OutputWeight , HiddenSize * 2, QuantizationOutput ,
                                    false);
-                stream.ReadArray("ft.bias", FeatureBias, QuantizationFeature);
-                stream.ReadArray("out.bias", OutputBias, QuantizationFeature * QuantizationOutput);
+
+                stream.ReadArray("ft.bias" , FeatureBias, QuantizationFeature                     );
+                stream.ReadArray("out.bias", OutputBias , QuantizationFeature * QuantizationOutput);
             }
 
             __attribute__((unused)) void WriteTo(BinaryStream &stream)
@@ -104,9 +106,9 @@ namespace MantaRay
                 stream.WriteMode();
 
                 stream.WriteArray(FeatureWeight);
-                stream.WriteArray(FeatureBias);
-                stream.WriteArray(OutputWeight);
-                stream.WriteArray(OutputBias);
+                stream.WriteArray(FeatureBias  );
+                stream.WriteArray(OutputWeight );
+                stream.WriteArray(OutputBias   );
             }
 
             __attribute__((unused)) inline void ResetAccumulator()
@@ -150,9 +152,9 @@ namespace MantaRay
                 SIMD::SubtractAndAddToAll(accumulator.White, accumulator.Black,
                                           FeatureWeight,
                                           whiteIndexFrom * HiddenSize,
-                                          whiteIndexTo * HiddenSize,
+                                          whiteIndexTo   * HiddenSize,
                                           blackIndexFrom * HiddenSize,
-                                          blackIndexTo * HiddenSize);
+                                          blackIndexTo   * HiddenSize);
             }
 
             template<AccumulatorOperation Operation>
@@ -167,11 +169,17 @@ namespace MantaRay
                 PerspectiveAccumulator<T, HiddenSize>& accumulator = Accumulators[CurrentAccumulator];
 
                 if (Operation == AccumulatorOperation::Activate)
-                    SIMD::AddToAll(accumulator.White, accumulator.Black,FeatureWeight,
-                                   whiteIndex * HiddenSize, blackIndex * HiddenSize);
+                    SIMD::AddToAll(accumulator.White,
+                                   accumulator.Black,
+                                   FeatureWeight,
+                                   whiteIndex * HiddenSize,
+                                   blackIndex * HiddenSize);
 
-                else SIMD::SubtractFromAll(accumulator.White, accumulator.Black, FeatureWeight,
-                                           whiteIndex * HiddenSize, blackIndex * HiddenSize);
+                else SIMD::SubtractFromAll(accumulator.White,
+                                           accumulator.Black,
+                                           FeatureWeight,
+                                           whiteIndex * HiddenSize,
+                                           blackIndex * HiddenSize);
             }
 
             __attribute__((unused)) inline int32_t Evaluate(const uint8_t colorToMove)
@@ -179,12 +187,20 @@ namespace MantaRay
                 PerspectiveAccumulator<T, HiddenSize>& accumulator = Accumulators[CurrentAccumulator];
 
                 if (colorToMove == 0) SIMD::ActivateFlattenAndForward<Activation>(
-                        accumulator.White, accumulator.Black, OutputWeight, OutputBias,
-                        Output, 0);
+                        accumulator.White,
+                        accumulator.Black,
+                        OutputWeight,
+                        OutputBias,
+                        Output,
+                        0);
 
                 else SIMD::ActivateFlattenAndForward<Activation>(
-                        accumulator.Black, accumulator.White, OutputWeight, OutputBias,
-                        Output, 0);
+                        accumulator.Black,
+                        accumulator.White,
+                        OutputWeight,
+                        OutputBias,
+                        Output,
+                        0);
 
                 return Output[0] * Scale / (QuantizationFeature * QuantizationOutput);
             }
