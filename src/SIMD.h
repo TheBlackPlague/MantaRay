@@ -47,15 +47,15 @@ namespace MantaRay
                 Vec256I ymm1;
 
                 for (size_t i = 0; i < InputSize; i += 16) {
-                    ymm0 = Avx<T>::From(inputA, i);
-                    ymm1 = Avx<T>::From(delta, oA + i);
+                    ymm0 = Avx<T> ::From(inputA, i);
+                    ymm1 = Avx<T> ::From(delta, oA + i);
                     ymm0 = Avx2<T>::Add(ymm0, ymm1);
                     Avx<T>::Store(ymm0, inputA, i);
                 }
 
                 for (size_t i = 0; i < InputSize; i += 16) {
-                    ymm0 = Avx<T>::From(inputB, i);
-                    ymm1 = Avx<T>::From(delta, oB + i);
+                    ymm0 = Avx<T> ::From(inputB, i);
+                    ymm1 = Avx<T> ::From(delta, oB + i);
                     ymm0 = Avx2<T>::Add(ymm0, ymm1);
                     Avx<T>::Store(ymm0, inputB, i);
                 }
@@ -92,15 +92,15 @@ namespace MantaRay
                 Vec256I ymm1;
 
                 for (size_t i = 0; i < InputSize; i += 16) {
-                    ymm0 = Avx<T>::From(inputA, i);
-                    ymm1 = Avx<T>::From(delta, oA + i);
+                    ymm0 = Avx<T> ::From(inputA, i);
+                    ymm1 = Avx<T> ::From(delta, oA + i);
                     ymm0 = Avx2<T>::Subtract(ymm0, ymm1);
                     Avx<T>::Store(ymm0, inputA, i);
                 }
 
                 for (size_t i = 0; i < InputSize; i += 16) {
-                    ymm0 = Avx<T>::From(inputB, i);
-                    ymm1 = Avx<T>::From(delta, oB + i);
+                    ymm0 = Avx<T> ::From(inputB, i);
+                    ymm1 = Avx<T> ::From(delta, oB + i);
                     ymm0 = Avx2<T>::Subtract(ymm0, ymm1);
                     Avx<T>::Store(ymm0, inputB, i);
                 }
@@ -144,18 +144,18 @@ namespace MantaRay
                 Vec256I ymm2;
 
                 for (size_t i = 0; i < InputSize; i += 16) {
-                    ymm0 = Avx<T>::From(inputA, i);
-                    ymm1 = Avx<T>::From(delta, oAS + i);
-                    ymm2 = Avx<T>::From(delta, oAA + i);
+                    ymm0 = Avx<T> ::From(inputA, i);
+                    ymm1 = Avx<T> ::From(delta, oAS + i);
+                    ymm2 = Avx<T> ::From(delta, oAA + i);
                     ymm0 = Avx2<T>::Subtract(ymm0, ymm1);
                     ymm0 = Avx2<T>::Add(ymm0, ymm2);
                     Avx<T>::Store(ymm0, inputA, i);
                 }
 
                 for (size_t i = 0; i < InputSize; i += 16) {
-                    ymm0 = Avx<T>::From(inputB, i);
-                    ymm1 = Avx<T>::From(delta, oBS + i);
-                    ymm2 = Avx<T>::From(delta, oBA + i);
+                    ymm0 = Avx<T> ::From(inputB, i);
+                    ymm1 = Avx<T> ::From(delta, oBS + i);
+                    ymm2 = Avx<T> ::From(delta, oBA + i);
                     ymm0 = Avx2<T>::Subtract(ymm0, ymm1);
                     ymm0 = Avx2<T>::Add(ymm0, ymm2);
                     Avx<T>::Store(ymm0, inputB, i);
@@ -185,18 +185,18 @@ namespace MantaRay
 
                     for (size_t j = 0; j < InputSize; j += 32) {
                         // START INPUT A
-                        zmm1 = Avx512<T>::From(inputA, j);
-                        zmm2 = Avx512<T>::From(weight, stride + j);
+                        zmm1 = Avx512<T> ::From(inputA, j);
+                        zmm2 = Avx512<T> ::From(weight, stride + j);
                         zmm1 = Activation::Activate(zmm1);
-                        zmm1 = Avx512<T>::MultiplyAndAddAdjacent(zmm1, zmm2);
+                        zmm1 = Avx512<T> ::MultiplyAndAddAdjacent(zmm1, zmm2);
                         zmm0 = Avx512<OT>::Add(zmm0, zmm1);
                         // END INPUT A
 
                         // START INPUT B
-                        zmm1 = Avx512<T>::From(inputB, j);
-                        zmm2 = Avx512<T>::From(weight, InputSize + stride + j);
+                        zmm1 = Avx512<T> ::From(inputB, j);
+                        zmm2 = Avx512<T> ::From(weight, InputSize + stride + j);
                         zmm1 = Activation::Activate(zmm1);
-                        zmm1 = Avx512<T>::MultiplyAndAddAdjacent(zmm1, zmm2);
+                        zmm1 = Avx512<T> ::MultiplyAndAddAdjacent(zmm1, zmm2);
                         zmm0 = Avx512<OT>::Add(zmm0, zmm1);
                         // END INPUT B
                     }
@@ -211,19 +211,19 @@ namespace MantaRay
 
                     for (size_t j = 0; j < InputSize; j += 16) {
                         // START INPUT A
-                        ymm1 = Avx<T>::From(inputA, j);
-                        ymm2 = Avx<T>::From(weight, stride + j);
+                        ymm1 = Avx<T>    ::From(inputA, j);
+                        ymm2 = Avx<T>    ::From(weight, stride + j);
                         ymm1 = Activation::Activate(ymm1);
-                        ymm1 = Avx2<T>::MultiplyAndAddAdjacent(ymm1, ymm2);
-                        ymm0 = Avx2<OT>::Add(ymm0, ymm1);
+                        ymm1 = Avx2<T>   ::MultiplyAndAddAdjacent(ymm1, ymm2);
+                        ymm0 = Avx2<OT>  ::Add(ymm0, ymm1);
                         // END INPUT A
 
                         // START INPUT B
-                        ymm1 = Avx<T>::From(inputB, j);
-                        ymm2 = Avx<T>::From(weight, InputSize + stride + j);
+                        ymm1 = Avx<T>    ::From(inputB, j);
+                        ymm2 = Avx<T>    ::From(weight, InputSize + stride + j);
                         ymm1 = Activation::Activate(ymm1);
-                        ymm1 = Avx2<T>::MultiplyAndAddAdjacent(ymm1, ymm2);
-                        ymm0 = Avx2<OT>::Add(ymm0, ymm1);
+                        ymm1 = Avx2<T>   ::MultiplyAndAddAdjacent(ymm1, ymm2);
+                        ymm0 = Avx2<OT>  ::Add(ymm0, ymm1);
                         // END INPUT B
                     }
 

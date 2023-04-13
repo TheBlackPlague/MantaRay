@@ -41,7 +41,7 @@ namespace MantaRay
                     for (auto &[k2, v2] : v.items()) {
                         size_t idx = permute ? j * stride + i : i * stride + j;
 
-                        auto d = static_cast<double>(v2);
+                        auto d     = static_cast<double>(v2);
                         array[idx] = static_cast<T>(d * K);
                         j++;
                     }
@@ -57,7 +57,7 @@ namespace MantaRay
 
                 size_t i = 0;
                 for (auto &[k, v] : obj.items()) {
-                    auto d = static_cast<double>(v);
+                    auto d   = static_cast<double>(v);
                     array[i] = static_cast<T>(d * K);
                     i++;
                 }

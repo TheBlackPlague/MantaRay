@@ -140,10 +140,10 @@ namespace MantaRay
             {
                 const uint16_t pieceStride = piece * PieceStride;
 
-                const uint32_t whiteIndexFrom = color * ColorStride + pieceStride + from;
-                const uint32_t blackIndexFrom = (color ^ 1) * ColorStride + pieceStride + (from ^ 56);
-                const uint32_t whiteIndexTo = color * ColorStride + pieceStride + to;
-                const uint32_t blackIndexTo = (color ^ 1) * ColorStride + pieceStride + (to ^ 56);
+                const uint32_t whiteIndexFrom =  color       * ColorStride + pieceStride +        from;
+                const uint32_t blackIndexFrom = (color ^ 1)  * ColorStride + pieceStride + (from ^ 56);
+                const uint32_t whiteIndexTo   =  color       * ColorStride + pieceStride +          to;
+                const uint32_t blackIndexTo   = (color ^ 1)  * ColorStride + pieceStride +   (to ^ 56);
 
                 PerspectiveAccumulator<T, HiddenSize>& accumulator = Accumulators[CurrentAccumulator];
 
@@ -161,7 +161,7 @@ namespace MantaRay
             {
                 const uint16_t pieceStride = piece * PieceStride;
 
-                const uint32_t whiteIndex = color * ColorStride + pieceStride + sq;
+                const uint32_t whiteIndex =  color      * ColorStride + pieceStride +        sq;
                 const uint32_t blackIndex = (color ^ 1) * ColorStride + pieceStride + (sq ^ 56);
 
                 PerspectiveAccumulator<T, HiddenSize>& accumulator = Accumulators[CurrentAccumulator];

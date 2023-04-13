@@ -11,7 +11,7 @@ namespace MantaRay
 
     enum class AccumulatorOperation
     {
-        Activate __attribute__((unused)),
+        Activate   __attribute__((unused)),
         Deactivate __attribute__((unused))
     };
 
