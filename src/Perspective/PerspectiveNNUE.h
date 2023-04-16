@@ -13,7 +13,8 @@
 #include "PerspectiveAccumulator.h"
 #include "../SIMD.h"
 #include "../AccumulatorOperation.h"
-#include "../IO/BinaryStream.h"
+#include "../IO/BinaryFileStream.h"
+#include "../IO/BinaryMemoryStream.h"
 #include "../IO/MarlinflowStream.h"
 
 namespace MantaRay
@@ -78,7 +79,17 @@ namespace MantaRay
                 InitializeAccumulatorStack();
             }
 
-            __attribute__((unused)) explicit PerspectiveNetwork(BinaryStream &stream)
+            __attribute__((unused)) explicit PerspectiveNetwork(BinaryFileStream &stream)
+            {
+                InitializeAccumulatorStack();
+
+                stream.ReadArray(FeatureWeight);
+                stream.ReadArray(FeatureBias  );
+                stream.ReadArray(OutputWeight );
+                stream.ReadArray(OutputBias   );
+            }
+
+            __attribute__((unused)) explicit PerspectiveNetwork(BinaryMemoryStream &stream)
             {
                 InitializeAccumulatorStack();
 
@@ -101,7 +112,7 @@ namespace MantaRay
                 stream.ReadArray("out.bias", OutputBias , QuantizationFeature * QuantizationOutput);
             }
 
-            __attribute__((unused)) void WriteTo(BinaryStream &stream)
+            __attribute__((unused)) void WriteTo(BinaryFileStream &stream)
             {
                 stream.WriteMode();
 

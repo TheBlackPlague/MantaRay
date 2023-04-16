@@ -3,8 +3,8 @@
 // Licensed under MIT.
 //
 
-#ifndef MANTARAY_BINARYSTREAM_H
-#define MANTARAY_BINARYSTREAM_H
+#ifndef MANTARAY_BINARYFILESTREAM_H
+#define MANTARAY_BINARYFILESTREAM_H
 
 #include <array>
 #include <cstdint>
@@ -13,14 +13,14 @@
 namespace MantaRay
 {
 
-    class BinaryStream : DataStream<std::ios::binary | std::ios::in>
+    class BinaryFileStream : DataStream<std::ios::binary | std::ios::in>
     {
 
         private:
             std::string Path;
 
         public:
-            __attribute__((unused)) explicit BinaryStream(const std::string &path) : DataStream(path)
+            __attribute__((unused)) explicit BinaryFileStream(const std::string &path) : DataStream(path)
             {
                 Path = path;
             }
@@ -48,4 +48,4 @@ namespace MantaRay
 
 } // MantaRay
 
-#endif //MANTARAY_BINARYSTREAM_H
+#endif //MANTARAY_BINARYFILESTREAM_H
