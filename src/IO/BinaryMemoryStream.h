@@ -31,8 +31,8 @@ namespace MantaRay
     {
 
         public:
-            BinaryMemoryStream(const char* src, const size_t size) :
-                    BinaryMemoryBuffer(src, size), std::istream(static_cast<std::streambuf*>(this)) {}
+            __attribute__((unused)) BinaryMemoryStream(const char* src, const size_t size) :
+            BinaryMemoryBuffer(src, size), std::istream(static_cast<std::streambuf*>(this)) {}
 
             template<typename T, size_t Size>
             void ReadArray(std::array<T, Size> &array)
