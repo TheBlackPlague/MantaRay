@@ -16,28 +16,32 @@
 namespace MantaRay
 {
 
-    struct BinaryMemoryBuffer : std::streambuf
+    using streambuf = std::basic_streambuf<unsigned char, std::char_traits<unsigned char>>;
+
+    struct BinaryMemoryBuffer : streambuf
     {
 
         public:
-            BinaryMemoryBuffer(const char* src, const size_t size) {
-                char *p (const_cast<char*>(src));
+            BinaryMemoryBuffer(const unsigned char* src, const size_t size) {
+                auto *p (const_cast<unsigned char*>(src));
                 this->setg(p, p, p + size);
             }
 
     };
 
-    struct BinaryMemoryStream : virtual MantaRay::BinaryMemoryBuffer, std::istream
+    using istream = std::basic_istream<unsigned char, std::char_traits<unsigned char>>;
+
+    struct BinaryMemoryStream : virtual MantaRay::BinaryMemoryBuffer, istream
     {
 
         public:
-            __attribute__((unused)) BinaryMemoryStream(const char* src, const size_t size) :
-            BinaryMemoryBuffer(src, size), std::istream(static_cast<std::streambuf*>(this)) {}
+            __attribute__((unused)) BinaryMemoryStream(const unsigned char* src, const size_t size) :
+            BinaryMemoryBuffer(src, size), istream(static_cast<streambuf*>(this)) {}
 
             template<typename T, size_t Size>
             void ReadArray(std::array<T, Size> &array)
             {
-                this->read((char*)(&array), sizeof array);
+                this->read((unsigned char*)(&array), sizeof array);
             }
 
     };
