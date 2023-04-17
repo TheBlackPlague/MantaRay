@@ -8,6 +8,12 @@
 
 #include <array>
 
+#ifdef __AVX512BW__
+#include "../Backend/Avx512.h"
+#elifdef __AVX2__
+#include "../Backend/Avx2.h"
+#endif
+
 namespace MantaRay
 {
 
@@ -33,19 +39,48 @@ namespace MantaRay
                 std::fill(std::begin(Black), std::end(Black), 0);
             }
 
-            void CopyTo(PerspectiveAccumulator<T, AccumulatorSize> &accumulator)
+            inline void CopyTo(PerspectiveAccumulator<T, AccumulatorSize> &accumulator)
             {
+                // Certain instructions can be limited further down, but due to alignment issues, performance may not be
+                // best. Thus, currently limiting to peak instruction set.
+
+#ifdef __AVX512BW__ // Limit this to AVX512F instead.
+                Vec512I zmm0;
+
+                for (size_t i = 0; i < AccumulatorSize; i += 32) {
+                    zmm0 = Avx512<T>::From(White, i);
+                    Avx512<T>::Store(zmm0, accumulator.White, i);
+                }
+
+                for (size_t i = 0; i < AccumulatorSize; i += 32) {
+                    zmm0 = Avx512<T>::From(Black, i);
+                    Avx512<T>::Store(zmm0, accumulator.Black, i);
+                }
+#elifdef __AVX2__ // Limit this to AVX instead.
+                Vec256I ymm0;
+
+                for (size_t i = 0; i < AccumulatorSize; i += 16) {
+                    ymm0 = Avx<T>::From(White, i);
+                    Avx<T>::Store(ymm0, accumulator.White, i);
+                }
+
+                for (size_t i = 0; i < AccumulatorSize; i += 16) {
+                    ymm0 = Avx<T>::From(Black, i);
+                    Avx<T>::Store(ymm0, accumulator.Black, i);
+                }
+#else
                 std::copy(std::begin(White), std::end(White), std::begin(accumulator.White));
                 std::copy(std::begin(Black), std::end(Black), std::begin(accumulator.Black));
+#endif
             }
 
-            void LoadBias(std::array<T, AccumulatorSize> &bias)
+            inline void LoadBias(std::array<T, AccumulatorSize> &bias)
             {
                 std::copy(std::begin(bias), std::end(bias), std::begin(White));
                 std::copy(std::begin(bias), std::end(bias), std::begin(Black));
             }
 
-            void Zero()
+            inline void Zero()
             {
                 std::fill(std::begin(White), std::end(White), 0);
                 std::fill(std::begin(Black), std::end(Black), 0);
