@@ -41,6 +41,9 @@ namespace MantaRay
                 "These scale and quantization constants don't seem right.");
 
         private:
+            constexpr static uint16_t ColorStride = 64 * 6;
+            constexpr static uint8_t  PieceStride = 64    ;
+
 #ifdef __AVX512BW__
             alignas(64) std::array<T , InputSize * HiddenSize     > FeatureWeight;
             alignas(64) std::array<T , HiddenSize                 > FeatureBias  ;
@@ -63,9 +66,6 @@ namespace MantaRay
 
             std::array<PerspectiveAccumulator<T, HiddenSize>, AccumulatorStackSize> Accumulators;
             uint16_t CurrentAccumulator = 0;
-
-            const uint16_t ColorStride = 64 * 6;
-            const uint8_t  PieceStride = 64    ;
 
             void InitializeAccumulatorStack()
             {
