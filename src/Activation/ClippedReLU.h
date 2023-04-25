@@ -19,7 +19,7 @@ namespace MantaRay
 
         public:
 #ifdef __AVX512BW__
-            static inline Vec512I Activate(Vec512I arg)
+            static inline Vec512I Activate(const Vec512I& arg)
             {
                 const Vec512I min = Avx512<T>::From(Minimum);
                 const Vec512I max = Avx512<T>::From(Maximum);
@@ -27,7 +27,7 @@ namespace MantaRay
                 return Avx512<T>::Max(min, Avx512<T>::Min(max, arg));
             }
 #elifdef __AVX2__
-            static inline Vec256I Activate(Vec256I arg)
+            static inline Vec256I Activate(const Vec256I& arg)
             {
                 const Vec256I min = Avx<T>::From(Minimum);
                 const Vec256I max = Avx<T>::From(Maximum);
@@ -35,7 +35,7 @@ namespace MantaRay
                 return Avx2<T>::Max(min, Avx2<T>::Min(max, arg));
             }
 #else
-            static inline T Activate(T arg)
+            static inline T Activate(const T arg)
             {
                 return std::max(Minimum, std::min(Maximum, arg));
             }

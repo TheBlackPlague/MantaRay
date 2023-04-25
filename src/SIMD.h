@@ -21,8 +21,8 @@ namespace MantaRay
     {
         public:
             template<typename T, size_t InputSize, size_t DeltaSize>
-            static inline void AddToAll(std::array<T, InputSize> &inputA, std::array<T, InputSize> &inputB,
-                                        const std::array<T, DeltaSize> &delta,
+            static inline void AddToAll(std::array<T, InputSize>& inputA, std::array<T, InputSize>& inputB,
+                                        const std::array<T, DeltaSize>& delta,
                                         const uint32_t oA, const uint32_t oB)
             {
 #ifdef __AVX512BW__
@@ -66,8 +66,8 @@ namespace MantaRay
             }
 
             template<typename T, size_t InputSize, size_t DeltaSize>
-            static inline void SubtractFromAll(std::array<T, InputSize> &inputA, std::array<T, InputSize> &inputB,
-                                               const std::array<T, DeltaSize> &delta,
+            static inline void SubtractFromAll(std::array<T, InputSize>& inputA, std::array<T, InputSize>& inputB,
+                                               const std::array<T, DeltaSize>& delta,
                                                const uint32_t oA, const uint32_t oB)
             {
 #ifdef __AVX512BW__
@@ -111,8 +111,8 @@ namespace MantaRay
             }
 
             template<typename T, size_t InputSize, size_t DeltaSize>
-            static inline void SubtractAndAddToAll(std::array<T, InputSize> &inputA, std::array<T, InputSize> &inputB,
-                                                   const std::array<T, DeltaSize> &delta,
+            static inline void SubtractAndAddToAll(std::array<T, InputSize>& inputA, std::array<T, InputSize>& inputB,
+                                                   const std::array<T, DeltaSize>& delta,
                                                    const uint32_t oAS, const uint32_t oAA,
                                                    const uint32_t oBS, const uint32_t oBA)
             {
@@ -171,10 +171,10 @@ namespace MantaRay
             template<typename Activation, typename T, typename OT, size_t InputSize, size_t OutputSize>
             [[clang::noinline]]
             static void ActivateFlattenAndForward(
-                    const std::array<T, InputSize> &inputA, const std::array<T, InputSize> &inputB,
-                    const std::array<T, InputSize * 2 * OutputSize> &weight,
-                    const std::array<T, OutputSize> &bias,
-                    std::array<OT, OutputSize> &output, const uint32_t o)
+                    const std::array<T, InputSize>& inputA, const std::array<T, InputSize>& inputB,
+                    const std::array<T, InputSize * 2 * OutputSize>& weight,
+                    const std::array<T, OutputSize>& bias,
+                    std::array<OT, OutputSize>& output, const uint32_t o)
             {
                 size_t stride = 0;
                 for (size_t i = 0; i < OutputSize; i++) {

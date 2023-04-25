@@ -23,13 +23,13 @@ namespace MantaRay
             JSON data;
 
         public:
-            __attribute__((unused)) explicit MarlinflowStream(const std::string &path) : DataStream(path)
+            __attribute__((unused)) explicit MarlinflowStream(const std::string& path) : DataStream(path)
             {
                 data = JSON::parse(this->Stream);
             }
 
             template<typename T, size_t Size>
-            void Read2DArray(const std::string &key, std::array<T, Size> &array, const size_t stride, const size_t K,
+            void Read2DArray(const std::string& key, std::array<T, Size>& array, const size_t stride, const size_t K,
                              const bool permute)
             {
                 JSON &obj = data[key];
@@ -51,7 +51,7 @@ namespace MantaRay
             }
 
             template<typename T, size_t Size>
-            void ReadArray(const std::string &key, std::array<T, Size> &array, const size_t K)
+            void ReadArray(const std::string& key, std::array<T, Size>& array, const size_t K)
             {
                 JSON &obj = data[key];
 

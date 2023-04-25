@@ -39,7 +39,7 @@ namespace MantaRay
                 std::fill(std::begin(Black), std::end(Black), 0);
             }
 
-            inline void CopyTo(PerspectiveAccumulator<T, AccumulatorSize> &accumulator)
+            inline void CopyTo(PerspectiveAccumulator<T, AccumulatorSize>& accumulator)
             {
                 // Certain instructions can be limited further down, but due to alignment issues, performance may not be
                 // best. Thus, currently limiting to peak instruction set.
@@ -74,7 +74,7 @@ namespace MantaRay
 #endif
             }
 
-            inline void LoadBias(std::array<T, AccumulatorSize> &bias)
+            inline void LoadBias(std::array<T, AccumulatorSize>& bias)
             {
                 std::copy(std::begin(bias), std::end(bias), std::begin(White));
                 std::copy(std::begin(bias), std::end(bias), std::begin(Black));

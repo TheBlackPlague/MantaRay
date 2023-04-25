@@ -23,7 +23,7 @@ namespace MantaRay
             FileStream Stream;
 
         public:
-            explicit DataStream(const std::string &path)
+            explicit DataStream(const std::string& path)
             {
                 Stream.open(path, O);
             }

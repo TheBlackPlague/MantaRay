@@ -20,7 +20,7 @@ namespace MantaRay
             std::string Path;
 
         public:
-            __attribute__((unused)) explicit BinaryFileStream(const std::string &path) : DataStream(path)
+            __attribute__((unused)) explicit BinaryFileStream(const std::string& path) : DataStream(path)
             {
                 Path = path;
             }
@@ -33,13 +33,13 @@ namespace MantaRay
             }
 
             template<typename T, size_t Size>
-            void ReadArray(std::array<T, Size> &array)
+            void ReadArray(std::array<T, Size>& array)
             {
                 this->Stream.read((char*)(&array), sizeof array);
             }
 
             template<typename T, size_t Size>
-            void WriteArray(const std::array<T, Size> &array)
+            void WriteArray(const std::array<T, Size>& array)
             {
                 this->Stream.write((const char*)(&array), sizeof array);
             }
