@@ -5,11 +5,8 @@
 		src=".readme/main.png">
 </h1>
 
-<h1 align="center">
-    MantaRay
-</h1>
 <h3 align="center">
-	Lightspeed C++ Neural Network (UE) Inference Library for Chess
+	MantaRay - Lightspeed C++ Neural Network (UE) Inference Library for Chess
 </h3>
 
 ---
