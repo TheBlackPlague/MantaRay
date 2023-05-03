@@ -74,22 +74,12 @@ namespace MantaRay
             }
 
         public:
-            __attribute__((unused)) PerspectiveNetwork()
+            __attribute__((unused)) constexpr PerspectiveNetwork()
             {
                 InitializeAccumulatorStack();
             }
 
-            __attribute__((unused)) explicit PerspectiveNetwork(BinaryFileStream &stream)
-            {
-                InitializeAccumulatorStack();
-
-                stream.ReadArray(FeatureWeight);
-                stream.ReadArray(FeatureBias  );
-                stream.ReadArray(OutputWeight );
-                stream.ReadArray(OutputBias   );
-            }
-
-            __attribute__((unused)) explicit PerspectiveNetwork(BinaryMemoryStream &stream)
+            __attribute__((unused)) constexpr explicit PerspectiveNetwork(BinaryFileStream &stream)
             {
                 InitializeAccumulatorStack();
 
@@ -99,7 +89,17 @@ namespace MantaRay
                 stream.ReadArray(OutputBias   );
             }
 
-            __attribute__((unused)) explicit PerspectiveNetwork(MarlinflowStream &stream)
+            __attribute__((unused)) constexpr explicit PerspectiveNetwork(BinaryMemoryStream &stream)
+            {
+                InitializeAccumulatorStack();
+
+                stream.ReadArray(FeatureWeight);
+                stream.ReadArray(FeatureBias  );
+                stream.ReadArray(OutputWeight );
+                stream.ReadArray(OutputBias   );
+            }
+
+            __attribute__((unused)) constexpr explicit PerspectiveNetwork(MarlinflowStream &stream)
             {
                 InitializeAccumulatorStack();
 
