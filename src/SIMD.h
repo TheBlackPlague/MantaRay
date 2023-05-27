@@ -21,6 +21,7 @@ namespace MantaRay
     /// \details This class contains SIMD implementations of common operations used in MantaRay.
     class SIMD
     {
+
         public:
             /// \brief Add the delta to elements in the input arrays.
             /// \tparam T The type of the input and delta.
@@ -43,8 +44,11 @@ namespace MantaRay
                 Vec512I zmm0;
                 Vec512I zmm1;
 
+                // Define the step size for the loops:
+                constexpr size_t Step = sizeof(Vec512I) / sizeof(T);
+
                 //region INPUT A
-                for (size_t i = 0; i < InputSize; i += 32) {
+                for (size_t i = 0; i < InputSize; i += Step) {
                     // Load the input and delta values into the registers:
                     zmm0 = Avx512<T>::From(inputA,      i);
                     zmm1 = Avx512<T>::From(delta , oA + i);
@@ -58,7 +62,7 @@ namespace MantaRay
                 //endregion
 
                 //region INPUT B
-                for (size_t i = 0; i < InputSize; i += 32) {
+                for (size_t i = 0; i < InputSize; i += Step) {
                     // Load the input and delta values into the registers:
                     zmm0 = Avx512<T>::From(inputB,      i);
                     zmm1 = Avx512<T>::From(delta , oB + i);
@@ -75,8 +79,11 @@ namespace MantaRay
                 Vec256I ymm0;
                 Vec256I ymm1;
 
+                // Define the step size for the loops:
+                constexpr size_t Step = sizeof(Vec256I) / sizeof(T);
+
                 //region INPUT A
-                for (size_t i = 0; i < InputSize; i += 16) {
+                for (size_t i = 0; i < InputSize; i += Step) {
                     // Load the input and delta values into the registers:
                     ymm0 = Avx<T> ::From(inputA,      i);
                     ymm1 = Avx<T> ::From(delta , oA + i);
@@ -90,7 +97,7 @@ namespace MantaRay
                 //endregion
 
                 //region INPUT B
-                for (size_t i = 0; i < InputSize; i += 16) {
+                for (size_t i = 0; i < InputSize; i += Step) {
                     // Load the input and delta values into the registers:
                     ymm0 = Avx<T> ::From(inputB,      i);
                     ymm1 = Avx<T> ::From(delta , oB + i);
@@ -130,8 +137,11 @@ namespace MantaRay
                 Vec512I zmm0;
                 Vec512I zmm1;
 
+                // Define the step size for the loops:
+                constexpr size_t Step = sizeof(Vec512I) / sizeof(T);
+
                 //region INPUT A
-                for (size_t i = 0; i < InputSize; i += 32) {
+                for (size_t i = 0; i < InputSize; i += Step) {
                     // Load the input and delta values into the registers:
                     zmm0 = Avx512<T>::From(inputA,      i);
                     zmm1 = Avx512<T>::From(delta , oA + i);
@@ -145,7 +155,7 @@ namespace MantaRay
                 //endregion
 
                 //region INPUT B
-                for (size_t i = 0; i < InputSize; i += 32) {
+                for (size_t i = 0; i < InputSize; i += Step) {
                     // Load the input and delta values into the registers:
                     zmm0 = Avx512<T>::From(inputB,      i);
                     zmm1 = Avx512<T>::From(delta , oB + i);
@@ -162,8 +172,11 @@ namespace MantaRay
                 Vec256I ymm0;
                 Vec256I ymm1;
 
+                // Define the step size for the loops:
+                constexpr size_t Step = sizeof(Vec256I) / sizeof(T);
+
                 //region INPUT A
-                for (size_t i = 0; i < InputSize; i += 16) {
+                for (size_t i = 0; i < InputSize; i += Step) {
                     // Load the input and delta values into the registers:
                     ymm0 = Avx<T> ::From(inputA,      i);
                     ymm1 = Avx<T> ::From(delta , oA + i);
@@ -177,7 +190,7 @@ namespace MantaRay
                 //endregion
 
                 //region INPUT B
-                for (size_t i = 0; i < InputSize; i += 16) {
+                for (size_t i = 0; i < InputSize; i += Step) {
                     // Load the input and delta values into the registers:
                     ymm0 = Avx<T> ::From(inputB,      i);
                     ymm1 = Avx<T> ::From(delta , oB + i);
@@ -223,8 +236,11 @@ namespace MantaRay
                 Vec512I zmm1;
                 Vec512I zmm2;
 
+                // Define the step size for the loops:
+                constexpr size_t Step = sizeof(Vec512I) / sizeof(T);
+
                 //region INPUT A
-                for (size_t i = 0; i < InputSize; i += 32) {
+                for (size_t i = 0; i < InputSize; i += Step) {
                     // Load the input and delta values into the registers:
                     zmm0 = Avx512<T>::From(inputA,       i);
                     zmm1 = Avx512<T>::From(delta , oAS + i);
@@ -240,7 +256,7 @@ namespace MantaRay
                 //endregion
 
                 //region INPUT B
-                for (size_t i = 0; i < InputSize; i += 32) {
+                for (size_t i = 0; i < InputSize; i += Step) {
                     // Load the input and delta values into the registers:
                     zmm0 = Avx512<T>::From(inputB,       i);
                     zmm1 = Avx512<T>::From(delta , oBS + i);
@@ -260,8 +276,11 @@ namespace MantaRay
                 Vec256I ymm1;
                 Vec256I ymm2;
 
+                // Define the step size for the loops:
+                constexpr size_t Step = sizeof(Vec256I) / sizeof(T);
+
                 //region INPUT A
-                for (size_t i = 0; i < InputSize; i += 16) {
+                for (size_t i = 0; i < InputSize; i += Step) {
                     // Load the input and delta values into the registers:
                     ymm0 = Avx<T> ::From(inputA,       i);
                     ymm1 = Avx<T> ::From(delta , oAS + i);
@@ -277,7 +296,7 @@ namespace MantaRay
                 //endregion
 
                 //region INPUT B
-                for (size_t i = 0; i < InputSize; i += 16) {
+                for (size_t i = 0; i < InputSize; i += Step) {
                     // Load the input and delta values into the registers:
                     ymm0 = Avx<T> ::From(inputB,       i);
                     ymm1 = Avx<T> ::From(delta , oBS + i);
@@ -340,8 +359,11 @@ namespace MantaRay
                     Vec512I zmm1;
                     Vec512I zmm2;
 
+                    // Define the step size for the loop:
+                    constexpr size_t Step = sizeof(Vec512I) / sizeof(T);
+
                     // Inner loop performing sum += activation(flatten(input)) * weight:
-                    for (size_t j = 0; j < InputSize; j += 32) {
+                    for (size_t j = 0; j < InputSize; j += Step) {
                         //region INPUT A
                         // Load the input array and weight array into registers:
                         zmm1 = Avx512<T> ::From(inputA, j);
@@ -382,8 +404,11 @@ namespace MantaRay
                     Vec256I ymm1;
                     Vec256I ymm2;
 
+                    // Define the step size for the loop:
+                    constexpr size_t Step = sizeof(Vec256I) / sizeof(T);
+
                     // Inner loop performing sum += activation(flatten(input)) * weight:
-                    for (size_t j = 0; j < InputSize; j += 16) {
+                    for (size_t j = 0; j < InputSize; j += Step) {
                         //region INPUT A
                         // Load the input array and weight array into registers:
                         ymm1 = Avx<T>    ::From(inputA,          j);

@@ -62,8 +62,11 @@ namespace MantaRay
                 // Define the register:
                 Vec512I zmm0;
 
+                // Define the step size for the loops:
+                constexpr size_t Step = sizeof(Vec512I) / sizeof(T);
+
                 //region White
-                for (size_t i = 0; i < AccumulatorSize; i += 32) {
+                for (size_t i = 0; i < AccumulatorSize; i += Step) {
                     // Load the accumulator values into the register:
                     zmm0 = Avx512<T>::From(White, i);
 
@@ -73,7 +76,7 @@ namespace MantaRay
                 //endregion
 
                 //region Black
-                for (size_t i = 0; i < AccumulatorSize; i += 32) {
+                for (size_t i = 0; i < AccumulatorSize; i += Step) {
                     // Load the accumulator values into the register:
                     zmm0 = Avx512<T>::From(Black, i);
 
@@ -85,8 +88,11 @@ namespace MantaRay
                 // Define the register:
                 Vec256I ymm0;
 
+                // Define the step size for the loops:
+                constexpr size_t Step = sizeof(Vec256I) / sizeof(T);
+
                 //region White
-                for (size_t i = 0; i < AccumulatorSize; i += 16) {
+                for (size_t i = 0; i < AccumulatorSize; i += Step) {
                     // Load the accumulator values into the register:
                     ymm0 = Avx<T>::From(White, i);
 
@@ -96,7 +102,7 @@ namespace MantaRay
                 //endregion
 
                 //region Black
-                for (size_t i = 0; i < AccumulatorSize; i += 16) {
+                for (size_t i = 0; i < AccumulatorSize; i += Step) {
                     // Load the accumulator values into the register:
                     ymm0 = Avx<T>::From(Black, i);
 
