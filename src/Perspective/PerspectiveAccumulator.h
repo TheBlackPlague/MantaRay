@@ -59,29 +59,51 @@ namespace MantaRay
                 // best. Thus, currently limiting to peak instruction set.
 
 #ifdef __AVX512BW__ // Limit this to AVX512F instead.
+                // Define the register:
                 Vec512I zmm0;
 
+                //region White
                 for (size_t i = 0; i < AccumulatorSize; i += 32) {
+                    // Load the accumulator values into the register:
                     zmm0 = Avx512<T>::From(White, i);
+
+                    // Store the register values into the target accumulator:
                     Avx512<T>::Store(zmm0, accumulator.White, i);
                 }
+                //endregion
 
+                //region Black
                 for (size_t i = 0; i < AccumulatorSize; i += 32) {
+                    // Load the accumulator values into the register:
                     zmm0 = Avx512<T>::From(Black, i);
+
+                    // Store the register values into the target accumulator:
                     Avx512<T>::Store(zmm0, accumulator.Black, i);
                 }
+                //endregion
 #elifdef __AVX2__ // Limit this to AVX instead.
+                // Define the register:
                 Vec256I ymm0;
 
+                //region White
                 for (size_t i = 0; i < AccumulatorSize; i += 16) {
+                    // Load the accumulator values into the register:
                     ymm0 = Avx<T>::From(White, i);
+
+                    // Store the register values into the target accumulator:
                     Avx<T>::Store(ymm0, accumulator.White, i);
                 }
+                //endregion
 
+                //region Black
                 for (size_t i = 0; i < AccumulatorSize; i += 16) {
+                    // Load the accumulator values into the register:
                     ymm0 = Avx<T>::From(Black, i);
+
+                    // Store the register values into the target accumulator:
                     Avx<T>::Store(ymm0, accumulator.Black, i);
                 }
+                //endregion
 #else
                 std::copy(std::begin(White), std::end(White), std::begin(accumulator.White));
                 std::copy(std::begin(Black), std::end(Black), std::begin(accumulator.Black));

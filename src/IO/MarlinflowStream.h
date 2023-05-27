@@ -49,13 +49,16 @@ namespace MantaRay
             {
                 JSON &obj = data[key];
 
+                // Loop over the JSON object in a 2D fashion:
                 size_t i = 0;
                 for (auto &[k, v] : obj.items()) {
                     size_t j = 0;
 
                     for (auto &[k2, v2] : v.items()) {
+                        // Calculate the 1D index with respect to the stride and permutation (if necessary):
                         size_t idx = permute ? j * stride + i : i * stride + j;
 
+                        // Quantize the value and store it in the array:
                         auto d     = static_cast<double>(v2);
                         array[idx] = static_cast<T>(d * K);
                         j++;
@@ -78,8 +81,10 @@ namespace MantaRay
             {
                 JSON &obj = data[key];
 
+                // Loop over the JSON object in a 1D fashion:
                 size_t i = 0;
                 for (auto &[k, v] : obj.items()) {
+                    // Quantize the value and store it in the array:
                     auto d   = static_cast<double>(v);
                     array[i] = static_cast<T>(d * K);
                     i++;

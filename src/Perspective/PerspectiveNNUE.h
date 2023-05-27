@@ -207,15 +207,21 @@ namespace MantaRay
             __attribute__((unused)) inline void EfficientlyUpdateAccumulator(const uint8_t piece, const uint8_t color,
                                                                              const uint8_t from, const uint8_t to)
             {
+                // Calculate the stride necessary to get to the correct piece:
                 const uint16_t pieceStride = piece * PieceStride;
 
+                // Calculate the indices for the square of the piece that is moved with respect to both perspectives:
                 const uint32_t whiteIndexFrom =  color       * ColorStride + pieceStride +        from;
                 const uint32_t blackIndexFrom = (color ^ 1)  * ColorStride + pieceStride + (from ^ 56);
+
+                // Calculate the indices for the square the piece is moved to with respect to both perspectives:
                 const uint32_t whiteIndexTo   =  color       * ColorStride + pieceStride +          to;
                 const uint32_t blackIndexTo   = (color ^ 1)  * ColorStride + pieceStride + (  to ^ 56);
 
+                // Fetch the current accumulator:
                 PerspectiveAccumulator<T, HiddenSize>& accumulator = Accumulators[CurrentAccumulator];
 
+                // Efficiently update the accumulator:
                 SIMD::SubtractAndAddToAll(accumulator.White, accumulator.Black,
                                           FeatureWeight,
                                           whiteIndexFrom * HiddenSize,
@@ -238,13 +244,18 @@ namespace MantaRay
             __attribute__((unused)) inline void EfficientlyUpdateAccumulator(const uint8_t piece, const uint8_t color,
                                                                              const uint8_t sq)
             {
+                // Calculate the stride necessary to get to the correct piece:
                 const uint16_t pieceStride = piece * PieceStride;
 
+                // Calculate the indices for the square of the piece that is inserted or removed with respect to both
+                // perspectives:
                 const uint32_t whiteIndex =  color      * ColorStride + pieceStride +  sq      ;
                 const uint32_t blackIndex = (color ^ 1) * ColorStride + pieceStride + (sq ^ 56);
 
+                // Fetch the current accumulator:
                 PerspectiveAccumulator<T, HiddenSize>& accumulator = Accumulators[CurrentAccumulator];
 
+                // Efficiently update the accumulator:
                 if (Operation == AccumulatorOperation::Activate)
                     SIMD::AddToAll(accumulator.White,
                                    accumulator.Black,
@@ -267,8 +278,10 @@ namespace MantaRay
             ///          returned as the output type of the network.
             __attribute__((unused)) inline OT Evaluate(const uint8_t colorToMove)
             {
+                // Fetch the current accumulator:
                 PerspectiveAccumulator<T, HiddenSize>& accumulator = Accumulators[CurrentAccumulator];
 
+                // Activate, flatten, and forward-propagate the accumulator to evaluate the network:
                 if (colorToMove == 0) SIMD::ActivateFlattenAndForward<Activation>(
                         accumulator.White,
                         accumulator.Black,
@@ -276,8 +289,7 @@ namespace MantaRay
                         OutputBias,
                         Output,
                         0);
-
-                else SIMD::ActivateFlattenAndForward<Activation>(
+                else                  SIMD::ActivateFlattenAndForward<Activation>(
                         accumulator.Black,
                         accumulator.White,
                         OutputWeight,
@@ -285,6 +297,7 @@ namespace MantaRay
                         Output,
                         0);
 
+                // Scale the output with respect to the quantization and return it:
                 return Output[0] * Scale / (QuantizationFeature * QuantizationOutput);
             }
 

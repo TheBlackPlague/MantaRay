@@ -168,12 +168,18 @@ namespace MantaRay
             {
                 static_assert(std::is_same_v<T, int32_t>, "Unsupported type provided.");
 
+                // Define the registers used in the horizontal addition:
                 Vec256I ymm0;
                 Vec256I ymm1;
 
+                // Get the lower and upper half of the register:
                 ymm0 = _mm512_castsi512_si256(zmm0);
                 ymm1 = _mm512_extracti64x4_epi64(zmm0, 1);
+
+                // Add the lower and upper half vertically:
                 ymm0 = Avx2<T>::Add(ymm0, ymm1);
+
+                // Rely on the AVX2 implementation to calculate the horizontal addition:
                 return Avx2<T>::Sum(ymm0);
             }
 
