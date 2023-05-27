@@ -29,9 +29,9 @@ namespace MantaRay
             /// \param inputA The first input array.
             /// \param inputB The second input array.
             /// \param delta The delta array.
-            /// \param oA The offset into the first input array.
-            /// \param oB The offset into the second input array.
-            /// \details This function adds the delta to elements in the input arrays starting at the given offsets.
+            /// \param oA The delta offset for the first input array.
+            /// \param oB The delta offset for the second input array.
+            /// \details This function adds the offset delta to elements in the input arrays.
             ///          The delta is added to the input arrays in-place.
             template<typename T, size_t InputSize, size_t DeltaSize>
             static inline void AddToAll(std::array<T, InputSize>& inputA, std::array<T, InputSize>& inputB,
@@ -85,10 +85,10 @@ namespace MantaRay
             /// \param inputA The first input array.
             /// \param inputB The second input array.
             /// \param delta The delta array.
-            /// \param oA The offset into the first input array.
-            /// \param oB The offset into the second input array.
-            /// \details This function subtracts the delta from elements in the input arrays starting at the given
-            ///          offsets. The delta is subtracted from the input arrays in-place.
+            /// \param oA The delta offset for the first input array.
+            /// \param oB The delta offset for the second input array.
+            /// \details This function subtracts the offset delta from elements in the input arrays.
+            ///          The delta is subtracted from the input arrays in-place.
             template<typename T, size_t InputSize, size_t DeltaSize>
             static inline void SubtractFromAll(std::array<T, InputSize>& inputA, std::array<T, InputSize>& inputB,
                                                const std::array<T, DeltaSize>& delta,
@@ -141,14 +141,14 @@ namespace MantaRay
             /// \param inputA The first input array.
             /// \param inputB The second input array.
             /// \param delta The delta array.
-            /// \param oAS The offset into the first input array for the subtraction.
-            /// \param oAA The offset into the first input array for the addition.
-            /// \param oBS The offset into the second input array for the subtraction.
-            /// \param oBA The offset into the second input array for the addition.
-            /// \details This function subtracts the delta from elements in the input arrays starting at the given
-            ///          offsets. The delta is subtracted from the input arrays in-place. The delta is then added to
-            ///          the input arrays starting at the other given offsets. The delta is added to the input arrays
-            ///          in-place.
+            /// \param oAS The delta offset for the first input array with respect to subtraction.
+            /// \param oAA The delta offset for the first input array with respect to addition.
+            /// \param oBS The delta offset for the second input array with respect to subtraction.
+            /// \param oBA The delta offset for the second input array with respect to addition.
+            /// \details This function subtracts the offset delta from elements in the input arrays.
+            ///          The delta is subtracted from the input arrays in-place.
+            ///          Then another offset delta is added to the input arrays.
+            ///          The delta is added to the input arrays in-place.
             template<typename T, size_t InputSize, size_t DeltaSize>
             static inline void SubtractAndAddToAll(std::array<T, InputSize>& inputA, std::array<T, InputSize>& inputB,
                                                    const std::array<T, DeltaSize>& delta,
@@ -222,9 +222,9 @@ namespace MantaRay
             /// \param o The offset into the output array.
             /// \details This function activates the input arrays. Then it creates a Tensor-view of the input arrays,
             ///          concatenating them vertically. After which, it flattens the vertical tensor into a 1D tensor.
-            ///          Finally, it forwards propagates the flattened tensor using the weight and bias arrays using
-            ///          simple matrix multiplication. The result is stored in the output array starting at the given
-            ///          offset.
+            ///          Finally, it forwards propagates the flattened tensor with respect to the weight and bias arrays
+            ///          using simple matrix multiplication. The result is stored in the output array starting at the
+            ///          given offset.
             template<typename Activation, typename T, typename OT, size_t InputSize, size_t OutputSize>
             [[clang::noinline]]
             static void ActivateFlattenAndForward(
