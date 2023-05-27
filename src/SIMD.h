@@ -17,9 +17,22 @@
 namespace MantaRay
 {
 
+    /// \brief SIMD implementations for MantaRay.
+    /// \details This class contains SIMD implementations of common operations used in MantaRay.
     class SIMD
     {
         public:
+            /// \brief Add the delta to elements in the input arrays.
+            /// \tparam T The type of the input and delta.
+            /// \tparam InputSize The size of the input arrays.
+            /// \tparam DeltaSize The size of the delta array.
+            /// \param inputA The first input array.
+            /// \param inputB The second input array.
+            /// \param delta The delta array.
+            /// \param oA The offset into the first input array.
+            /// \param oB The offset into the second input array.
+            /// \details This function adds the delta to elements in the input arrays starting at the given offsets.
+            ///          The delta is added to the input arrays in-place.
             template<typename T, size_t InputSize, size_t DeltaSize>
             static inline void AddToAll(std::array<T, InputSize>& inputA, std::array<T, InputSize>& inputB,
                                         const std::array<T, DeltaSize>& delta,
@@ -65,6 +78,17 @@ namespace MantaRay
 #endif
             }
 
+            /// \brief Subtract the delta from elements in the input arrays.
+            /// \tparam T The type of the input and delta.
+            /// \tparam InputSize The size of the input arrays.
+            /// \tparam DeltaSize The size of the delta array.
+            /// \param inputA The first input array.
+            /// \param inputB The second input array.
+            /// \param delta The delta array.
+            /// \param oA The offset into the first input array.
+            /// \param oB The offset into the second input array.
+            /// \details This function subtracts the delta from elements in the input arrays starting at the given
+            ///          offsets. The delta is subtracted from the input arrays in-place.
             template<typename T, size_t InputSize, size_t DeltaSize>
             static inline void SubtractFromAll(std::array<T, InputSize>& inputA, std::array<T, InputSize>& inputB,
                                                const std::array<T, DeltaSize>& delta,
@@ -110,6 +134,21 @@ namespace MantaRay
 #endif
             }
 
+            /// \brief Combination of SubtractFromAll and AddToAll.
+            /// \tparam T The type of the input and delta.
+            /// \tparam InputSize The size of the input arrays.
+            /// \tparam DeltaSize The size of the delta array.
+            /// \param inputA The first input array.
+            /// \param inputB The second input array.
+            /// \param delta The delta array.
+            /// \param oAS The offset into the first input array for the subtraction.
+            /// \param oAA The offset into the first input array for the addition.
+            /// \param oBS The offset into the second input array for the subtraction.
+            /// \param oBA The offset into the second input array for the addition.
+            /// \details This function subtracts the delta from elements in the input arrays starting at the given
+            ///          offsets. The delta is subtracted from the input arrays in-place. The delta is then added to
+            ///          the input arrays starting at the other given offsets. The delta is added to the input arrays
+            ///          in-place.
             template<typename T, size_t InputSize, size_t DeltaSize>
             static inline void SubtractAndAddToAll(std::array<T, InputSize>& inputA, std::array<T, InputSize>& inputB,
                                                    const std::array<T, DeltaSize>& delta,
@@ -168,6 +207,24 @@ namespace MantaRay
 #endif
             }
 
+            /// \brief Activate the input arrays, flatten the concatenated tensor result, and forward propagate the
+            ///        flattened result.
+            /// \tparam Activation The activation function to use.
+            /// \tparam T The type of the input, weight, and bias arrays.
+            /// \tparam OT The type of the output array.
+            /// \tparam InputSize The size of the input arrays.
+            /// \tparam OutputSize The size of the output array.
+            /// \param inputA The first input array.
+            /// \param inputB The second input array.
+            /// \param weight The weight array.
+            /// \param bias The bias array.
+            /// \param output The output array.
+            /// \param o The offset into the output array.
+            /// \details This function activates the input arrays. Then it creates a Tensor-view of the input arrays,
+            ///          concatenating them vertically. After which, it flattens the vertical tensor into a 1D tensor.
+            ///          Finally, it forwards propagates the flattened tensor using the weight and bias arrays using
+            ///          simple matrix multiplication. The result is stored in the output array starting at the given
+            ///          offset.
             template<typename Activation, typename T, typename OT, size_t InputSize, size_t OutputSize>
             [[clang::noinline]]
             static void ActivateFlattenAndForward(

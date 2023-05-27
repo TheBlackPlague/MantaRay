@@ -17,7 +17,9 @@
 using PerspectiveNetworkClippedReLU = MantaRay::PerspectiveNetwork<
         int16_t, int32_t, MantaRay::ClippedReLU<int16_t, 0, 255>, 768, 256, 1, 512, 400, 255, 64>;
 
-static PerspectiveNetworkClippedReLU network = PerspectiveNetworkClippedReLU();
+static MantaRay::BinaryFileStream stream = MantaRay::BinaryFileStream(R"(C:\Users\Shaheryar\Downloads\StockNemo-EXP0006.cnnue)");
+
+static PerspectiveNetworkClippedReLU network = PerspectiveNetworkClippedReLU(stream);
 
 void BenchmarkEvaluate(const int samples)
 {
@@ -71,6 +73,9 @@ int main()
 {
     network.RefreshAccumulator();
     EmulateBoardStartPosition();
+//    network.EfficientlyUpdateAccumulator(0, 0, 8, 16);
+//    network.EfficientlyUpdateAccumulator<MantaRay::AccumulatorOperation::Deactivate>(0, 0, 8);
+//    network.EfficientlyUpdateAccumulator<MantaRay::AccumulatorOperation::Activate>(0, 0, 16);
     BenchmarkEvaluate(1000000);
 }
 
