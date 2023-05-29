@@ -10,7 +10,7 @@
 
 #ifdef __AVX512BW__
 #include "Backend/Avx512.h"
-#elif __AVX2__
+#elifdef __AVX2__
 #include "Backend/Avx2.h"
 #endif
 
