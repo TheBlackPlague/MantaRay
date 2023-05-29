@@ -7,8 +7,12 @@
 #define MANTARAY_CLIPPEDRELU_H
 
 #include <utility>
-#include "../Backend/Avx.h"
+
+#ifdef __AVX512BW__
+#include "../Backend/Avx512.h"
+#elifdef __AVX2__
 #include "../Backend/Avx2.h"
+#endif
 
 namespace MantaRay
 {
