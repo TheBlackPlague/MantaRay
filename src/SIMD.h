@@ -116,6 +116,91 @@ namespace MantaRay
 #endif
             }
 
+            template<typename T, size_t InputSize, size_t DeltaSize>
+            static inline void AddToAll_0(const std::array<T, InputSize>&  inputA,
+                                          const std::array<T, InputSize>&  inputB,
+                                                std::array<T, InputSize>& resultA,
+                                                std::array<T, InputSize>& resultB,
+                                          const std::array<T, DeltaSize>&   delta,
+                                          const uint32_t oA, const uint32_t oB)
+            {
+#ifdef __AVX512BW__
+                // Define the registers used in the loops:
+                Vec512I zmm0;
+                Vec512I zmm1;
+
+                // Define the step size for the loops:
+                constexpr size_t Step = sizeof(Vec512I) / sizeof(T);
+
+                //region INPUT A
+                for (size_t i = 0; i < InputSize; i += Step) {
+                    // Load the input and delta values into the registers:
+                    zmm0 = Avx512<T>::From(inputA,      i);
+                    zmm1 = Avx512<T>::From(delta , oA + i);
+
+                    // Add the delta register to the input register:
+                    zmm0 = Avx512<T>::Add(zmm0, zmm1);
+
+                    // Store the result back from the input register to the result array:
+                    Avx512<T>::Store(zmm0, resultA, i);
+                }
+                //endregion
+
+                //region INPUT B
+                for (size_t i = 0; i < InputSize; i += Step) {
+                    // Load the input and delta values into the registers:
+                    zmm0 = Avx512<T>::From(inputB,      i);
+                    zmm1 = Avx512<T>::From(delta , oB + i);
+
+                    // Add the delta register to the input register:
+                    zmm0 = Avx512<T>::Add(zmm0, zmm1);
+
+                    // Store the result back from the input register to the result array:
+                    Avx512<T>::Store(zmm0, resultB, i);
+                }
+                //endregion
+#elifdef __AVX2__
+                // Define the registers used in the loops:
+                Vec256I ymm0;
+                Vec256I ymm1;
+
+                // Define the step size for the loops:
+                constexpr size_t Step = sizeof(Vec256I) / sizeof(T);
+
+                //region INPUT A
+                for (size_t i = 0; i < InputSize; i += Step) {
+                    // Load the input and delta values into the registers:
+                    ymm0 = Avx<T> ::From(inputA,      i);
+                    ymm1 = Avx<T> ::From(delta , oA + i);
+
+                    // Add the delta register to the input register:
+                    ymm0 = Avx2<T>::Add(ymm0, ymm1);
+
+                    // Store the result back from the input register to the result array:
+                    Avx<T>::Store(ymm0, resultA, i);
+                }
+                //endregion
+
+                //region INPUT B
+                for (size_t i = 0; i < InputSize; i += Step) {
+                    // Load the input and delta values into the registers:
+                    ymm0 = Avx<T> ::From(inputB,      i);
+                    ymm1 = Avx<T> ::From(delta , oB + i);
+
+                    // Add the delta register to the input register:
+                    ymm0 = Avx2<T>::Add(ymm0, ymm1);
+
+                    // Store the result back from the input register to the result array:
+                    Avx<T>::Store(ymm0, resultB, i);
+                }
+                //endregion
+#else
+                // Add the delta to the input arrays:
+                for (size_t i = 0; i < InputSize; i++) resultA[i] = inputA[i] + delta[oA + i];
+                for (size_t i = 0; i < InputSize; i++) resultB[i] = inputB[i] + delta[oB + i];
+#endif
+            }
+
             /// \brief Subtract the delta from elements in the input arrays.
             /// \tparam T The type of the input and delta.
             /// \tparam InputSize The size of the input arrays.
@@ -206,6 +291,91 @@ namespace MantaRay
                 // Subtract the delta from the input arrays:
                 for (size_t i = 0; i < InputSize; i++) inputA[i] -= delta[oA + i];
                 for (size_t i = 0; i < InputSize; i++) inputB[i] -= delta[oB + i];
+#endif
+            }
+
+            template<typename T, size_t InputSize, size_t DeltaSize>
+            static inline void SubtractFromAll_0(const std::array<T, InputSize>&  inputA,
+                                                 const std::array<T, InputSize>&  inputB,
+                                                       std::array<T, InputSize>& resultA,
+                                                       std::array<T, InputSize>& resultB,
+                                                 const std::array<T, DeltaSize>&   delta,
+                                                 const uint32_t oA, const uint32_t oB)
+            {
+#ifdef __AVX512BW__
+                // Define the registers used in the loops:
+                Vec512I zmm0;
+                Vec512I zmm1;
+
+                // Define the step size for the loops:
+                constexpr size_t Step = sizeof(Vec512I) / sizeof(T);
+
+                //region INPUT A
+                for (size_t i = 0; i < InputSize; i += Step) {
+                    // Load the input and delta values into the registers:
+                    zmm0 = Avx512<T>::From(inputA,      i);
+                    zmm1 = Avx512<T>::From(delta , oA + i);
+
+                    // Subtract the delta register from the input register:
+                    zmm0 = Avx512<T>::Subtract(zmm0, zmm1);
+
+                    // Store the result back from the input register to the result array:
+                    Avx512<T>::Store(zmm0, resultA, i);
+                }
+                //endregion
+
+                //region INPUT B
+                for (size_t i = 0; i < InputSize; i += Step) {
+                    // Load the input and delta values into the registers:
+                    zmm0 = Avx512<T>::From(inputB,      i);
+                    zmm1 = Avx512<T>::From(delta , oB + i);
+
+                    // Subtract the delta register from the input register:
+                    zmm0 = Avx512<T>::Subtract(zmm0, zmm1);
+
+                    // Store the result back from the input register to the result array:
+                    Avx512<T>::Store(zmm0, resultB, i);
+                }
+                //endregion
+#elifdef __AVX2__
+                // Define the registers used in the loops:
+                Vec256I ymm0;
+                Vec256I ymm1;
+
+                // Define the step size for the loops:
+                constexpr size_t Step = sizeof(Vec256I) / sizeof(T);
+
+                //region INPUT A
+                for (size_t i = 0; i < InputSize; i += Step) {
+                    // Load the input and delta values into the registers:
+                    ymm0 = Avx<T> ::From(inputA,      i);
+                    ymm1 = Avx<T> ::From(delta , oA + i);
+
+                    // Subtract the delta register from the input register:
+                    ymm0 = Avx2<T>::Subtract(ymm0, ymm1);
+
+                    // Store the result back from the input register to the result array:
+                    Avx<T>::Store(ymm0, resultA, i);
+                }
+                //endregion
+
+                //region INPUT B
+                for (size_t i = 0; i < InputSize; i += Step) {
+                    // Load the input and delta values into the registers:
+                    ymm0 = Avx<T> ::From(inputB,      i);
+                    ymm1 = Avx<T> ::From(delta , oB + i);
+
+                    // Subtract the delta register from the input register:
+                    ymm0 = Avx2<T>::Subtract(ymm0, ymm1);
+
+                    // Store the result back from the input register to the result array:
+                    Avx<T>::Store(ymm0, resultB, i);
+                }
+                //endregion
+#else
+                // Subtract the delta from the input arrays:
+                for (size_t i = 0; i < InputSize; i++) resultA[i] = inputA[i] - delta[oA + i];
+                for (size_t i = 0; i < InputSize; i++) resultB[i] = inputB[i] - delta[oB + i];
 #endif
             }
 
@@ -315,6 +485,104 @@ namespace MantaRay
                 for (size_t i = 0; i < InputSize; i++) {
                     inputA[i] = inputA[i] - delta[oAS + i] + delta[oAA + i];
                     inputB[i] = inputB[i] - delta[oBS + i] + delta[oBA + i];
+                }
+#endif
+            }
+
+            template<typename T, size_t InputSize, size_t DeltaSize>
+            static inline void SubtractAndAddToAll_0(const std::array<T, InputSize>&  inputA,
+                                                     const std::array<T, InputSize>&  inputB,
+                                                           std::array<T, InputSize>& resultA,
+                                                           std::array<T, InputSize>& resultB,
+                                                     const std::array<T, DeltaSize>&   delta,
+                                                     const uint32_t oAS, const uint32_t oAA,
+                                                     const uint32_t oBS, const uint32_t oBA)
+            {
+#ifdef __AVX512BW__
+                // Define the registers used in the loops:
+                Vec512I zmm0;
+                Vec512I zmm1;
+                Vec512I zmm2;
+
+                // Define the step size for the loops:
+                constexpr size_t Step = sizeof(Vec512I) / sizeof(T);
+
+                //region INPUT A
+                for (size_t i = 0; i < InputSize; i += Step) {
+                    // Load the input and delta values into the registers:
+                    zmm0 = Avx512<T>::From(inputA,       i);
+                    zmm1 = Avx512<T>::From(delta , oAS + i);
+                    zmm2 = Avx512<T>::From(delta , oAA + i);
+
+                    // Subtract and add the delta register to the input register:
+                    zmm0 = Avx512<T>::Subtract(zmm0, zmm1);
+                    zmm0 = Avx512<T>::Add(zmm0, zmm2);
+
+                    // Store the result back from the input register to the result array:
+                    Avx512<T>::Store(zmm0, resultA, i);
+                }
+                //endregion
+
+                //region INPUT B
+                for (size_t i = 0; i < InputSize; i += Step) {
+                    // Load the input and delta values into the registers:
+                    zmm0 = Avx512<T>::From(inputB,       i);
+                    zmm1 = Avx512<T>::From(delta , oBS + i);
+                    zmm2 = Avx512<T>::From(delta , oBA + i);
+
+                    // Subtract and add the delta register to the input register:
+                    zmm0 = Avx512<T>::Subtract(zmm0, zmm1);
+                    zmm0 = Avx512<T>::Add(zmm0, zmm2);
+
+                    // Store the result back from the input register to the result array:
+                    Avx512<T>::Store(zmm0, resultB, i);
+                }
+                //endregion
+#elifdef __AVX2__
+                // Define the registers used in the loops:
+                Vec256I ymm0;
+                Vec256I ymm1;
+                Vec256I ymm2;
+
+                // Define the step size for the loops:
+                constexpr size_t Step = sizeof(Vec256I) / sizeof(T);
+
+                //region INPUT A
+                for (size_t i = 0; i < InputSize; i += Step) {
+                    // Load the input and delta values into the registers:
+                    ymm0 = Avx<T> ::From(inputA,       i);
+                    ymm1 = Avx<T> ::From(delta , oAS + i);
+                    ymm2 = Avx<T> ::From(delta , oAA + i);
+
+                    // Subtract and add the delta registers to the input register:
+                    ymm0 = Avx2<T>::Subtract(ymm0, ymm1);
+                    ymm0 = Avx2<T>::Add(ymm0, ymm2);
+
+                    // Store the result back from the input register to the result array:
+                    Avx<T>::Store(ymm0, resultA, i);
+                }
+                //endregion
+
+                //region INPUT B
+                for (size_t i = 0; i < InputSize; i += Step) {
+                    // Load the input and delta values into the registers:
+                    ymm0 = Avx<T> ::From(inputB,       i);
+                    ymm1 = Avx<T> ::From(delta , oBS + i);
+                    ymm2 = Avx<T> ::From(delta , oBA + i);
+
+                    // Subtract and add the delta registers to the input register:
+                    ymm0 = Avx2<T>::Subtract(ymm0, ymm1);
+                    ymm0 = Avx2<T>::Add(ymm0, ymm2);
+
+                    // Store the result back from the input register to the result array:
+                    Avx<T>::Store(ymm0, resultB, i);
+                }
+                //endregion
+#else
+                // Subtract and add the delta to the input arrays:
+                for (size_t i = 0; i < InputSize; i++) {
+                    resultA[i] = inputA[i] - delta[oAS + i] + delta[oAA + i];
+                    resultB[i] = inputB[i] - delta[oBS + i] + delta[oBA + i];
                 }
 #endif
             }

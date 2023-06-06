@@ -170,7 +170,8 @@ namespace MantaRay
             ///          accumulator for later use (such as undoing).
             __attribute__((unused)) inline void PushAccumulator()
             {
-                Accumulators[CurrentAccumulator].CopyTo(Accumulators[++CurrentAccumulator]);
+//                Accumulators[CurrentAccumulator].CopyTo(Accumulators[++CurrentAccumulator]);
+                CurrentAccumulator++;
 
                 assert(CurrentAccumulator < AccumulatorStackSize);
             }
@@ -218,16 +219,24 @@ namespace MantaRay
                 const uint32_t whiteIndexTo   =  color       * ColorStride + pieceStride +          to;
                 const uint32_t blackIndexTo   = (color ^ 1)  * ColorStride + pieceStride + (  to ^ 56);
 
-                // Fetch the current accumulator:
-                PerspectiveAccumulator<T, HiddenSize>& accumulator = Accumulators[CurrentAccumulator];
+                // Fetch the input & result accumulator:
+                PerspectiveAccumulator<T, HiddenSize>&  inputAccumulator = Accumulators[CurrentAccumulator - 1];
+                PerspectiveAccumulator<T, HiddenSize>& resultAccumulator = Accumulators[CurrentAccumulator    ];
 
                 // Efficiently update the accumulator:
-                SIMD::SubtractAndAddToAll(accumulator.White, accumulator.Black,
-                                          FeatureWeight,
-                                          whiteIndexFrom * HiddenSize,
-                                          whiteIndexTo   * HiddenSize,
-                                          blackIndexFrom * HiddenSize,
-                                          blackIndexTo   * HiddenSize);
+                SIMD::SubtractAndAddToAll_0(inputAccumulator.White, inputAccumulator.Black,
+                                            resultAccumulator.White, resultAccumulator.Black,
+                                            FeatureWeight,
+                                            whiteIndexFrom * HiddenSize,
+                                            whiteIndexTo   * HiddenSize,
+                                            blackIndexFrom * HiddenSize,
+                                            blackIndexTo   * HiddenSize);
+//                SIMD::SubtractAndAddToAll(accumulator.White, accumulator.Black,
+//                                          FeatureWeight,
+//                                          whiteIndexFrom * HiddenSize,
+//                                          whiteIndexTo   * HiddenSize,
+//                                          blackIndexFrom * HiddenSize,
+//                                          blackIndexTo   * HiddenSize);
             }
 
             /// \brief Efficiently updates the current accumulator with a new piece insertion or removal.
@@ -252,22 +261,34 @@ namespace MantaRay
                 const uint32_t whiteIndex =  color      * ColorStride + pieceStride +  sq      ;
                 const uint32_t blackIndex = (color ^ 1) * ColorStride + pieceStride + (sq ^ 56);
 
-                // Fetch the current accumulator:
-                PerspectiveAccumulator<T, HiddenSize>& accumulator = Accumulators[CurrentAccumulator];
+                // Fetch the input & result accumulator:
+                PerspectiveAccumulator<T, HiddenSize>&  inputAccumulator = Accumulators[CurrentAccumulator - 1];
+                PerspectiveAccumulator<T, HiddenSize>& resultAccumulator = Accumulators[CurrentAccumulator    ];
 
                 // Efficiently update the accumulator:
                 if (Operation == AccumulatorOperation::Activate)
-                    SIMD::AddToAll(accumulator.White,
-                                   accumulator.Black,
-                                   FeatureWeight,
-                                   whiteIndex * HiddenSize,
-                                   blackIndex * HiddenSize);
+                    SIMD::AddToAll_0(inputAccumulator.White, inputAccumulator.Black,
+                                     resultAccumulator.White, resultAccumulator.Black,
+                                     FeatureWeight,
+                                     whiteIndex * HiddenSize,
+                                     blackIndex * HiddenSize);
+//                    SIMD::AddToAll(accumulator.White,
+//                                   accumulator.Black,
+//                                   FeatureWeight,
+//                                   whiteIndex * HiddenSize,
+//                                   blackIndex * HiddenSize);
 
-                else SIMD::SubtractFromAll(accumulator.White,
-                                           accumulator.Black,
-                                           FeatureWeight,
-                                           whiteIndex * HiddenSize,
-                                           blackIndex * HiddenSize);
+                else SIMD::SubtractFromAll_0(inputAccumulator.White, inputAccumulator.Black,
+                                             resultAccumulator.White, resultAccumulator.Black,
+                                             FeatureWeight,
+                                             whiteIndex * HiddenSize,
+                                             blackIndex * HiddenSize);
+
+//                else SIMD::SubtractFromAll(accumulator.White,
+//                                           accumulator.Black,
+//                                           FeatureWeight,
+//                                           whiteIndex * HiddenSize,
+//                                           blackIndex * HiddenSize);
             }
 
             /// \brief Evaluates the network with respect to the current accumulator.
