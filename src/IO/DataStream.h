@@ -34,6 +34,14 @@ namespace MantaRay
             {
                 Stream.open(path, O);
             }
+
+            /// \brief The DataStream Destructor.
+            /// \details This destructor closes the file stream.
+            virtual ~DataStream()
+            {
+                Stream.close();
+            }
+
     };
 
 } // MantaRay
