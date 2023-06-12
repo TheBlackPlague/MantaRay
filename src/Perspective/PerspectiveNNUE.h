@@ -9,6 +9,7 @@
 #include <array>
 #include <cstdint>
 #include <cassert>
+#include <sstream>
 
 #include "PerspectiveAccumulator.h"
 #include "../SIMD.h"
@@ -142,6 +143,29 @@ namespace MantaRay
 
                 stream.ReadArray("ft.bias" , FeatureBias, QuantizationFeature                     );
                 stream.ReadArray("out.bias", OutputBias , QuantizationFeature * QuantizationOutput);
+            }
+
+            /// \brief Provides information about the network.
+            /// \return A string containing information about the network.
+            /// \details This function provides information about the network, such as the layer sizes and the
+            ///          number of weights and biases, as well as other properties used at runtime such as the
+            ///          accumulator stack size and the scale.
+            __attribute__((unused)) std::string Info()
+            {
+                std::stringstream ss;
+                ss << "(" << InputSize << "->" << HiddenSize << ")" << "x2" << "->" << OutputSize << std::endl;
+
+                ss << "Details:" << std::endl;
+                ss << " | " << "First  Layer Size    : " << InputSize                   << std::endl;
+                ss << " | " << "Hidden Layer Size    : " << HiddenSize                  << std::endl;
+                ss << " | " << "Output Layer Size    : " << OutputSize                  << std::endl;
+                ss << " | " << "Input ->Hidden Weight: " <<  InputSize *     HiddenSize << std::endl;
+                ss << " | " << "Hidden->Output Weight: " << HiddenSize * 2 * OutputSize << std::endl;
+                ss << " | " << "AccumulatorStackSize : " << AccumulatorStackSize        << std::endl;
+                ss << " | " << "Scale                : " << Scale                       << std::endl;
+                ss << " | " << "QuantizationFeature  : " << QuantizationFeature         << std::endl;
+                ss << " | " << "QuantizationOutput   : " << QuantizationOutput          << std::endl;
+                return ss.str();
             }
 
             /// \brief Writes the network to a binary file stream.
