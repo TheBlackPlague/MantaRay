@@ -6,6 +6,23 @@
 #ifndef MANTARAY_BINARYMEMORYSTREAM_H
 #define MANTARAY_BINARYMEMORYSTREAM_H
 
+namespace std
+{
+
+    template<>
+    class ctype<unsigned char> : public ctype<char>
+    {
+
+        public:
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "google-explicit-constructor"
+            ctype(size_t refs = 0) : ctype<char>(reinterpret_cast<const mask *>(refs)) {}
+#pragma clang diagnostic pop
+
+    };
+
+}
+
 #include <locale>
 #include <streambuf>
 #include <istream>
