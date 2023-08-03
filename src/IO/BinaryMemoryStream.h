@@ -6,6 +6,7 @@
 #ifndef MANTARAY_BINARYMEMORYSTREAM_H
 #define MANTARAY_BINARYMEMORYSTREAM_H
 
+#include <locale>
 #include <streambuf>
 #include <istream>
 #include <array>
