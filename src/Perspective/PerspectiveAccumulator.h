@@ -53,7 +53,7 @@ namespace MantaRay
             /// \param accumulator The accumulator to copy to.
             /// \details Copies the contents of this accumulator to the provided accumulator. Uses SIMD instructions
             ///          where beneficial.
-            inline void CopyTo(PerspectiveAccumulator<T, AccumulatorSize>& accumulator)
+            inline void CopyTo(PerspectiveAccumulator& accumulator)
             {
                 // Certain instructions can be limited further down, but due to alignment issues, performance may not be
                 // best. Thus, currently limiting to peak instruction set.

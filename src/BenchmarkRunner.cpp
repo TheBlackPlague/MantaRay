@@ -3,11 +3,11 @@
 // Licensed under MIT.
 //
 
-#include "Perspective/PerspectiveNNUE.h"
-#include "Activation/ClippedReLU.h"
-
 #include <iostream>
 #include <chrono>
+
+#include "Perspective/PerspectiveNNUE.h"
+#include "Activation/ClippedReLU.h"
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wxor-used-as-pow"
@@ -15,23 +15,24 @@
 // Benchmarking helper class to evaluate performance of MantaRay.
 
 using PerspectiveNetworkClippedReLU = MantaRay::PerspectiveNetwork<
-        int16_t, int32_t, MantaRay::ClippedReLU<int16_t, 0, 255>, 768, 256, 1, 512, 400, 255, 64>;
+    int16_t, int32_t, MantaRay::ClippedReLU<int16_t, 0, 255>, 768, 384, 1, 512, 400, 255, 64
+>;
 
-static MantaRay::BinaryFileStream stream = MantaRay::BinaryFileStream(R"(C:\Users\Shaheryar\Downloads\StockNemo-EXP0006.cnnue)");
+static auto stream = MantaRay::BinaryFileStream(R"(/Users/shaheryar/Downloads/Aurora-334ab2818f.nnue)");
 
-static PerspectiveNetworkClippedReLU network = PerspectiveNetworkClippedReLU(stream);
+static auto network = PerspectiveNetworkClippedReLU(stream);
 
 void BenchmarkEvaluate(const int samples)
 {
     long long timeSum = 0;
-    int output;
+    int       output  = 0;
     for (int i = 0; i < samples; i++) {
         auto start = std::chrono::high_resolution_clock::now();
         output = network.Evaluate(0);
         auto stop = std::chrono::high_resolution_clock::now();
         timeSum += std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start).count();
     }
-    auto timeAvg = (double)timeSum / samples;
+    const auto timeAvg = static_cast<double>(timeSum) / samples;
     std::cout << "Evaluation output was " << output << " and took " << timeAvg << "ns!" << std::endl;
 }
 

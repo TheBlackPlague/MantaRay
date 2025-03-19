@@ -6,7 +6,6 @@
 #ifndef MANTARAY_DATASTREAM_H
 #define MANTARAY_DATASTREAM_H
 
-#include <iostream>
 #include <fstream>
 #include <ios>
 

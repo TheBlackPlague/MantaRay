@@ -150,13 +150,13 @@ namespace MantaRay
             /// \details This function provides information about the network, such as the layer sizes and the
             ///          number of weights and biases, as well as other properties used at runtime such as the
             ///          accumulator stack size and the scale.
-            __attribute__((unused)) std::string Info()
+            __attribute__((unused)) static std::string Info()
             {
                 std::stringstream ss;
                 ss << "(" << InputSize << "->" << HiddenSize << ")" << "x2" << "->" << OutputSize << std::endl;
 
                 ss << "Details:" << std::endl;
-                ss << " | " << "First  Layer Size    : " << InputSize                   << std::endl;
+                ss << " | " << "First  Layer Size    : " <<  InputSize                  << std::endl;
                 ss << " | " << "Hidden Layer Size    : " << HiddenSize                  << std::endl;
                 ss << " | " << "Output Layer Size    : " << OutputSize                  << std::endl;
                 ss << " | " << "Input ->Hidden Weight: " <<  InputSize *     HiddenSize << std::endl;

@@ -7,7 +7,6 @@
 #define MANTARAY_MARLINFLOWSTREAM_H
 
 #include <array>
-#include <cstdint>
 #include "DataStream.h"
 #include "../External/json.hpp"
 
@@ -60,7 +59,7 @@ namespace MantaRay
 
                         // Quantize the value and store it in the array:
                         auto d     = static_cast<double>(v2);
-                        array[idx] = static_cast<T>(d * K);
+                        array[idx] = static_cast<T>(d * static_cast<double>(K));
                         j++;
                     }
 
@@ -86,7 +85,7 @@ namespace MantaRay
                 for (auto &[k, v] : obj.items()) {
                     // Quantize the value and store it in the array:
                     auto d   = static_cast<double>(v);
-                    array[i] = static_cast<T>(d * K);
+                    array[i] = static_cast<T>(d * static_cast<double>(K));
                     i++;
                 }
             }

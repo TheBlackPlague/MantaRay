@@ -7,7 +7,6 @@
 #define MANTARAY_BINARYFILESTREAM_H
 
 #include <array>
-#include <cstdint>
 #include "DataStream.h"
 
 namespace MantaRay
@@ -47,7 +46,7 @@ namespace MantaRay
             template<typename T, size_t Size>
             void ReadArray(std::array<T, Size>& array)
             {
-                this->Stream.read((char*)(&array), sizeof array);
+                this->Stream.read(reinterpret_cast<char *>(&array), sizeof array);
             }
 
             /// \brief Write an array to the stream.
@@ -58,7 +57,7 @@ namespace MantaRay
             template<typename T, size_t Size>
             void WriteArray(const std::array<T, Size>& array)
             {
-                this->Stream.write((const char*)(&array), sizeof array);
+                this->Stream.write(reinterpret_cast<const char *>(&array), sizeof array);
             }
 
     };
