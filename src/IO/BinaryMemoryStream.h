@@ -46,8 +46,8 @@ namespace MantaRay
             /// \param src The source memory.
             /// \param size The size of the memory.
             /// \details This constructor is used to create a stream that encompasses a region of memory.
-            __attribute__((unused)) BinaryMemoryStream(const char* src, const size_t size) :
-            BinaryMemoryBuffer(src, size), istream(static_cast<streambuf*>(this)) {}
+            __attribute__((unused)) BinaryMemoryStream(const unsigned char* src, const size_t size) :
+            BinaryMemoryBuffer(reinterpret_cast<const char*>(src), size), istream(static_cast<streambuf*>(this)) {}
 
             /// \brief Read an array from the memory encompassed by the stream.
             /// \tparam T The type of the array.
