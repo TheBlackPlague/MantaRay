@@ -18,7 +18,13 @@ using PerspectiveNetworkClippedReLU = MantaRay::PerspectiveNetwork<
     int16_t, int32_t, MantaRay::ClippedReLU<int16_t, 0, 255>, 768, 384, 1, 512, 400, 255, 64
 >;
 
+#ifdef __x86_64__
+static auto stream = MantaRay::BinaryFileStream(R"(D:/Projects/Personal/Aurora-334ab2818f.nnue)");
+#else
+#ifdef __aarch64__
 static auto stream = MantaRay::BinaryFileStream(R"(/Users/shaheryar/Downloads/Aurora-334ab2818f.nnue)");
+#endif
+#endif
 
 static auto network = PerspectiveNetworkClippedReLU(stream);
 

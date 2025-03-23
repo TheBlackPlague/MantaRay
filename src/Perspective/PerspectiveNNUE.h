@@ -95,7 +95,7 @@ namespace MantaRay
         public:
             /// \brief Constructs a new PerspectiveNetwork.
             /// \details This constructor initializes the network with undefined weights and biases.
-            __attribute__((unused)) PerspectiveNetwork()
+            PerspectiveNetwork()
             {
                 InitializeAccumulatorStack();
             }
@@ -103,7 +103,7 @@ namespace MantaRay
             /// \brief Constructs a new PerspectiveNetwork.
             /// \param stream The binary file stream to read the network from.
             /// \details This constructor initializes the network with the weights and biases read from the stream.
-            __attribute__((unused)) explicit PerspectiveNetwork(BinaryFileStream &stream)
+            explicit PerspectiveNetwork(BinaryFileStream &stream)
             {
                 InitializeAccumulatorStack();
 
@@ -116,7 +116,7 @@ namespace MantaRay
             /// \brief Constructs a new PerspectiveNetwork.
             /// \param stream The binary memory stream to read the network from.
             /// \details This constructor initializes the network with the weights and biases read from the stream.
-            __attribute__((unused)) explicit PerspectiveNetwork(BinaryMemoryStream &stream)
+            explicit PerspectiveNetwork(BinaryMemoryStream &stream)
             {
                 InitializeAccumulatorStack();
 
@@ -132,7 +132,7 @@ namespace MantaRay
             ///          Internally, this constructor also quantizes the weights and biases. It also permutes the
             ///          weights to ensure better performance with respect to the cache. This constructor is only
             ///          there to ensure compatibility with the Marlinflow JSON network format.
-            __attribute__((unused)) explicit PerspectiveNetwork(MarlinflowStream &stream)
+            explicit PerspectiveNetwork(MarlinflowStream &stream)
             {
                 InitializeAccumulatorStack();
 
@@ -150,7 +150,7 @@ namespace MantaRay
             /// \details This function provides information about the network, such as the layer sizes and the
             ///          number of weights and biases, as well as other properties used at runtime such as the
             ///          accumulator stack size and the scale.
-            __attribute__((unused)) static std::string Info()
+            static std::string Info()
             {
                 std::stringstream ss;
                 ss << "(" << InputSize << "->" << HiddenSize << ")" << "x2" << "->" << OutputSize << std::endl;
@@ -171,7 +171,7 @@ namespace MantaRay
             /// \brief Writes the network to a binary file stream.
             /// \param stream The binary file stream to write the network to.
             /// \details This function writes the weights and biases of the network to the stream.
-            __attribute__((unused)) void WriteTo(BinaryFileStream &stream)
+            void WriteTo(BinaryFileStream &stream)
             {
                 stream.WriteMode();
 
@@ -183,7 +183,7 @@ namespace MantaRay
 
             /// \brief Reset the accumulator stack counter.
             /// \details This function resets the accumulator stack counter to zero.
-            __attribute__((unused)) inline void ResetAccumulator()
+            inline void ResetAccumulator()
             {
                 CurrentAccumulator = 0;
             }
@@ -192,7 +192,7 @@ namespace MantaRay
             /// \details This function pushes the current accumulator to the stack. This is useful when you want to
             ///          efficiently update the accumulator with a new piece move, but you want to keep the current
             ///          accumulator for later use (such as undoing).
-            __attribute__((unused)) inline void PushAccumulator()
+            inline void PushAccumulator()
             {
                 Accumulators[CurrentAccumulator].CopyTo(Accumulators[++CurrentAccumulator]);
 
@@ -202,7 +202,7 @@ namespace MantaRay
             /// \brief Pulls the current accumulator from the stack.
             /// \details This function pulls the current accumulator from the stack. This is useful when you want to
             ///          undo a move and restore the previous accumulator.
-            __attribute__((unused)) inline void PullAccumulator()
+            inline void PullAccumulator()
             {
                 assert(CurrentAccumulator > 0);
 
@@ -212,7 +212,7 @@ namespace MantaRay
             /// \brief Refreshes the current accumulator.
             /// \details This function refreshes the current accumulator with the bias, effectively resetting it to
             ///          the initial state before any pieces were accumulated.
-            __attribute__((unused)) inline void RefreshAccumulator()
+            inline void RefreshAccumulator()
             {
                 PerspectiveAccumulator<T, HiddenSize>& accumulator = Accumulators[CurrentAccumulator];
                 accumulator.Zero();
@@ -228,8 +228,8 @@ namespace MantaRay
             ///          done by subtracting the piece from the square it is moved from and adding it to the square
             ///          it is moved to. This is much more efficient than calling RefreshAccumulator() and then
             ///          accumulating all pieces again.
-            __attribute__((unused)) inline void EfficientlyUpdateAccumulator(const uint8_t piece, const uint8_t color,
-                                                                             const uint8_t from, const uint8_t to)
+            inline void EfficientlyUpdateAccumulator(const uint8_t piece, const uint8_t color,
+                                                     const uint8_t from , const uint8_t to)
             {
                 // Calculate the stride necessary to get to the correct piece:
                 const uint16_t pieceStride = piece * PieceStride;
@@ -265,8 +265,7 @@ namespace MantaRay
             ///          this function.
             /// \see MantaRay::AccumulatorOperation for the available operations.
             template<AccumulatorOperation Operation>
-            __attribute__((unused)) inline void EfficientlyUpdateAccumulator(const uint8_t piece, const uint8_t color,
-                                                                             const uint8_t sq)
+            inline void EfficientlyUpdateAccumulator(const uint8_t piece, const uint8_t color, const uint8_t sq)
             {
                 // Calculate the stride necessary to get to the correct piece:
                 const uint16_t pieceStride = piece * PieceStride;
@@ -300,7 +299,7 @@ namespace MantaRay
             /// \details This function evaluates the network with respect to the current accumulator. The
             ///          accumulator is assumed to be up to date with the current position. The evaluation is
             ///          returned as the output type of the network.
-            __attribute__((unused)) inline OT Evaluate(const uint8_t colorToMove)
+            inline OT Evaluate(const uint8_t colorToMove)
             {
                 // Fetch the current accumulator:
                 PerspectiveAccumulator<T, HiddenSize>& accumulator = Accumulators[CurrentAccumulator];
