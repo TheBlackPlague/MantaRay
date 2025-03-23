@@ -61,7 +61,7 @@ namespace MantaRay
         {
             static_assert(sizeof(array) >= 32, "Array must be at least 32 bytes in size.");
 
-            return _mm256_load_si256(static_cast<Vec256I const*>(&array[index]));
+            return _mm256_load_si256(reinterpret_cast<Vec256I const*>(&array[index]));
         }
 
         /// \brief Store an AVX register into an array.
@@ -77,7 +77,7 @@ namespace MantaRay
         {
             static_assert(sizeof(array) >= 32, "Array must be at least 32 bytes in size.");
 
-            _mm256_store_si256(static_cast<Vec256I*>(&array[index]), ymm0);
+            _mm256_store_si256(reinterpret_cast<Vec256I*>(&array[index]), ymm0);
         }
 
     };

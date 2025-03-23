@@ -55,7 +55,7 @@ namespace MantaRay
         template<size_t Size>
         static inline Vec512I From(const std::array<T, Size>& array, const uint32_t index)
         {
-            return _mm512_load_si512(static_cast<Vec512I const*>(&array[index]));
+            return _mm512_load_si512(reinterpret_cast<Vec512I const*>(&array[index]));
         }
 
         /// \brief Store an AVX512 register into an array.
@@ -69,7 +69,7 @@ namespace MantaRay
         template<size_t Size>
         static inline void Store(const Vec512I& zmm0, std::array<T, Size>& array, const uint32_t index)
         {
-            _mm512_store_si512(static_cast<Vec512I*>(&array[index]), zmm0);
+            _mm512_store_si512(reinterpret_cast<Vec512I*>(&array[index]), zmm0);
         }
 
         /// \brief Get a register with the minimum cross-register values of the two provided registers.
