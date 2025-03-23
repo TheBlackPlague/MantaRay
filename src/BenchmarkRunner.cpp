@@ -19,7 +19,11 @@ using PerspectiveNetworkClippedReLU = MantaRay::PerspectiveNetwork<
 >;
 
 #ifdef __x86_64__
+#ifdef _WIN32
 static auto stream = MantaRay::BinaryFileStream(R"(D:/Projects/Personal/Aurora-334ab2818f.nnue)");
+#else
+static auto stream = MantaRay::BinaryFileStream(R"(/usr/Aurora-334ab2818f.nnue)");
+#endif
 #else
 #ifdef __aarch64__
 static auto stream = MantaRay::BinaryFileStream(R"(/Users/shaheryar/Downloads/Aurora-334ab2818f.nnue)");
@@ -83,7 +87,7 @@ int main()
 //    network.EfficientlyUpdateAccumulator(0, 0, 8, 16);
 //    network.EfficientlyUpdateAccumulator<MantaRay::AccumulatorOperation::Deactivate>(0, 0, 8);
 //    network.EfficientlyUpdateAccumulator<MantaRay::AccumulatorOperation::Activate>(0, 0, 16);
-    BenchmarkEvaluate(1000000);
+    BenchmarkEvaluate(100000000);
 }
 
 #pragma clang diagnostic pop
