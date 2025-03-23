@@ -6,9 +6,9 @@
 #ifndef MANTARAY_BINARYMEMORYSTREAM_H
 #define MANTARAY_BINARYMEMORYSTREAM_H
 
-#include <streambuf>
-#include <istream>
 #include <array>
+#include <istream>
+#include <streambuf>
 
 namespace MantaRay
 {
@@ -21,44 +21,44 @@ namespace MantaRay
     struct BinaryMemoryBuffer : streambuf
     {
 
-        public:
-            /// \brief The Buffer Constructor.
-            /// \param src The source memory.
-            /// \param size The size of the memory.
-            /// \details This constructor is used to create a stream buffer that encompasses a region of memory.
-            BinaryMemoryBuffer(const char* src, const size_t size) {
-                auto *p (const_cast<char*>(src));
-                this->setg(p, p, p + size);
-            }
+        /// \brief The Buffer Constructor.
+        /// \param src The source memory.
+        /// \param size The size of the memory.
+        /// \details This constructor is used to create a stream buffer that encompasses a region of memory.
+        BinaryMemoryBuffer(const char* src, const size_t size)
+        {
+            auto* p(const_cast<char*>(src));
+            this->setg(p, p, p + size);
+        }
 
     };
 
     using istream = std::basic_istream<char>;
 
     /// \brief A stream that encompasses a region of memory.
-    /// \details This class is a stream that encompasses a region of memory. It is used to read and write data to and
+    /// \details This class is a readonly stream that encompasses a region of memory. It is used to read data
     ///          from memory.
-    struct BinaryMemoryStream : virtual BinaryMemoryBuffer, istream
+    class BinaryMemoryStream final : virtual BinaryMemoryBuffer, istream
     {
 
         public:
-            /// \brief The Stream Constructor.
-            /// \param src The source memory.
-            /// \param size The size of the memory.
-            /// \details This constructor is used to create a stream that encompasses a region of memory.
-            __attribute__((unused)) BinaryMemoryStream(const unsigned char* src, const size_t size) :
+        /// \brief The Stream Constructor.
+        /// \param src The source memory.
+        /// \param size The size of the memory.
+        /// \details This constructor is used to create a stream that encompasses a region of memory.
+        BinaryMemoryStream(const unsigned char* src, const size_t size) :
             BinaryMemoryBuffer(reinterpret_cast<const char*>(src), size), istream(static_cast<streambuf*>(this)) {}
 
-            /// \brief Read an array from the memory encompassed by the stream.
-            /// \tparam T The type of the array.
-            /// \tparam Size The size of the array.
-            /// \param array The array to read into.
-            /// \details This method is used to read an array from the memory encompassed by the stream.
-            template<typename T, size_t Size>
-            void ReadArray(std::array<T, Size> &array)
-            {
-                this->read(reinterpret_cast<char *>(&array), sizeof array);
-            }
+        /// \brief Read an array from the memory encompassed by the stream.
+        /// \tparam T The type of the array.
+        /// \tparam Size The size of the array.
+        /// \param array The array to read into.
+        /// \details This method is used to read an array from the memory encompassed by the stream.
+        template<typename T, size_t Size>
+        void ReadArray(std::array<T, Size>& array)
+        {
+            this->read(reinterpret_cast<char*>(&array), sizeof array);
+        }
 
     };
 

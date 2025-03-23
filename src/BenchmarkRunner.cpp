@@ -24,10 +24,8 @@ static auto stream = MantaRay::BinaryFileStream(R"(D:/Projects/Personal/Aurora-3
 #else
 static auto stream = MantaRay::BinaryFileStream(R"(/usr/Aurora-334ab2818f.nnue)");
 #endif
-#else
-#ifdef __aarch64__
+#elifdef __aarch64__
 static auto stream = MantaRay::BinaryFileStream(R"(/Users/shaheryar/Downloads/Aurora-334ab2818f.nnue)");
-#endif
 #endif
 
 static auto network = PerspectiveNetworkClippedReLU(stream);

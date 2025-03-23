@@ -19,12 +19,12 @@ namespace MantaRay
         /// \brief The Accumulator Activation Operation.
         /// \details This operation is used to activate an element in the input layers and have it reflected in the
         ///          accumulator.
-        Activate   __attribute__((unused)),
+        Activate,
 
         /// \brief The Accumulator Deactivation Operation.
         /// \details This operation is used to deactivate an element in the input layers and have it reflected in the
         ///          accumulator.
-        Deactivate __attribute__((unused))
+        Deactivate
 
     };
 

@@ -13,33 +13,33 @@ namespace MantaRay
 {
 
     /// \brief A wrapper around std::fstream.
-    /// \tparam O The open mode of the stream.
+    /// \tparam Mode The open mode of the stream.
     /// \details This class is a wrapper around std::fstream. It is used to read and write data to files. It is not
     ///          intended to be used directly but instead through specific implementations.
-    template<std::ios_base::openmode O>
+    template<std::ios_base::openmode Mode>
     class DataStream
     {
 
         using FileStream = std::fstream;
 
         protected:
-            FileStream Stream;
+        FileStream Stream;
 
         public:
-            /// \brief The Wrapper Constructor.
-            /// \param path The path to the file.
-            /// \details This constructor is used to open a file stream to the specified path.
-            explicit DataStream(const std::string& path)
-            {
-                Stream.open(path, O);
-            }
+        /// \brief The Wrapper Constructor.
+        /// \param path The path to the file.
+        /// \details This constructor is used to open a file stream to the specified path.
+        explicit DataStream(const std::string& path)
+        {
+            Stream.open(path, Mode);
+        }
 
-            /// \brief The DataStream Destructor.
-            /// \details This destructor closes the file stream.
-            virtual ~DataStream()
-            {
-                Stream.close();
-            }
+        /// \brief The DataStream Destructor.
+        /// \details This destructor closes the file stream.
+        virtual ~DataStream()
+        {
+            Stream.close();
+        }
 
     };
 

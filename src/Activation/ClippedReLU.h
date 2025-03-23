@@ -6,12 +6,12 @@
 #ifndef MANTARAY_CLIPPEDRELU_H
 #define MANTARAY_CLIPPEDRELU_H
 
-#include <utility>
-
 #ifdef __AVX512BW__
 #include "../Backend/Avx512.h"
 #elifdef __AVX2__
 #include "../Backend/Avx2.h"
+#else
+#include <utility>
 #endif
 
 namespace MantaRay
@@ -29,26 +29,26 @@ namespace MantaRay
 
         public:
 #ifdef __AVX512BW__
-            static inline Vec512I Activate(const Vec512I& arg)
-            {
-                const Vec512I min = Avx512<T>::From(Minimum);
-                const Vec512I max = Avx512<T>::From(Maximum);
+        static inline Vec512I Activate(const Vec512I& arg)
+        {
+            const Vec512I min = Avx512<T>::From(Minimum);
+            const Vec512I max = Avx512<T>::From(Maximum);
 
-                return Avx512<T>::Max(min, Avx512<T>::Min(max, arg));
-            }
+            return Avx512<T>::Max(min, Avx512<T>::Min(max, arg));
+        }
 #elifdef __AVX2__
-            static inline Vec256I Activate(const Vec256I& arg)
-            {
-                const Vec256I min = Avx<T>::From(Minimum);
-                const Vec256I max = Avx<T>::From(Maximum);
+        static inline Vec256I Activate(const Vec256I& arg)
+        {
+            const Vec256I min = Avx<T>::From(Minimum);
+            const Vec256I max = Avx<T>::From(Maximum);
 
-                return Avx2<T>::Max(min, Avx2<T>::Min(max, arg));
-            }
+            return Avx2<T>::Max(min, Avx2<T>::Min(max, arg));
+        }
 #else
-            static inline T Activate(const T arg)
-            {
-                return std::max(Minimum, std::min(Maximum, arg));
-            }
+        static inline T Activate(const T arg)
+        {
+            return std::max(Minimum, std::min(Maximum, arg));
+        }
 #endif
 
     };
