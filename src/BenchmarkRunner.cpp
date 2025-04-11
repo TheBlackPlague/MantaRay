@@ -3,11 +3,11 @@
 // Licensed under MIT.
 //
 
-#include <iostream>
 #include <chrono>
+#include <iostream>
 
-#include "Perspective/PerspectiveNNUE.h"
-#include "Activation/ClippedReLU.h"
+#include <MantaRay/Activation/ClippedReLU.h>
+#include <MantaRay/Perspective/PerspectiveNNUE.h>
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wxor-used-as-pow"
