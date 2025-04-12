@@ -8,14 +8,28 @@
 
 #include <array>
 
+#include "Constraint.h"
+
 namespace MantaRay
 {
 
     // Short-notation for container types
 
-    template<typename T, size_t N>
+    template<QuantizedInteger T, s00 N>
     using Array = std::array<T, N>;
 
-}
+    template<s00 Begin, s00 End, QuantizedInteger T, s00 N>
+    constexpr inline const Array<T, End - Begin>& Slice(const Array<T, N>& array) requires Begin <= End && End <= N
+    {
+        return *reinterpret_cast<Array<T, End - Begin> const*>(array.data() + Begin);
+    }
+
+    template<s00 Begin, s00 End, QuantizedInteger T, s00 N>
+    constexpr inline Array<T, End - Begin>& Slice(const Array<T, N>& array) requires Begin <= End && End <= N
+    {
+        return *reinterpret_cast<Array<T, End - Begin>      *>(array.data() + Begin);
+    }
+
+} // MantaRay
 
 #endif //MANTARAY_CONTAINER_H

@@ -17,6 +17,11 @@
 #endif
 #define SIMD SSE2
 
+#ifdef SIMDVEC
+#undef SIMDVEC
+#endif
+#define SIMDVEC Vec128I
+
 #endif
 
 #ifdef __SSE4_1__
@@ -39,6 +44,11 @@
 #endif
 #define SIMD AVX
 
+#ifdef SIMDVEC
+#undef SIMDVEC
+#endif
+#define SIMDVEC Vec256I
+
 #endif
 
 #ifdef __AVX2__
@@ -60,6 +70,11 @@
 #undef SIMD
 #endif
 #define SIMD AVX512F
+
+#ifdef SIMDVEC
+#undef SIMDVEC
+#endif
+#define SIMDVEC Vec512I
 
 #endif
 
@@ -86,6 +101,14 @@
 #undef SIMD
 #endif
 #define SIMD NEON
+
+#ifdef SIMDVEC
+#undef SIMDVEC
+#undef SIMDVEC_EXTEND
+#endif
+
+#define SIMDVEC Vec128I
+#define SIMDVEC_EXTEND Vec128IE
 
 #endif
 
