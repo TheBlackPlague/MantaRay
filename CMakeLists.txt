@@ -22,3 +22,11 @@ target_include_directories(MantaRay INTERFACE "${CMAKE_CURRENT_BINARY_DIR}/inclu
 
 add_executable(MantaRayBM src/BenchmarkRunner.cpp)
 target_link_libraries(MantaRayBM MantaRay)
+
+file(GLOB MantaRayBackend
+        "src2/Backend/*.h"
+)
+
+add_executable(MantaRayV2 src2/main.cpp
+        ${MantaRayBackend}
+)
