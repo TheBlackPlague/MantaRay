@@ -17,10 +17,9 @@ namespace MantaRay
     using Vec512I = __m512i;
 
     template<QuantizedInteger T>
-    class AVX512F : public AVX2<T>
+    struct AVX512F : AVX2<T>
     {
 
-        public:
         constexpr static Vec512I Zero = _mm512_setzero_si512();
 
         static inline Vec512I From(const T value)

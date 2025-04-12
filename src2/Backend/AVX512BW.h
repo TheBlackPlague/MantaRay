@@ -14,10 +14,9 @@ namespace MantaRay
 {
 
     template<QuantizedInteger T>
-    class AVX512BW : public AVX512F<T>
+    struct AVX512BW : AVX512F<T>
     {
 
-        public:
         static inline Vec512I Min(const Vec512I& ymm0, const Vec512I& ymm1)
         requires std::is_same_v<T, i08> || std::is_same_v<T, i16>
         {

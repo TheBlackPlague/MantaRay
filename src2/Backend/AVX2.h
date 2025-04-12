@@ -14,10 +14,9 @@ namespace MantaRay
 {
 
     template<QuantizedInteger T>
-    class AVX2 : public AVX<T>
+    struct AVX2 : AVX<T>
     {
 
-        public:
         static inline Vec256I Min(const Vec256I& ymm0, const Vec256I& ymm1)
         {
             if (std::is_same_v<T, i08>) return _mm256_min_epi8 (ymm0, ymm1);

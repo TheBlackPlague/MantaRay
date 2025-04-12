@@ -17,10 +17,9 @@ namespace MantaRay
     using Vec256I = __m256i;
 
     template<QuantizedInteger T>
-    class AVX : public SSE41<T>
+    struct AVX : SSE41<T>
     {
 
-        public:
         constexpr static Vec256I Zero = _mm256_setzero_si256();
 
         static inline Vec256I From(const T value)
