@@ -13,7 +13,7 @@
 #include <arm_sve.h>
 // ReSharper restore CppUnusedIncludeDirective
 
-#include "Constraint.h"
+#include "../Constraint.h"
 
 namespace MantaRay
 {

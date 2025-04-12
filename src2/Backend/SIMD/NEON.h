@@ -27,6 +27,12 @@ namespace MantaRay
     template<QuantizedInteger T>
     using Vec128IE = typename NeonVec128I<T>::E;
 
+#ifdef ALIGN
+#undef ALIGN
+#endif
+
+#define ALIGN alignas(sizeof(Vec128I<i32>))
+
     template<QuantizedInteger T>
     struct NEON : ARM64<T>
     {
