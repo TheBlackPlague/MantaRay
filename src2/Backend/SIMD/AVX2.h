@@ -3,10 +3,10 @@
 // Licensed under MIT.
 //
 
+#ifdef  __AVX2__
+
 #ifndef MANTARAY_AVX2_H
 #define MANTARAY_AVX2_H
-
-#ifdef  __AVX2__
 
 #include "AVX.h"
 
@@ -79,13 +79,13 @@ namespace MantaRay
             // Refer to the SSE4::Sum method for the rest of the implementation
             // Takes a register in the form of [a, b, c, d]
             // Returns the T value of a + b + c + d
-            return Sum(xmm0);
+            return SSE41<T>::Sum(xmm0);
         }
 
     };
 
 } // MantaRay
 
-#endif
-
 #endif //MANTARAY_AVX2_H
+
+#endif

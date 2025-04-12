@@ -3,10 +3,10 @@
 // Licensed under MIT.
 //
 
+#ifdef __aarch64__
+
 #ifndef MANTARAY_ARM64_H
 #define MANTARAY_ARM64_H
-
-#ifdef __aarch64__
 
 // ReSharper disable CppUnusedIncludeDirective
 #include <arm_neon.h>
@@ -23,6 +23,6 @@ namespace MantaRay
 
 } // MantaRay
 
-#endif
-
 #endif //MANTARAY_ARM64_H
+
+#endif

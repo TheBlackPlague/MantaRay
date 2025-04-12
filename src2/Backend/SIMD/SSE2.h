@@ -3,19 +3,26 @@
 // Licensed under MIT.
 //
 
+#ifdef __SSE2__
+
 #ifndef MANTARAY_SSE2_H
 #define MANTARAY_SSE2_H
 
-#ifdef __SSE2__
-
 #include "AMD64.h"
-#include "Container.h"
+
+#include "../Container.h"
 
 namespace MantaRay
 {
 
     // 128-bit integer register
     using Vec128I = __m128i;
+
+#ifdef ALIGN
+#undef ALIGN
+#endif
+
+#define ALIGN alignas(sizeof(Vec128I))
 
     template<QuantizedInteger T>
     struct SSE2 : AMD64<T>
@@ -48,14 +55,42 @@ namespace MantaRay
             _mm_store_si128(reinterpret_cast<Vec128I*>(&array[index]), xmm0);
         }
 
-        static inline Vec128I Min(const Vec128I& xmm0, const Vec128I& xmm1) requires std::is_same_v<T, i16>
+        static inline Vec128I Min(const Vec128I& xmm0, const Vec128I& xmm1)
         {
-            return _mm_min_epi16(xmm0, xmm1);
+            if (std::is_same_v<T, i16>) return _mm_min_epi16(xmm0, xmm1);
+
+            constexpr static s00 Size = sizeof(Vec128I) / sizeof(T);
+
+            ALIGN Array<T, Size> xmm0Array;
+            ALIGN Array<T, Size> xmm1Array;
+            ALIGN Array<T, Size> xmm2Array;
+
+            Store(xmm0, xmm0Array, 0);
+            Store(xmm1, xmm1Array, 0);
+
+            for (s00 i = 0; i < Size; i++)
+                xmm2Array[i] = std::min(xmm0Array[i], xmm1Array[i]);
+
+            return From(xmm2Array, 0);
         }
 
-        static inline Vec128I Max(const Vec128I& xmm0, const Vec128I& xmm1) requires std::is_same_v<T, i16>
+        static inline Vec128I Max(const Vec128I& xmm0, const Vec128I& xmm1)
         {
-            return _mm_max_epi16(xmm0, xmm1);
+            if (std::is_same_v<T, i16>) return _mm_max_epi16(xmm0, xmm1);
+
+            constexpr static s00 Size = sizeof(Vec128I) / sizeof(T);
+
+            ALIGN Array<T, Size> xmm0Array;
+            ALIGN Array<T, Size> xmm1Array;
+            ALIGN Array<T, Size> xmm2Array;
+
+            Store(xmm0, xmm0Array, 0);
+            Store(xmm1, xmm1Array, 0);
+
+            for (s00 i = 0; i < Size; i++)
+                xmm2Array[i] = std::max(xmm0Array[i], xmm1Array[i]);
+
+            return From(xmm2Array, 0);
         }
 
         static inline Vec128I Add(const Vec128I& xmm0, const Vec128I& xmm1)
@@ -81,10 +116,35 @@ namespace MantaRay
             return _mm_madd_epi16(xmm0, xmm1);
         }
 
+        static inline T Sum(const Vec128I& xmm0) requires std::is_same_v<T, i32>
+        {
+            // xmm0 = [a, b, c, d]
+
+            Vec128I xmm1;
+
+            T eax;
+            T ebx;
+
+            // xmm1 = [c, d, c, d]
+            xmm1 = _mm_unpackhi_epi64(xmm0, xmm0);
+
+            //     [  a  ,   b  ,   c  ,   d  ]
+            // +   [  c  ,   d  ,   c  ,   d  ]
+            // =   [a + c, b + d, c + c, d + d]
+            xmm1 = Add(xmm0, xmm1);
+
+            ALIGN Array<T, 4> xmm1Array;
+
+            Store(xmm1, xmm1Array, 0);
+
+            // xmm1[0] + xmm1[1] = (a + c) + (b + d) = a + c + b + d = a + b + c + d
+            return xmm1Array[0] + xmm1Array[1];
+        }
+
     };
 
 } // MantaRay
 
-#endif
-
 #endif //MANTARAY_SSE2_H
+
+#endif

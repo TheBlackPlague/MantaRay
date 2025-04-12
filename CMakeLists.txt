@@ -24,6 +24,7 @@ add_executable(MantaRayBM src/BenchmarkRunner.cpp)
 target_link_libraries(MantaRayBM MantaRay)
 
 file(GLOB MantaRayBackend
+        "src2/Backend/SIMD/*.h"
         "src2/Backend/*.h"
 )
 

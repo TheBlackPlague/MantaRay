@@ -3,13 +3,14 @@
 // Licensed under MIT.
 //
 
+#ifdef __ARM_NEON__
+
 #ifndef MANTARAY_NEON_H
 #define MANTARAY_NEON_H
 
-#ifdef __ARM_NEON__
-
 #include "ARM64.h"
-#include "Container.h"
+
+#include "../Container.h"
 
 namespace MantaRay
 {
@@ -172,6 +173,6 @@ namespace MantaRay
 
 } // MantaRay
 
-#endif
-
 #endif //MANTARAY_NEON_H
+
+#endif
