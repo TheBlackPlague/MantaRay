@@ -12,7 +12,7 @@ namespace MantaRay
 {
 
     template<QuantizedInteger T, s00 N>
-    static inline void ArrayAdd(Array<T, N>& base, const Array<T, N>& delta)
+    inline void ArrayAdd(Array<T, N>& base, const Array<T, N>& delta)
     {
 #ifdef SIMD
 
@@ -21,7 +21,7 @@ namespace MantaRay
         SIMDVEC<T> v0;
         SIMDVEC<T> v1;
 
-        constexpr static s00 Step = sizeof(SIMDVEC<T>) / sizeof(T);
+        constexpr s00 Step = sizeof(SIMDVEC<T>) / sizeof(T);
 
         for (s00 i = 0; i < N; i += Step) {
             v0 = SIMD<T>::From(base , i);
@@ -37,7 +37,7 @@ namespace MantaRay
         SIMDVEC v0;
         SIMDVEC v1;
 
-        constexpr static s00 Step = sizeof(SIMDVEC) / sizeof(T);
+        constexpr s00 Step = sizeof(SIMDVEC) / sizeof(T);
 
         for (s00 i = 0; i < N; i += Step) {
             v0 = SIMD<T>::From(base , i);

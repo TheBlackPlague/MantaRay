@@ -18,16 +18,28 @@ namespace MantaRay
     template<QuantizedInteger T, s00 N>
     using Array = std::array<T, N>;
 
-    template<s00 Begin, s00 End, QuantizedInteger T, s00 N>
-    constexpr inline const Array<T, End - Begin>& Slice(const Array<T, N>& array) requires Begin <= End && End <= N
+    template<s00 Begin, s00 Size, QuantizedInteger T, s00 N>
+    constexpr inline const Array<T, Size>& Slice(const Array<T, N>& array) requires Begin + Size <= N
     {
-        return *reinterpret_cast<Array<T, End - Begin> const*>(array.data() + Begin);
+        return *reinterpret_cast<Array<T, Size> const*>(array.data() + Begin);
     }
 
-    template<s00 Begin, s00 End, QuantizedInteger T, s00 N>
-    constexpr inline Array<T, End - Begin>& Slice(const Array<T, N>& array) requires Begin <= End && End <= N
+    template<s00 Begin, s00 Size, QuantizedInteger T, s00 N>
+    constexpr inline Array<T, Size>& Slice(const Array<T, N>& array) requires Begin + Size <= N
     {
-        return *reinterpret_cast<Array<T, End - Begin>      *>(array.data() + Begin);
+        return *reinterpret_cast<Array<T, Size>      *>(array.data() + Begin);
+    }
+
+    template<s00 Size, QuantizedInteger T, s00 N>
+    inline const Array<T, Size>& Slice(const Array<T, N>& array, const s00 begin) requires begin + Size <= N
+    {
+        return *reinterpret_cast<Array<T, Size> const*>(array.data() + begin);
+    }
+
+    template<s00 Size, QuantizedInteger T, s00 N>
+    inline Array<T, Size>& Slice(const Array<T, N>& array, const s00 begin) requires begin + Size <= N
+    {
+        return *reinterpret_cast<Array<T, Size>      *>(array.data() + begin);
     }
 
 } // MantaRay
