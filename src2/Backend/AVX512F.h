@@ -6,10 +6,15 @@
 #ifndef MANTARAY_AVX512F_H
 #define MANTARAY_AVX512F_H
 
+#ifdef __AVX512F__
+
 #include "AVX2.h"
 
 namespace MantaRay
 {
+
+    // 512-bit integer register
+    using Vec512I = __m512i;
 
     template<QuantizedInteger T>
     class AVX512F : public AVX2<T>
@@ -90,5 +95,7 @@ namespace MantaRay
     };
 
 } // MantaRay
+
+#endif
 
 #endif //MANTARAY_AVX512F_H

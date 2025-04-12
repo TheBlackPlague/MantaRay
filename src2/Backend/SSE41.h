@@ -6,16 +6,17 @@
 #ifndef MANTARAY_SSE4_H
 #define MANTARAY_SSE4_H
 
+#ifdef __SSE4_1__
+
 #include "SSE2.h"
 
 namespace MantaRay
 {
 
     template<QuantizedInteger T>
-    class SSE4 : public SSE2<T>
+    struct SSE41 : SSE2<T>
     {
 
-        public:
         static inline T Sum(const Vec128I& xmm0) requires std::is_same_v<T, i32>
         {
             // xmm0 = [a, b, c, d]
@@ -46,5 +47,7 @@ namespace MantaRay
     };
 
 } // MantaRay
+
+#endif
 
 #endif //MANTARAY_SSE4_H

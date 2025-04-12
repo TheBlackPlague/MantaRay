@@ -6,6 +6,8 @@
 #ifndef MANTARAY_AVX512BW_H
 #define MANTARAY_AVX512BW_H
 
+#ifdef __AVX512BW__
+
 #include "AVX512F.h"
 
 namespace MantaRay
@@ -60,5 +62,7 @@ namespace MantaRay
     };
 
 } // MantaRay
+
+#endif
 
 #endif //MANTARAY_AVX512BW_H

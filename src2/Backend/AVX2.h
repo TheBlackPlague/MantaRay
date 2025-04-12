@@ -6,6 +6,8 @@
 #ifndef MANTARAY_AVX2_H
 #define MANTARAY_AVX2_H
 
+#ifdef  __AVX2__
+
 #include "AVX.h"
 
 namespace MantaRay
@@ -84,5 +86,7 @@ namespace MantaRay
     };
 
 } // MantaRay
+
+#endif
 
 #endif //MANTARAY_AVX2_H

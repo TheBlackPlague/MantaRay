@@ -6,13 +6,18 @@
 #ifndef MANTARAY_AVX_H
 #define MANTARAY_AVX_H
 
-#include "SSE4.h"
+#ifdef __AVX__
+
+#include "SSE41.h"
 
 namespace MantaRay
 {
 
+    // 256-bit integer register
+    using Vec256I = __m256i;
+
     template<QuantizedInteger T>
-    class AVX : public SSE4<T>
+    class AVX : public SSE41<T>
     {
 
         public:
@@ -46,5 +51,7 @@ namespace MantaRay
     };
 
 } // MantaRay
+
+#endif
 
 #endif //MANTARAY_AVX_H

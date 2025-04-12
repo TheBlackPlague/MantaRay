@@ -6,18 +6,21 @@
 #ifndef MANTARAY_SSE2_H
 #define MANTARAY_SSE2_H
 
-#include "Constraint.h"
+#ifdef __SSE2__
+
+#include "AMD64.h"
 #include "Container.h"
-#include "Register.h"
 
 namespace MantaRay
 {
 
+    // 128-bit integer register
+    using Vec128I = __m128i;
+
     template<QuantizedInteger T>
-    class SSE2
+    struct SSE2 : AMD64<T>
     {
 
-        public:
         constexpr static Vec128I Zero = _mm_setzero_si128();
 
         static inline Vec128I From(const T value)
@@ -81,5 +84,7 @@ namespace MantaRay
     };
 
 } // MantaRay
+
+#endif
 
 #endif //MANTARAY_SSE2_H
