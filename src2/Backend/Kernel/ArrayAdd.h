@@ -25,7 +25,7 @@ namespace MantaRay
         SIMDVEC v0;
         SIMDVEC v1;
 
-        constexpr s00 Step = sizeof(SIMDVEC) / sizeof(T);
+        constexpr static s00 Step = sizeof(SIMDVEC) / sizeof(T);
 
         for (s00 i = 0; i < N; i += Step) {
             v0 = SIMD<T>::From(base , i);
