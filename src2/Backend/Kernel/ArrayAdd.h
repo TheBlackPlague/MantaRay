@@ -18,7 +18,19 @@ namespace MantaRay
 
 #ifdef __ARM_NEON__
 
+        SIMDVEC<T> v0;
+        SIMDVEC<T> v1;
 
+        constexpr static s00 Step = sizeof(SIMDVEC<T>) / sizeof(T);
+
+        for (s00 i = 0; i < N; i += Step) {
+            v0 = SIMD<T>::From(base , i);
+            v1 = SIMD<T>::From(delta, i);
+
+            v0 = SIMD<T>::Add(v0, v1);
+
+            SIMD<T>::Store(v0, base, i);
+        }
 
 #else
 
