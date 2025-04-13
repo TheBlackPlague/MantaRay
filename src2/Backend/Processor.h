@@ -100,15 +100,15 @@
 #ifdef SIMD
 #undef SIMD
 #endif
-#define SIMD NEON
+#define SIMD MantaRay::NEON
 
 #ifdef SIMDVEC
 #undef SIMDVEC
 #undef SIMDVEC_EXTEND
 #endif
 
-#define SIMDVEC Vec128I
-#define SIMDVEC_EXTEND Vec128IE
+#define SIMDVEC MantaRay::Vec128I
+#define SIMDVEC_EXTEND MantaRay::Vec128IE
 
 #endif
 

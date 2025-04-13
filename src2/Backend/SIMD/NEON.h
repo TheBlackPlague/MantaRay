@@ -31,7 +31,7 @@ namespace MantaRay
 #undef ALIGN
 #endif
 
-#define ALIGN alignas(sizeof(Vec128I<i32>))
+#define ALIGN alignas(sizeof(MantaRay::Vec128I<MantaRay::i32>))
 
     template<QuantizedInteger T>
     struct NEON : ARM64<T>
@@ -56,9 +56,9 @@ namespace MantaRay
         {
             static_assert(sizeof(array) >= sizeof(Vec128I), "Array size must be at least the width of a Vec128I.");
 
-            if (std::is_same_v<T, i08>) return vld1q_s8 (reinterpret_cast<const T*>(&array[index]));
-            if (std::is_same_v<T, i16>) return vld1q_s16(reinterpret_cast<const T*>(&array[index]));
-            if (std::is_same_v<T, i32>) return vld1q_s32(reinterpret_cast<const T*>(&array[index]));
+            if (std::is_same_v<T, i08>) return vld1q_s8 (reinterpret_cast<const i08*>(&array[index]));
+            if (std::is_same_v<T, i16>) return vld1q_s16(reinterpret_cast<const i16*>(&array[index]));
+            if (std::is_same_v<T, i32>) return vld1q_s32(reinterpret_cast<const i32*>(&array[index]));
 
             __builtin_unreachable();
         }
@@ -68,11 +68,9 @@ namespace MantaRay
         {
             static_assert(sizeof(array) >= sizeof(Vec128I), "Array size must be at least the width of a Vec128I.");
 
-            if (std::is_same_v<T, i08>) vst1q_s8 (reinterpret_cast<T*>(&array[index]), q0);
-            if (std::is_same_v<T, i16>) vst1q_s16(reinterpret_cast<T*>(&array[index]), q0);
-            if (std::is_same_v<T, i32>) vst1q_s32(reinterpret_cast<T*>(&array[index]), q0);
-
-            __builtin_unreachable();
+            if (std::is_same_v<T, i08>) vst1q_s8 (reinterpret_cast<i08*>(&array[index]), q0);
+            if (std::is_same_v<T, i16>) vst1q_s16(reinterpret_cast<i16*>(&array[index]), q0);
+            if (std::is_same_v<T, i32>) vst1q_s32(reinterpret_cast<i32*>(&array[index]), q0);
         }
 
         static inline Vec128I Min(const Vec128I& q0, const Vec128I& q1)
