@@ -24,11 +24,15 @@ namespace MantaRay
 #ifdef SIMD
 
 #ifdef __ARM_NEON__
+
             using Vector  = SIMDVEC       <T>;
             using VectorE = SIMDVEC_EXTEND<T>;
+
 #else
+
             using Vector  = SIMDVEC;
             using VectorE = SIMDVEC;
+
 #endif
 
             VectorE v0 = SIMD<T>::Zero;
