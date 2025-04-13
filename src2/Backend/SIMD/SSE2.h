@@ -22,7 +22,7 @@ namespace MantaRay
 #undef ALIGN
 #endif
 
-#define ALIGN alignas(sizeof(Vec128I))
+#define ALIGN alignas(sizeof(MantaRay::Vec128I))
 
     template<QuantizedInteger T>
     struct SSE2 : AMD64<T>

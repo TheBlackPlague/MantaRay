@@ -20,7 +20,7 @@ namespace MantaRay
 #undef ALIGN
 #endif
 
-#define ALIGN alignas(sizeof(Vec256I))
+#define ALIGN alignas(sizeof(MantaRay::Vec256I))
 
     template<QuantizedInteger T>
     struct AVX : SSE41<T>

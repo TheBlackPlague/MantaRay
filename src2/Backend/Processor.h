@@ -15,12 +15,12 @@
 #ifdef SIMD
 #undef SIMD
 #endif
-#define SIMD SSE2
+#define SIMD MantaRay::SSE2
 
 #ifdef SIMDVEC
 #undef SIMDVEC
 #endif
-#define SIMDVEC Vec128I
+#define SIMDVEC MantaRay::Vec128I
 
 #endif
 
@@ -31,7 +31,7 @@
 #ifdef SIMD
 #undef SIMD
 #endif
-#define SIMD SSE41
+#define SIMD MantaRay::SSE41
 
 #endif
 
@@ -42,12 +42,12 @@
 #ifdef SIMD
 #undef SIMD
 #endif
-#define SIMD AVX
+#define SIMD MantaRay::AVX
 
 #ifdef SIMDVEC
 #undef SIMDVEC
 #endif
-#define SIMDVEC Vec256I
+#define SIMDVEC MantaRay::Vec256I
 
 #endif
 
@@ -58,7 +58,7 @@
 #ifdef SIMD
 #undef SIMD
 #endif
-#define SIMD AVX2
+#define SIMD MantaRay::AVX2
 
 #endif
 
@@ -69,12 +69,12 @@
 #ifdef SIMD
 #undef SIMD
 #endif
-#define SIMD AVX512F
+#define SIMD MantaRay::AVX512F
 
 #ifdef SIMDVEC
 #undef SIMDVEC
 #endif
-#define SIMDVEC Vec512I
+#define SIMDVEC MantaRay::Vec512I
 
 #endif
 
@@ -85,7 +85,7 @@
 #ifdef SIMD
 #undef SIMD
 #endif
-#define SIMD AVX512BW
+#define SIMD MantaRay::AVX512BW
 
 #endif
 
