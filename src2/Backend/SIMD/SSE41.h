@@ -18,19 +18,21 @@ namespace MantaRay
     {
 
         static inline Vec128I Min(const Vec128I& xmm0, const Vec128I& xmm1)
-        requires std::is_same_v<T, i08> || std::is_same_v<T, i32>
         {
             if (std::is_same_v<T, i08>) return _mm_min_epi8 (xmm0, xmm1);
             if (std::is_same_v<T, i32>) return _mm_min_epi32(xmm0, xmm1);
+
+            if (std::is_same_v<T, i16>) return SSE2<T>::Min(xmm0, xmm1);
 
             __builtin_unreachable();
         }
 
         static inline Vec128I Max(const Vec128I& xmm0, const Vec128I& xmm1)
-        requires std::is_same_v<T, i08> || std::is_same_v<T, i32>
         {
             if (std::is_same_v<T, i08>) return _mm_max_epi8 (xmm0, xmm1);
             if (std::is_same_v<T, i32>) return _mm_max_epi32(xmm0, xmm1);
+
+            if (std::is_same_v<T, i16>) return SSE2<T>::Max(xmm0, xmm1);
 
             __builtin_unreachable();
         }

@@ -17,8 +17,8 @@ TEST(ArraySub, i08_512)
 {
     constexpr MantaRay::s00 N = 512;
 
-    MantaRay::Array<MantaRay::i08, N> a = Generate<MantaRay::i08, N, 30>();
-    MantaRay::Array<MantaRay::i08, N> b = Generate<MantaRay::i08, N, 04>();
+    ALIGN MantaRay::Array<MantaRay::i08, N> a = Generate<MantaRay::i08, N, 30>();
+    ALIGN MantaRay::Array<MantaRay::i08, N> b = Generate<MantaRay::i08, N, 04>();
 
     MantaRay::ArraySub(a, b);
 
@@ -31,8 +31,8 @@ TEST(ArraySub, i16_512)
 {
     constexpr MantaRay::s00 N = 512;
 
-    MantaRay::Array<MantaRay::i16, N> a = Generate<MantaRay::i16, N, 30>();
-    MantaRay::Array<MantaRay::i16, N> b = Generate<MantaRay::i16, N, 04>();
+    ALIGN MantaRay::Array<MantaRay::i16, N> a = Generate<MantaRay::i16, N, 30>();
+    ALIGN MantaRay::Array<MantaRay::i16, N> b = Generate<MantaRay::i16, N, 04>();
 
     MantaRay::ArraySub(a, b);
 
@@ -44,8 +44,8 @@ TEST(ArraySub, i32_512)
 {
     constexpr MantaRay::s00 N = 512;
 
-    MantaRay::Array<MantaRay::i32, N> a = Generate<MantaRay::i32, N, 30>();
-    MantaRay::Array<MantaRay::i32, N> b = Generate<MantaRay::i32, N, 04>();
+    ALIGN MantaRay::Array<MantaRay::i32, N> a = Generate<MantaRay::i32, N, 30>();
+    ALIGN MantaRay::Array<MantaRay::i32, N> b = Generate<MantaRay::i32, N, 04>();
 
     MantaRay::ArraySub(a, b);
 
@@ -57,8 +57,8 @@ TEST(ArraySub, i08_2048)
 {
     constexpr MantaRay::s00 N = 2048;
 
-    MantaRay::Array<MantaRay::i08, N> a = Generate<MantaRay::i08, N, -30>();
-    MantaRay::Array<MantaRay::i08, N> b = Generate<MantaRay::i08, N,  54>();
+    ALIGN MantaRay::Array<MantaRay::i08, N> a = Generate<MantaRay::i08, N, -30>();
+    ALIGN MantaRay::Array<MantaRay::i08, N> b = Generate<MantaRay::i08, N,  54>();
 
     MantaRay::ArraySub(a, b);
 
@@ -70,8 +70,8 @@ TEST(ArraySub, i16_2048)
 {
     constexpr MantaRay::s00 N = 2048;
 
-    MantaRay::Array<MantaRay::i16, N> a = Generate<MantaRay::i16, N, -30>();
-    MantaRay::Array<MantaRay::i16, N> b = Generate<MantaRay::i16, N,  54>();
+    ALIGN MantaRay::Array<MantaRay::i16, N> a = Generate<MantaRay::i16, N, -30>();
+    ALIGN MantaRay::Array<MantaRay::i16, N> b = Generate<MantaRay::i16, N,  54>();
 
     MantaRay::ArraySub(a, b);
 
@@ -83,8 +83,8 @@ TEST(ArraySub, i32_2048)
 {
     constexpr MantaRay::s00 N = 2048;
 
-    MantaRay::Array<MantaRay::i32, N> a = Generate<MantaRay::i32, N, -30>();
-    MantaRay::Array<MantaRay::i32, N> b = Generate<MantaRay::i32, N,  54>();
+    ALIGN MantaRay::Array<MantaRay::i32, N> a = Generate<MantaRay::i32, N, -30>();
+    ALIGN MantaRay::Array<MantaRay::i32, N> b = Generate<MantaRay::i32, N,  54>();
 
     MantaRay::ArraySub(a, b);
 

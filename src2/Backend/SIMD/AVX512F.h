@@ -295,7 +295,7 @@ namespace MantaRay
             //     [  a  ,   b  ,   c  ,   d  ,   e  ,   f  ,   g  ,   h  ]
             // +   [  i  ,   j  ,   k  ,   l  ,   m  ,   n  ,   o  ,   p  ]
             // =   [a + i, b + j, c + k, d + l, e + m, f + n, g + o, h + p]
-            ymm0 = Add(ymm0, ymm1);
+            ymm0 = AVX2<T>::Add(ymm0, ymm1);
 
             // Refer to the AVX2::Sum method for the rest of the implementation
             // Takes a register in the form of [a, b, c, d, e, f, g, h]

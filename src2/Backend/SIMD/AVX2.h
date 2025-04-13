@@ -74,7 +74,7 @@ namespace MantaRay
             //      [  a  ,   b  ,   c  ,   d  ]
             // +    [  e  ,   f  ,   g  ,   h  ]
             // =    [a + e, b + f, c + g, d + h]
-            xmm0 = Add(xmm0, xmm1);
+            xmm0 = SSE41<T>::Add(xmm0, xmm1);
 
             // Refer to the SSE4::Sum method for the rest of the implementation
             // Takes a register in the form of [a, b, c, d]
