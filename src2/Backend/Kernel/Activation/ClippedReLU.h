@@ -14,7 +14,7 @@ namespace MantaRay
     template<QuantizedInteger T, typename V>
     concept ValidClippedReLUArg =
 #ifdef SIMD
-        (
+    (
 
 #ifdef __ARM_NEON__
 
@@ -22,11 +22,11 @@ namespace MantaRay
 
 #else
 
-        std::is_same_v<V, SIMDVEC   >
+        std::is_same_v<V, SIMDVEC>
 
 #endif
 
-        );
+    );
 #else
 
         std::is_same_v<V,         T >;
