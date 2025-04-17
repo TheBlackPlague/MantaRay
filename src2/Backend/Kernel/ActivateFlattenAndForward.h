@@ -55,8 +55,6 @@ namespace MantaRay
 
             y[i] = SIMD<U>::Sum(v0) + b[i];
 
-#endif
-
 #else
 
             T v0 = 0;
