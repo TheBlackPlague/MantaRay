@@ -8,7 +8,7 @@
 
 #include <gtest/gtest.h>
 
-#include <MantaRayV2/Backend/Kernel/ArraySub.h>
+#include <MantaRay/Backend/Kernel/ArraySub.h>
 
 #include "../ContainerUtil.h"
 

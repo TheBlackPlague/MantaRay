@@ -68,8 +68,7 @@ namespace MantaRay
             Store(xmm0, xmm0Array, 0);
             Store(xmm1, xmm1Array, 0);
 
-            for (s00 i = 0; i < Size; i++)
-                xmm2Array[i] = std::min(xmm0Array[i], xmm1Array[i]);
+            for (s00 i = 0; i < Size; i++) xmm2Array[i] = std::min<T>(xmm0Array[i], xmm1Array[i]);
 
             return From(xmm2Array, 0);
         }
@@ -87,8 +86,7 @@ namespace MantaRay
             Store(xmm0, xmm0Array, 0);
             Store(xmm1, xmm1Array, 0);
 
-            for (s00 i = 0; i < Size; i++)
-                xmm2Array[i] = std::max(xmm0Array[i], xmm1Array[i]);
+            for (s00 i = 0; i < Size; i++) xmm2Array[i] = std::max<T>(xmm0Array[i], xmm1Array[i]);
 
             return From(xmm2Array, 0);
         }

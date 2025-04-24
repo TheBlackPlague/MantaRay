@@ -6,7 +6,7 @@
 #ifndef MANTARAY_CONTAINERUTIL_H
 #define MANTARAY_CONTAINERUTIL_H
 
-#include <MantaRayV2/Backend/Container.h>
+#include <MantaRay/Backend/Container.h>
 
 template<MantaRay::QuantizedInteger T, MantaRay::s00 N, T A>
 constexpr inline MantaRay::Array<T, N> Generate()
