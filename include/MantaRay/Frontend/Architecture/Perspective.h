@@ -109,7 +109,8 @@ namespace MantaRay
 
         inline void Push()
         {
-            Accumulators[++AccumulatorP] = Accumulators[AccumulatorP - 1];
+            Accumulators[AccumulatorP + 1] = Accumulators[AccumulatorP];
+            AccumulatorP++;
 
             assert(AccumulatorP < AccumulatorStackSize);
         }
