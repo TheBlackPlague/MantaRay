@@ -12,7 +12,7 @@ namespace MantaRay
 {
 
     template<QuantizedInteger T, s00 N>
-    inline void ArraySubAdd(Array<T, N>& base, const Array<T, N>& sub, const Array<T, N>& add)
+    void ArraySubAdd(Array<T, N>& base, const Array<T, N>& sub, const Array<T, N>& add)
     {
 #ifdef SIMD
 

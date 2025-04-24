@@ -28,7 +28,7 @@ namespace MantaRay
 #endif
 
         public:
-        static inline Vector Activate(const Vector& value)
+        static Vector Activate(const Vector& value)
         {
             const Vector Min = SIMD<T>::From(Minimum);
             const Vector Max = SIMD<T>::From(Maximum);
@@ -39,7 +39,7 @@ namespace MantaRay
 #else
 
         public:
-        static inline T Activate(const T value) { return std::min(Maximum, std::max(Minimum, value)); }
+        static T Activate(const T value) { return std::min(Maximum, std::max(Minimum, value)); }
 
 #endif
 

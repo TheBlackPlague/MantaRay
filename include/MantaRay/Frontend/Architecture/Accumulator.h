@@ -22,11 +22,11 @@ namespace MantaRay
 
         Accumulator(const Accumulator& src) { ArrayCopy(src.Internal, Internal); }
 
-        inline void operator =(const Accumulator& src) { ArrayCopy(src.Internal, Internal); }
+        void operator =(const Accumulator& src) { ArrayCopy(src.Internal, Internal); }
 
-        inline void Zero() { std::memset(Internal.data(), 0, sizeof(Array<T, N + (N * Colored)>)); }
+        void Zero() { std::memset(Internal.data(), 0, sizeof(Array<T, N + (N * Colored)>)); }
 
-        inline void Bias(Array<T, N>& bias)
+        void Bias(Array<T, N>& bias)
         {
             ArrayCopy(bias, Slice<0, N>(Internal));
 

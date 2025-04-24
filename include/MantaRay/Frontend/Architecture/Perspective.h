@@ -105,9 +105,9 @@ namespace MantaRay
             return ss.str();
         }
 
-        inline void Reset() { AccumulatorP = 0; }
+        void Reset() { AccumulatorP = 0; }
 
-        inline void Push()
+        void Push()
         {
             Accumulators[AccumulatorP + 1] = Accumulators[AccumulatorP];
             AccumulatorP++;
@@ -115,20 +115,20 @@ namespace MantaRay
             assert(AccumulatorP < AccumulatorStackSize);
         }
 
-        inline void Pop()
+        void Pop()
         {
             assert(AccumulatorP > 0);
 
             AccumulatorP--;
         }
 
-        inline void Refresh()
+        void Refresh()
         {
             Accumulators[AccumulatorP].Zero();
             Accumulators[AccumulatorP].Bias(FeatureBias);
         }
 
-        inline void Move(const u08 piece, const u08 color, const u08 from, const u08 to)
+        void Move(const u08 piece, const u08 color, const u08 from, const u08 to)
         {
             const s00 fromIdxV =  color      * ColorStride + piece * PieceStride +  from      ;
             const s00 fromIdxU = (color ^ 1) * ColorStride + piece * PieceStride + (from ^ 56);
@@ -149,7 +149,7 @@ namespace MantaRay
             );
         }
 
-        inline void Insert(const u08 piece, const u08 color, const u08 sq)
+        void Insert(const u08 piece, const u08 color, const u08 sq)
         {
             const s00 vIdx =  color      * ColorStride + piece * PieceStride +  sq      ;
             const s00 uIdx = (color ^ 1) * ColorStride + piece * PieceStride + (sq ^ 56);
@@ -166,7 +166,7 @@ namespace MantaRay
             );
         }
 
-        inline void Remove(const u08 piece, const u08 color, const u08 sq)
+        void Remove(const u08 piece, const u08 color, const u08 sq)
         {
             const s00 vIdx =  color      * ColorStride + piece * PieceStride +  sq      ;
             const s00 uIdx = (color ^ 1) * ColorStride + piece * PieceStride + (sq ^ 56);
@@ -183,7 +183,7 @@ namespace MantaRay
             );
         }
 
-        inline O Evaluate(const u08 perspective)
+        O Evaluate(const u08 perspective)
         {
             assert(perspective < 2);
 

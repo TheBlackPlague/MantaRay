@@ -14,7 +14,7 @@ namespace MantaRay
 {
 
     template<QuantizedInteger T, s00 N>
-    inline void ArrayCopy(const Array<T, N>& src, Array<T, N>& dst)
+    void ArrayCopy(const Array<T, N>& src, Array<T, N>& dst)
     {
 #ifdef SIMD
 
