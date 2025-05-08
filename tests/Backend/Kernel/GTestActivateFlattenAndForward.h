@@ -8,8 +8,8 @@
 
 #include <gtest/gtest.h>
 
-#include <MantaRay/Backend/Kernel/Activation/ClippedReLU.h>
 #include <MantaRay/Backend/Kernel/ActivateFlattenAndForward.h>
+#include <MantaRay/Backend/Kernel/Activation/ClippedReLU.h>
 
 #include "../ContainerUtil.h"
 

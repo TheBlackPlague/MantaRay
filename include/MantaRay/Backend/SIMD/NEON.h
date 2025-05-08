@@ -40,7 +40,7 @@ namespace MantaRay
         using Vec128I  = Vec128I <T>;
         using Vec128IE = Vec128IE<T>;
 
-        constexpr static Vec128I Zero = vdupq_n_s64(0);
+        constexpr static Vec128I Zero {};
 
         static inline Vec128I From(const T value)
         {
@@ -116,34 +116,33 @@ namespace MantaRay
 
             Vec128IE q2;
             Vec128IE q3;
-            Vec128IE q4;
 
-            // q2 = [a, b, c, d]
-            q2 = vget_low_s16(q0);
+            // t0 = [a, b, c, d]
+            const auto t0 = vget_low_s16(q0);
 
-            // q3 = [i, j, k, l]
-            q3 = vget_low_s16(q1);
+            // t1 = [i, j, k, l]
+            const auto t1 = vget_low_s16(q1);
 
             //     [  a  ,   b  ,   c  ,   d  ]
             // *   [  i  ,   j  ,   k  ,   l  ]
             // =   [a * i, b * j, c * k, d * l]
-            q2 = vmull_s16(q2, q3);
+            q2 = vmull_s16(t0, t1);
 
-            // q3 = [e, f, g, h]
-            q3 = vget_high_s16(q0);
+            // t2 = [e, f, g, h]
+            const auto t2 = vget_high_s16(q0);
 
-            // q4 = [m, n, o, p]
-            q4 = vget_high_s16(q1);
+            // t3 = [m, n, o, p]
+            const auto t3 = vget_high_s16(q1);
 
             //     [  e  ,   f  ,   g  ,   h  ]
             // *   [  m  ,   n  ,   o  ,   p  ]
             // =   [e * m, f * n, g * o, h * p]
-            q3 = vmull_s16(q3, q4);
+            q3 = vmull_s16(t2, t3);
 
             //     [    a * i    ,     b * j    ,     c * k    ,     d * l    ]
             // +   [    e * m    ,     f * n    ,     g * o    ,     h * p    ]
             // =   [a * i + e * m, b * j + f * n, c * k + g * o, d * l + h * p]
-            return vadd_s32(q2, q3);
+            return vaddq_s32(q2, q3);
         }
 
         static inline T Sum(const Vec128I& q0) requires std::is_same_v<T, i32>
