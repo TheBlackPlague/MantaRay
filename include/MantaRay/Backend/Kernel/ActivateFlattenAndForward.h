@@ -18,7 +18,7 @@ namespace MantaRay
         const Array<T, N * 2 * M>& w ,
         const Array<T,         M>& b )
     {
-        Array<U, M> y;
+        ALIGN Array<U, M> y;
 
         s00 stride = 0;
 

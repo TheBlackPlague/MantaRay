@@ -17,7 +17,7 @@
 #include "../IO/BinaryFileStream.h"
 #include "../IO/BinaryMemoryStream.h"
 
-#include "Accumulator.h"
+#include "Common/Accumulator.h"
 
 namespace MantaRay
 {
@@ -43,10 +43,10 @@ namespace MantaRay
         constexpr static s00 ColorStride = 64 * 6;
         constexpr static s00 PieceStride = 64    ;
 
-        ALIGN Array<I,  InputSize *     HiddenSize> FeatureWeight;
-        ALIGN Array<I,                  HiddenSize> FeatureBias  ;
-        ALIGN Array<I, HiddenSize * 2 * OutputSize> OutputWeight ;
-        ALIGN Array<I,                  OutputSize> OutputBias   ;
+        ALIGN Array<I,  InputSize *     HiddenSize> L0Weight;
+        ALIGN Array<I,                  HiddenSize> L0Bias  ;
+        ALIGN Array<I, HiddenSize * 2 * OutputSize> L1Weight;
+        ALIGN Array<I,                  OutputSize> L1Bias  ;
 
         using Accumulator      =            Accumulator<I,         HiddenSize>;
         using AccumulatorStack = std::array<Accumulator, AccumulatorStackSize>;
@@ -69,20 +69,20 @@ namespace MantaRay
         {
             Initialize();
 
-            stream.ReadArray(FeatureWeight);
-            stream.ReadArray(FeatureBias  );
-            stream.ReadArray( OutputWeight);
-            stream.ReadArray( OutputBias  );
+            stream.ReadArray(L0Weight);
+            stream.ReadArray(L0Bias  );
+            stream.ReadArray(L1Weight);
+            stream.ReadArray(L1Bias  );
         }
 
         Perspective(BinaryMemoryStream& stream)
         {
             Initialize();
 
-            stream.ReadArray(FeatureWeight);
-            stream.ReadArray(FeatureBias  );
-            stream.ReadArray( OutputWeight);
-            stream.ReadArray( OutputBias  );
+            stream.ReadArray(L0Weight);
+            stream.ReadArray(L0Bias  );
+            stream.ReadArray(L1Weight);
+            stream.ReadArray(L1Bias  );
         }
 
         static std::string Info()
@@ -125,7 +125,7 @@ namespace MantaRay
         void Refresh()
         {
             Accumulators[AccumulatorP].Zero();
-            Accumulators[AccumulatorP].Bias(FeatureBias);
+            Accumulators[AccumulatorP].Bias(L0Bias);
         }
 
         void Move(const u08 piece, const u08 color, const u08 from, const u08 to)
@@ -139,13 +139,13 @@ namespace MantaRay
 
             ArraySubAdd(
                 accumulator[0],
-                Slice<HiddenSize>(FeatureWeight, fromIdxV * HiddenSize),
-                Slice<HiddenSize>(FeatureWeight,   toIdxV * HiddenSize)
+                Slice<HiddenSize>(L0Weight, fromIdxV * HiddenSize),
+                Slice<HiddenSize>(L0Weight,   toIdxV * HiddenSize)
             );
             ArraySubAdd(
                 accumulator[1],
-                Slice<HiddenSize>(FeatureWeight, fromIdxU * HiddenSize),
-                Slice<HiddenSize>(FeatureWeight,   toIdxU * HiddenSize)
+                Slice<HiddenSize>(L0Weight, fromIdxU * HiddenSize),
+                Slice<HiddenSize>(L0Weight,   toIdxU * HiddenSize)
             );
         }
 
@@ -158,11 +158,11 @@ namespace MantaRay
 
             ArrayAdd(
                 accumulator[0],
-                Slice<HiddenSize>(FeatureWeight, vIdx * HiddenSize)
+                Slice<HiddenSize>(L0Weight, vIdx * HiddenSize)
             );
             ArrayAdd(
                 accumulator[1],
-                Slice<HiddenSize>(FeatureWeight, uIdx * HiddenSize)
+                Slice<HiddenSize>(L0Weight, uIdx * HiddenSize)
             );
         }
 
@@ -175,11 +175,11 @@ namespace MantaRay
 
             ArraySub(
                 accumulator[0],
-                Slice<HiddenSize>(FeatureWeight, vIdx * HiddenSize)
+                Slice<HiddenSize>(L0Weight, vIdx * HiddenSize)
             );
             ArraySub(
                 accumulator[1],
-                Slice<HiddenSize>(FeatureWeight, uIdx * HiddenSize)
+                Slice<HiddenSize>(L0Weight, uIdx * HiddenSize)
             );
         }
 
@@ -192,8 +192,8 @@ namespace MantaRay
             O output = ActivateFlattenAndForward<ActivationFunction, I, O>(
                 accumulator[perspective    ],
                 accumulator[perspective ^ 1],
-                OutputWeight,
-                OutputBias
+                L1Weight,
+                L1Bias
             )[0];
 
             return output * Scale / (QuantizationFeature * QuantizationOutput);

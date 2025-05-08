@@ -26,7 +26,6 @@ TEST(ArrayAdd, i08_512)
         EXPECT_EQ(a[i], static_cast<MantaRay::i08>(i % 2 == 0 ? 30 + 04 : 0));
 }
 
-
 TEST(ArrayAdd, i16_512)
 {
     constexpr MantaRay::s00 N = 512;
