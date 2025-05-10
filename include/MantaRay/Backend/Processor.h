@@ -6,6 +6,8 @@
 #ifndef MANTARAY_PROCESSOR_H
 #define MANTARAY_PROCESSOR_H
 
+#define ALIGN
+
 #ifdef __amd64__
 
 #ifdef __SSE2__

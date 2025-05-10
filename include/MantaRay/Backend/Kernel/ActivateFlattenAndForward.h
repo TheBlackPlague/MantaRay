@@ -39,44 +39,44 @@ namespace MantaRay
 
             VectorE v0 = SIMD<U>::Zero;
             VectorE v1 = SIMD<U>::Zero;
-            Vector  v2;
+            VectorE v2 = SIMD<U>::Zero;
             Vector  v3;
+            Vector  v4;
+            Vector  v5;
+            Vector  v6;
 
             constexpr s00 Step = sizeof(Vector) / sizeof(T);
 
             for (s00 j = 0; j < N; j += Step) {
-                v2 = SIMD<T>::From(x0,          j);
-                v3 = SIMD<T>::From(w , stride + j);
+                v3 = SIMD<T>::From(x0,          j    );
+                v4 = SIMD<T>::From(x1,          j    );
+                v5 = SIMD<T>::From(w , stride + j    );
+                v6 = SIMD<T>::From(w , stride + j + N);
 
-                v2 = ActivationFunction(v2);
+                v3 = ActivationFunction(v3);
+                v4 = ActivationFunction(v4);
 
-                v1 = SIMD<T>::Madd(v2, v3);
-                v0 = SIMD<U>:: Add(v0, v1);
+                v1 = SIMD<T>::Madd(v3, v5);
+                v2 = SIMD<T>::Madd(v4, v6);
+
+                v0 = SIMD<U>::Add(v0, v1);
+                v0 = SIMD<U>::Add(v0, v2);
             }
 
-            stride += N;
-
-            for (s00 j = 0; j < N; j += Step) {
-                v2 = SIMD<T>::From(x1,          j);
-                v3 = SIMD<T>::From(w , stride + j);
-
-                v2 = ActivationFunction(v2);
-
-                v1 = SIMD<T>::Madd(v2, v3);
-                v0 = SIMD<U>:: Add(v0, v1);
-            }
-
-            stride += N;
+            stride += N * 2;
 
             y[i] = SIMD<U>::Sum(v0) + b[i];
 
 #else
 
-            T v0 = 0;
+            U v0 = 0;
 
-            for (s00 j = 0; j < N; j++) v0 += ActivationFunction(x[j] * w[stride + j]);
+            for (s00 j = 0; j < N; j++) {
+                v0 += ActivationFunction(x0[j]) * w[stride + j    ];
+                v0 += ActivationFunction(x1[j]) * w[stride + j + N];
+            }
 
-            stride += N;
+            stride += N * 2;
 
             y[i] = v0 + b[i];
 
