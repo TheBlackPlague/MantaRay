@@ -10,8 +10,9 @@ CPMAddPackage(
 )
 
 CPMAddPackage(
-        NAME nanobench
-        GITHUB_REPOSITORY martinus/nanobench
-        VERSION 4.3.11
-        GIT_SHALLOW TRUE
+        NAME benchmark
+        GITHUB_REPOSITORY google/benchmark
+        VERSION 1.9.3
+        OPTIONS
+        "BENCHMARK_ENABLE_TESTING OFF"
 )

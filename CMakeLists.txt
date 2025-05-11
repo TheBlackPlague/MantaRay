@@ -3,6 +3,7 @@ project(MantaRay LANGUAGES CXX)
 
 # === OPTIONS ===
 option(BUILD_TEST "Build tests" ON)
+option(BUILD_MB "Build micro benchmarks" ON)
 
 # === LANGUAGE SETTINGS ===
 set(CMAKE_CXX_STANDARD 23)
@@ -24,4 +25,10 @@ target_include_directories(MantaRay INTERFACE
 if(BUILD_TEST)
     message(STATUS "Building tests")
     include(Tests.cmake)
+endif()
+
+# === MantaRay Micro Benchmarks ===
+if(BUILD_MB)
+    message(STATUS "Building micro benchmarks")
+    include(MicroBenchmarks.cmake)
 endif()
