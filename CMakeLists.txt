@@ -23,12 +23,14 @@ target_include_directories(MantaRay INTERFACE
 
 # === MantaRay Tests ===
 if(BUILD_TEST)
+    AddGoogleTest()
     message(STATUS "Building tests")
     include(Tests.cmake)
 endif()
 
 # === MantaRay Micro Benchmarks ===
 if(BUILD_MB)
+    AddGoogleBenchmark()
     message(STATUS "Building micro benchmarks")
     include(MicroBenchmarks.cmake)
 endif()
