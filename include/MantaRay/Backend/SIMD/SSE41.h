@@ -17,7 +17,8 @@ namespace MantaRay
     struct SSE41 : SSE2<T>
     {
 
-        static inline Vec128I Min(const Vec128I& xmm0, const Vec128I& xmm1)
+        [[clang::always_inline]]
+        static Vec128I Min(const Vec128I& xmm0, const Vec128I& xmm1)
         {
             if (std::is_same_v<T, i08>) return _mm_min_epi8 (xmm0, xmm1);
             if (std::is_same_v<T, i32>) return _mm_min_epi32(xmm0, xmm1);
@@ -27,7 +28,8 @@ namespace MantaRay
             __builtin_unreachable();
         }
 
-        static inline Vec128I Max(const Vec128I& xmm0, const Vec128I& xmm1)
+        [[clang::always_inline]]
+        static Vec128I Max(const Vec128I& xmm0, const Vec128I& xmm1)
         {
             if (std::is_same_v<T, i08>) return _mm_max_epi8 (xmm0, xmm1);
             if (std::is_same_v<T, i32>) return _mm_max_epi32(xmm0, xmm1);
@@ -37,7 +39,8 @@ namespace MantaRay
             __builtin_unreachable();
         }
 
-        static inline T Sum(const Vec128I& xmm0) requires std::is_same_v<T, i32>
+        [[clang::always_inline]]
+        static T Sum(const Vec128I& xmm0) requires std::is_same_v<T, i32>
         {
             // xmm0 = [a, b, c, d] -- Assuming T is i32
 

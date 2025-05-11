@@ -105,8 +105,10 @@ namespace MantaRay
             return ss.str();
         }
 
+        [[clang::always_inline]]
         void Reset() { AccumulatorP = 0; }
 
+        [[clang::always_inline]]
         void Push()
         {
             Accumulators[AccumulatorP + 1] = Accumulators[AccumulatorP];
@@ -115,6 +117,7 @@ namespace MantaRay
             assert(AccumulatorP < AccumulatorStackSize);
         }
 
+        [[clang::always_inline]]
         void Pop()
         {
             assert(AccumulatorP > 0);
@@ -122,12 +125,14 @@ namespace MantaRay
             AccumulatorP--;
         }
 
+        [[clang::always_inline]]
         void Refresh()
         {
             Accumulators[AccumulatorP].Zero();
             Accumulators[AccumulatorP].Bias(L0Bias);
         }
 
+        [[clang::always_inline]]
         void Move(const u08 piece, const u08 color, const u08 from, const u08 to)
         {
             const s00 fromIdxV =  color      * ColorStride + piece * PieceStride +  from      ;
@@ -149,6 +154,7 @@ namespace MantaRay
             );
         }
 
+        [[clang::always_inline]]
         void Insert(const u08 piece, const u08 color, const u08 sq)
         {
             const s00 vIdx =  color      * ColorStride + piece * PieceStride +  sq      ;
@@ -166,6 +172,7 @@ namespace MantaRay
             );
         }
 
+        [[clang::always_inline]]
         void Remove(const u08 piece, const u08 color, const u08 sq)
         {
             const s00 vIdx =  color      * ColorStride + piece * PieceStride +  sq      ;
@@ -183,6 +190,7 @@ namespace MantaRay
             );
         }
 
+        [[clang::always_inline]]
         O Evaluate(const u08 perspective)
         {
             assert(perspective < 2);

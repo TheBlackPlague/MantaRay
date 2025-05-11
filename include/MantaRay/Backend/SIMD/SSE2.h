@@ -30,7 +30,8 @@ namespace MantaRay
 
         constexpr static Vec128I Zero = _mm_setzero_si128();
 
-        static inline Vec128I From(const T value)
+        [[clang::always_inline]]
+        static Vec128I From(const T value)
         {
             if (std::is_same_v<T, i08>) return _mm_set1_epi8 (value);
             if (std::is_same_v<T, i16>) return _mm_set1_epi16(value);
@@ -40,7 +41,8 @@ namespace MantaRay
         }
 
         template<s00 Size>
-        static inline Vec128I From(const Array<T, Size>& array, const s00 index)
+        [[clang::always_inline]]
+        static Vec128I From(const Array<T, Size>& array, const s00 index)
         {
             static_assert(sizeof(array) >= sizeof(Vec128I), "Array size must be at least the width of a Vec128I.");
 
@@ -48,14 +50,16 @@ namespace MantaRay
         }
 
         template<s00 Size>
-        static inline void Store(const Vec128I& xmm0, Array<T, Size>& array, const s00 index)
+        [[clang::always_inline]]
+        static void Store(const Vec128I& xmm0, Array<T, Size>& array, const s00 index)
         {
             static_assert(sizeof(array) >= sizeof(Vec128I), "Array size must be at least the width of a Vec128I.");
 
             _mm_store_si128(reinterpret_cast<Vec128I*>(&array[index]), xmm0);
         }
 
-        static inline Vec128I Min(const Vec128I& xmm0, const Vec128I& xmm1)
+        [[clang::always_inline]]
+        static Vec128I Min(const Vec128I& xmm0, const Vec128I& xmm1)
         {
             if (std::is_same_v<T, i16>) return _mm_min_epi16(xmm0, xmm1);
 
@@ -73,7 +77,8 @@ namespace MantaRay
             return From(xmm2Array, 0);
         }
 
-        static inline Vec128I Max(const Vec128I& xmm0, const Vec128I& xmm1)
+        [[clang::always_inline]]
+        static Vec128I Max(const Vec128I& xmm0, const Vec128I& xmm1)
         {
             if (std::is_same_v<T, i16>) return _mm_max_epi16(xmm0, xmm1);
 
@@ -91,7 +96,8 @@ namespace MantaRay
             return From(xmm2Array, 0);
         }
 
-        static inline Vec128I Add(const Vec128I& xmm0, const Vec128I& xmm1)
+        [[clang::always_inline]]
+        static Vec128I Add(const Vec128I& xmm0, const Vec128I& xmm1)
         {
             if (std::is_same_v<T, i08>) return _mm_add_epi8 (xmm0, xmm1);
             if (std::is_same_v<T, i16>) return _mm_add_epi16(xmm0, xmm1);
@@ -100,7 +106,8 @@ namespace MantaRay
             __builtin_unreachable();
         }
 
-        static inline Vec128I Sub(const Vec128I& xmm0, const Vec128I& xmm1)
+        [[clang::always_inline]]
+        static Vec128I Sub(const Vec128I& xmm0, const Vec128I& xmm1)
         {
             if (std::is_same_v<T, i08>) return _mm_sub_epi8 (xmm0, xmm1);
             if (std::is_same_v<T, i16>) return _mm_sub_epi16(xmm0, xmm1);
@@ -109,12 +116,14 @@ namespace MantaRay
             __builtin_unreachable();
         }
 
-        static inline Vec128I Madd(const Vec128I& xmm0, const Vec128I& xmm1) requires std::is_same_v<T, i16>
+        [[clang::always_inline]]
+        static Vec128I Madd(const Vec128I& xmm0, const Vec128I& xmm1) requires std::is_same_v<T, i16>
         {
             return _mm_madd_epi16(xmm0, xmm1);
         }
 
-        static inline T Sum(const Vec128I& xmm0) requires std::is_same_v<T, i32>
+        [[clang::always_inline]]
+        static T Sum(const Vec128I& xmm0) requires std::is_same_v<T, i32>
         {
             // xmm0 = [a, b, c, d]
 

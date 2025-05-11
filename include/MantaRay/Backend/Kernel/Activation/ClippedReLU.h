@@ -28,6 +28,7 @@ namespace MantaRay
 #endif
 
         public:
+        [[clang::always_inline]]
         static Vector Activate(const Vector& value)
         {
             const Vector Min = SIMD<T>::From(Minimum);
@@ -39,6 +40,7 @@ namespace MantaRay
 #else
 
         public:
+        [[clang::always_inline]]
         static T Activate(const T value) { return std::min(Maximum, std::max(Minimum, value)); }
 
 #endif

@@ -12,6 +12,7 @@ namespace MantaRay
 {
 
     template<QuantizedInteger T, s00 N>
+    [[clang::always_inline]]
     void ArrayAdd(Array<T, N>& base, const Array<T, N>& delta)
     {
 #ifdef SIMD

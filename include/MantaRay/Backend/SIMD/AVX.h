@@ -28,7 +28,8 @@ namespace MantaRay
 
         constexpr static Vec256I Zero = _mm256_setzero_si256();
 
-        static inline Vec256I From(const T value)
+        [[clang::always_inline]]
+        static Vec256I From(const T value)
         {
             if (std::is_same_v<T, i08>) return _mm256_set1_epi8 (value);
             if (std::is_same_v<T, i16>) return _mm256_set1_epi16(value);
@@ -38,7 +39,8 @@ namespace MantaRay
         }
 
         template<s00 Size>
-        static inline Vec256I From(const Array<T, Size>& array, const s00 index)
+        [[clang::always_inline]]
+        static Vec256I From(const Array<T, Size>& array, const s00 index)
         {
             static_assert(sizeof(array) >= sizeof(Vec256I), "Array size must be at least the width of a Vec256I.");
 
@@ -46,14 +48,16 @@ namespace MantaRay
         }
 
         template<s00 Size>
-        static inline void Store(const Vec256I& ymm0, Array<T, Size>& array, const s00 index)
+        [[clang::always_inline]]
+        static void Store(const Vec256I& ymm0, Array<T, Size>& array, const s00 index)
         {
             static_assert(sizeof(array) >= sizeof(Vec256I), "Array size must be at least the width of a Vec256I.");
 
             _mm256_store_si256(reinterpret_cast<Vec256I*>(&array[index]), ymm0);
         }
 
-        static inline Vec256I Min(const Vec256I& ymm0, const Vec256I& ymm1)
+        [[clang::always_inline]]
+        static Vec256I Min(const Vec256I& ymm0, const Vec256I& ymm1)
         {
             // ymm0 = [a, b, c, d, e, f, g, h] -- Assuming T is i32
             // ymm1 = [i, j, k, l, m, n, o, p] -- Assuming T is i32
@@ -92,7 +96,8 @@ namespace MantaRay
             return ymm2;
         }
 
-        static inline Vec256I Max(const Vec256I& ymm0, const Vec256I& ymm1)
+        [[clang::always_inline]]
+        static Vec256I Max(const Vec256I& ymm0, const Vec256I& ymm1)
         {
             // ymm0 = [a, b, c, d, e, f, g, h] -- Assuming T is i32
             // ymm1 = [i, j, k, l, m, n, o, p] -- Assuming T is i32
@@ -131,7 +136,8 @@ namespace MantaRay
             return ymm2;
         }
 
-        static inline Vec256I Add(const Vec256I& ymm0, const Vec256I& ymm1)
+        [[clang::always_inline]]
+        static Vec256I Add(const Vec256I& ymm0, const Vec256I& ymm1)
         {
             // ymm0 = [a, b, c, d, e, f, g, h] -- Assuming T is i32
             // ymm1 = [i, j, k, l, m, n, o, p] -- Assuming T is i32
@@ -174,7 +180,8 @@ namespace MantaRay
             return ymm2;
         }
 
-        static inline Vec256I Sub(const Vec256I& ymm0, const Vec256I& ymm1)
+        [[clang::always_inline]]
+        static Vec256I Sub(const Vec256I& ymm0, const Vec256I& ymm1)
         {
             // ymm0 = [a, b, c, d, e, f, g, h] -- Assuming T is i32
             // ymm1 = [i, j, k, l, m, n, o, p] -- Assuming T is i32
@@ -217,7 +224,8 @@ namespace MantaRay
             return ymm2;
         }
 
-        static inline Vec256I Madd(const Vec256I& ymm0, const Vec256I& ymm1) requires std::is_same_v<T, i16>
+        [[clang::always_inline]]
+        static Vec256I Madd(const Vec256I& ymm0, const Vec256I& ymm1) requires std::is_same_v<T, i16>
         {
             // ymm0 = [a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p]
             // ymm1 = [q, r, s, t, u, v, w, x, y, z, A, B, C, D, E, F]
@@ -263,7 +271,8 @@ namespace MantaRay
             return ymm2;
         }
 
-        static inline T Sum(const Vec256I& ymm0) requires std::is_same_v<T, i32>
+        [[clang::always_inline]]
+        static T Sum(const Vec256I& ymm0) requires std::is_same_v<T, i32>
         {
             // ymm0 = [a, b, c, d, e, f, g, h]
 

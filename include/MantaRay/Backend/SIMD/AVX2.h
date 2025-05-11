@@ -17,7 +17,8 @@ namespace MantaRay
     struct AVX2 : AVX<T>
     {
 
-        static inline Vec256I Min(const Vec256I& ymm0, const Vec256I& ymm1)
+        [[clang::always_inline]]
+        static Vec256I Min(const Vec256I& ymm0, const Vec256I& ymm1)
         {
             if (std::is_same_v<T, i08>) return _mm256_min_epi8 (ymm0, ymm1);
             if (std::is_same_v<T, i16>) return _mm256_min_epi16(ymm0, ymm1);
@@ -26,7 +27,8 @@ namespace MantaRay
             __builtin_unreachable();
         }
 
-        static inline Vec256I Max(const Vec256I& ymm0, const Vec256I& ymm1)
+        [[clang::always_inline]]
+        static Vec256I Max(const Vec256I& ymm0, const Vec256I& ymm1)
         {
             if (std::is_same_v<T, i08>) return _mm256_max_epi8 (ymm0, ymm1);
             if (std::is_same_v<T, i16>) return _mm256_max_epi16(ymm0, ymm1);
@@ -35,7 +37,8 @@ namespace MantaRay
             __builtin_unreachable();
         }
 
-        static inline Vec256I Add(const Vec256I& ymm0, const Vec256I& ymm1)
+        [[clang::always_inline]]
+        static Vec256I Add(const Vec256I& ymm0, const Vec256I& ymm1)
         {
             if (std::is_same_v<T, i08>) return _mm256_add_epi8 (ymm0, ymm1);
             if (std::is_same_v<T, i16>) return _mm256_add_epi16(ymm0, ymm1);
@@ -44,7 +47,8 @@ namespace MantaRay
             __builtin_unreachable();
         }
 
-        static inline Vec256I Sub(const Vec256I& ymm0, const Vec256I& ymm1)
+        [[clang::always_inline]]
+        static Vec256I Sub(const Vec256I& ymm0, const Vec256I& ymm1)
         {
             if (std::is_same_v<T, i08>) return _mm256_sub_epi8 (ymm0, ymm1);
             if (std::is_same_v<T, i16>) return _mm256_sub_epi16(ymm0, ymm1);
@@ -53,12 +57,14 @@ namespace MantaRay
             __builtin_unreachable();
         }
 
-        static inline Vec256I Madd(const Vec256I& ymm0, const Vec256I& ymm1) requires std::is_same_v<T, i16>
+        [[clang::always_inline]]
+        static Vec256I Madd(const Vec256I& ymm0, const Vec256I& ymm1) requires std::is_same_v<T, i16>
         {
             return _mm256_madd_epi16 (ymm0, ymm1);
         }
 
-        static inline T Sum(const Vec256I& ymm0) requires std::is_same_v<T, i32>
+        [[clang::always_inline]]
+        static T Sum(const Vec256I& ymm0) requires std::is_same_v<T, i32>
         {
             // ymm0 = [a, b, c, d, e, f, g, h]
 

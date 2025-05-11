@@ -18,14 +18,19 @@ namespace MantaRay
         ALIGN Array<T, N + (N * Colored)> Internal;
 
         public:
+        [[clang::always_inline]]
         Accumulator() { Zero(); }
 
+        [[clang::always_inline]]
         Accumulator(const Accumulator& src) { ArrayCopy(src.Internal, Internal); }
 
+        [[clang::always_inline]]
         void operator =(const Accumulator& src) { ArrayCopy(src.Internal, Internal); }
 
+        [[clang::always_inline]]
         void Zero() { std::memset(Internal.data(), 0, sizeof(Array<T, N + (N * Colored)>)); }
 
+        [[clang::always_inline]]
         void Bias(Array<T, N>& bias)
         {
             ArrayCopy(bias, Slice<0, N>(Internal));
@@ -34,7 +39,10 @@ namespace MantaRay
             ArrayCopy(bias, Slice<N, N>(Internal));
         }
 
+        [[clang::always_inline]]
               Array<T, N>& operator [](const s00 side)       requires Colored { return Slice<N>(Internal, side * N); }
+
+        [[clang::always_inline]]
         const Array<T, N>& operator [](const s00 side) const requires Colored { return Slice<N>(Internal, side * N); }
 
     };

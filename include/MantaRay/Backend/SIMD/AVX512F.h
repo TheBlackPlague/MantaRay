@@ -28,7 +28,8 @@ namespace MantaRay
 
         constexpr static Vec512I Zero = _mm512_setzero_si512();
 
-        static inline Vec512I From(const T value)
+        [[clang::always_inline]]
+        static Vec512I From(const T value)
         {
             if (std::is_same_v<T, i08>) return _mm512_set1_epi8 (value);
             if (std::is_same_v<T, i16>) return _mm512_set1_epi16(value);
@@ -38,7 +39,8 @@ namespace MantaRay
         }
 
         template<s00 Size>
-        static inline Vec512I From(const Array<T, Size>& array, const s00 index)
+        [[clang::always_inline]]
+        static Vec512I From(const Array<T, Size>& array, const s00 index)
         {
             static_assert(sizeof(array) >= sizeof(Vec512I), "Array size must be at least the width of a Vec512I.");
 
@@ -46,14 +48,16 @@ namespace MantaRay
         }
 
         template<s00 Size>
-        static inline void Store(const Vec512I& zmm0, Array<T, Size>& array, const s00 index)
+        [[clang::always_inline]]
+        static void Store(const Vec512I& zmm0, Array<T, Size>& array, const s00 index)
         {
             static_assert(sizeof(array) >= sizeof(Vec512I), "Array size must be at least the width of a Vec512I.");
 
             _mm512_store_si512(reinterpret_cast<Vec512I*>(&array[index]), zmm0);
         }
 
-        static inline Vec512I Min(const Vec512I& zmm0, const Vec512I& zmm1)
+        [[clang::always_inline]]
+        static Vec512I Min(const Vec512I& zmm0, const Vec512I& zmm1)
         {
             if (std::is_same_v<T, i32>) return _mm512_min_epi32(zmm0, zmm1);
 
@@ -96,7 +100,8 @@ namespace MantaRay
             return zmm2;
         }
 
-        static inline Vec512I Max(const Vec512I& zmm0, const Vec512I& zmm1)
+        [[clang::always_inline]]
+        static Vec512I Max(const Vec512I& zmm0, const Vec512I& zmm1)
         {
             if (std::is_same_v<T, i32>) return _mm512_max_epi32(zmm0, zmm1);
 
@@ -139,7 +144,8 @@ namespace MantaRay
             return zmm2;
         }
 
-        static inline Vec512I Add(const Vec512I& zmm0, const Vec512I& zmm1)
+        [[clang::always_inline]]
+        static Vec512I Add(const Vec512I& zmm0, const Vec512I& zmm1)
         {
             if (std::is_same_v<T, i32>) return _mm512_add_epi32(zmm0, zmm1);
 
@@ -186,7 +192,8 @@ namespace MantaRay
             return zmm2;
         }
 
-        static inline Vec512I Sub(const Vec512I& zmm0, const Vec512I& zmm1)
+        [[clang::always_inline]]
+        static Vec512I Sub(const Vec512I& zmm0, const Vec512I& zmm1)
         {
             if (std::is_same_v<T, i32>) return _mm512_sub_epi32(zmm0, zmm1);
 
@@ -233,7 +240,8 @@ namespace MantaRay
             return zmm2;
         }
 
-        static inline Vec512I Madd(const Vec512I& zmm0, const Vec512I& zmm1) requires std::is_same_v<T, i16>
+        [[clang::always_inline]]
+        static Vec512I Madd(const Vec512I& zmm0, const Vec512I& zmm1) requires std::is_same_v<T, i16>
         {
             // zmm0 = [a00, a01, a02, a03, ..., a28, a29, a30, a31]
             // zmm1 = [b00, b01, b02, b03, ..., b28, b29, b30, b31]
@@ -279,7 +287,8 @@ namespace MantaRay
             return zmm2;
         }
 
-        static inline T Sum(const Vec512I& zmm0) requires std::is_same_v<T, i32>
+        [[clang::always_inline]]
+        static T Sum(const Vec512I& zmm0) requires std::is_same_v<T, i32>
         {
             // zmm0 = [a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p]
 
