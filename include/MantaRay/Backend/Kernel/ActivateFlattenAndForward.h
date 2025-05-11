@@ -12,6 +12,7 @@ namespace MantaRay
 {
 
     template<auto ActivationFunction, QuantizedInteger T, QuantizedInteger U, s00 N, s00 M>
+    [[clang::noinline]]
     Array<U, M> ActivateFlattenAndForward(
         const Array<T, N        >& x0,
         const Array<T, N        >& x1,
@@ -39,31 +40,34 @@ namespace MantaRay
 
             VectorE v0 = SIMD<U>::Zero;
             VectorE v1 = SIMD<U>::Zero;
-            VectorE v2 = SIMD<U>::Zero;
+            Vector  v2;
             Vector  v3;
-            Vector  v4;
-            Vector  v5;
-            Vector  v6;
 
             constexpr s00 Step = sizeof(Vector) / sizeof(T);
 
             for (s00 j = 0; j < N; j += Step) {
-                v3 = SIMD<T>::From(x0,          j    );
-                v4 = SIMD<T>::From(x1,          j    );
-                v5 = SIMD<T>::From(w , stride + j    );
-                v6 = SIMD<T>::From(w , stride + j + N);
+                v2 = SIMD<T>::From(x0,          j);
+                v3 = SIMD<T>::From(w , stride + j);
 
-                v3 = ActivationFunction(v3);
-                v4 = ActivationFunction(v4);
+                v2 = ActivationFunction(v2);
 
-                v1 = SIMD<T>::Madd(v3, v5);
-                v2 = SIMD<T>::Madd(v4, v6);
-
-                v0 = SIMD<U>::Add(v0, v1);
-                v0 = SIMD<U>::Add(v0, v2);
+                v1 = SIMD<T>::Madd(v2, v3);
+                v0 = SIMD<U>:: Add(v0, v1);
             }
 
-            stride += N * 2;
+            stride += N;
+
+            for (s00 j = 0; j < N; j += Step) {
+                v2 = SIMD<T>::From(x1,          j);
+                v3 = SIMD<T>::From(w , stride + j);
+
+                v2 = ActivationFunction(v2);
+
+                v1 = SIMD<T>::Madd(v2, v3);
+                v0 = SIMD<U>:: Add(v0, v1);
+            }
+
+            stride += N;
 
             y[i] = SIMD<U>::Sum(v0) + b[i];
 
