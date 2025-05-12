@@ -38,45 +38,34 @@ namespace MantaRay
 
 #endif
 
-            VectorE v0 = SIMD<T>::Zero;
-            Vector  v1;
+            VectorE v0 = SIMD<U>::Zero;
+            VectorE v1 = SIMD<U>::Zero;
             Vector  v2;
+            Vector  v3;
 
             constexpr s00 Step = sizeof(Vector) / sizeof(T);
 
-            std::array<VectorE, N / Step> v;
-
             for (s00 j = 0; j < N; j += Step) {
-                v1 = SIMD<T>::From(x0,          j);
-                v2 = SIMD<T>::From(w , stride + j);
+                v2 = SIMD<T>::From(x0,          j);
+                v3 = SIMD<T>::From(w , stride + j);
 
-                v1 = ActivationFunction(v1);
+                v2 = ActivationFunction(v2);
 
-                v[j / Step] = SIMD<T>::Madd(v1, v2);
+                v1 = SIMD<T>::Madd(v2, v3);
+                v0 = SIMD<U>:: Add(v0, v1);
             }
-
-            for (s00 j = 1; j < N / Step;       j <<= 1)
-            for (s00 k = j; k < N / Step; k += (j <<  1))
-                v[k - j] = SIMD<U>::Add(v[k - j], v[k]);
-
-            v0 = SIMD<T>::Add(v0, v[0]);
 
             stride += N;
 
             for (s00 j = 0; j < N; j += Step) {
-                v1 = SIMD<T>::From(x1,          j);
-                v2 = SIMD<T>::From(w , stride + j);
+                v2 = SIMD<T>::From(x1,          j);
+                v3 = SIMD<T>::From(w , stride + j);
 
-                v1 = ActivationFunction(v1);
+                v2 = ActivationFunction(v2);
 
-                v[j / Step] = SIMD<T>::Madd(v1, v2);
+                v1 = SIMD<T>::Madd(v2, v3);
+                v0 = SIMD<U>:: Add(v0, v1);
             }
-
-            for (s00 j = 1; j < N / Step;       j <<= 1)
-            for (s00 k = j; k < N / Step; k += (j <<  1))
-                v[k - j] = SIMD<U>::Add(v[k - j], v[k]);
-
-            v0 = SIMD<T>::Add(v0, v[0]);
 
             stride += N;
 
