@@ -55,8 +55,7 @@ namespace MantaRay
                 v[j / Step] = SIMD<T>::Madd(v1, v2);
             }
 
-            for (s00 j = 1; j < N / Step;       j <<= 1)
-            for (s00 k = j; k < N / Step; k += (j <<  1))
+            for (s00 j = 1; j < N / Step; j *= 2) for (s00 k = j; k < N / Step; k += j * 2)
                 v[k - j] = SIMD<U>::Add(v[k - j], v[k]);
 
             v0 = SIMD<T>::Add(v0, v[0]);
@@ -72,8 +71,7 @@ namespace MantaRay
                 v[j / Step] = SIMD<T>::Madd(v1, v2);
             }
 
-            for (s00 j = 1; j < N / Step;       j <<= 1)
-            for (s00 k = j; k < N / Step; k += (j <<  1))
+            for (s00 j = 1; j < N / Step; j *= 2) for (s00 k = j; k < N / Step; k += j * 2)
                 v[k - j] = SIMD<U>::Add(v[k - j], v[k]);
 
             v0 = SIMD<T>::Add(v0, v[0]);
