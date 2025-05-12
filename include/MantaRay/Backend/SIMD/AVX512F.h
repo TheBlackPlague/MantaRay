@@ -290,26 +290,7 @@ namespace MantaRay
         [[clang::always_inline]]
         static T Sum(const Vec512I& zmm0) requires std::is_same_v<T, i32>
         {
-            // zmm0 = [a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p]
-
-            Vec256I ymm0;
-            Vec256I ymm1;
-
-            // ymm0 = [a, b, c, d, e, f, g, h]
-            ymm0 = _mm512_extracti64x4_epi64(zmm0, 0);
-
-            // ymm1 = [i, j, k, l, m, n, o, p]
-            ymm1 = _mm512_extracti64x4_epi64(zmm0, 1);
-
-            //     [  a  ,   b  ,   c  ,   d  ,   e  ,   f  ,   g  ,   h  ]
-            // +   [  i  ,   j  ,   k  ,   l  ,   m  ,   n  ,   o  ,   p  ]
-            // =   [a + i, b + j, c + k, d + l, e + m, f + n, g + o, h + p]
-            ymm0 = AVX2<T>::Add(ymm0, ymm1);
-
-            // Refer to the AVX2::Sum method for the rest of the implementation
-            // Takes a register in the form of [a, b, c, d, e, f, g, h]
-            // Returns the T value of a + b + c + d + e + f + g + h
-            return AVX2<T>::Sum(ymm0);
+            return _mm512_reduce_add_epi32(zmm0);
         }
 
     };
