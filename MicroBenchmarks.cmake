@@ -28,13 +28,16 @@ endfunction()
 
 if(AMD64)
     message(STATUS "Platform: AMD64")
-    AddMantaRayMicroBench("x86-64" "sse2"     "-msse2"    )
-    AddMantaRayMicroBench("x86-64" "sse41"    "-msse4.1"  )
+    AddMantaRayMicroBench("x86-64" "sse2"     "-msse2"       )
+    AddMantaRayMicroBench("x86-64" "sse41"    "-msse4.1"     )
 
-    AddMantaRayMicroBench("x86-64" "avx"      "-mavx"     )
-    AddMantaRayMicroBench("x86-64" "avx2"     "-mavx2"    )
-    AddMantaRayMicroBench("x86-64" "avx512f"  "-mavx512f" )
-    AddMantaRayMicroBench("x86-64" "avx512bw" "-mavx512bw")
+    AddMantaRayMicroBench("x86-64" "avx"      "-mavx"        )
+    AddMantaRayMicroBench("x86-64" "avx2"     "-mavx2"       )
+
+    AddMantaRayMicroBench("x86-64" "avx512f"  "-mavx512f"    )
+    AddMantaRayMicroBench("x86-64" "avx512bw" "-mavx512bw"   )
+
+    AddMantaRayMicroBench("x86-64" "native"   "-march=native")
 elseif(ARM64)
     if(APPLE)
         message(STATUS "Platform: Apple Silicon")

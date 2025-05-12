@@ -31,13 +31,16 @@ endfunction()
 
 if(AMD64)
     message(STATUS "Platform: AMD64")
-    AddMantaRayTest("x86-64" "sse2"     "-msse2"    )
-    AddMantaRayTest("x86-64" "sse41"    "-msse4.1"  )
+    AddMantaRayTest("x86-64" "sse2"     "-msse2"       )
+    AddMantaRayTest("x86-64" "sse41"    "-msse4.1"     )
 
-    AddMantaRayTest("x86-64" "avx"      "-mavx"     )
-    AddMantaRayTest("x86-64" "avx2"     "-mavx2"    )
-    AddMantaRayTest("x86-64" "avx512f"  "-mavx512f" )
-    AddMantaRayTest("x86-64" "avx512bw" "-mavx512bw")
+    AddMantaRayTest("x86-64" "avx"      "-mavx"        )
+    AddMantaRayTest("x86-64" "avx2"     "-mavx2"       )
+
+    AddMantaRayTest("x86-64" "avx512f"  "-mavx512f"    )
+    AddMantaRayTest("x86-64" "avx512bw" "-mavx512bw"   )
+
+    AddMantaRayTest("x86-64" "native"   "-march=native")
 elseif(ARM64)
     if(APPLE)
         message(STATUS "Platform: Apple Silicon")
