@@ -93,27 +93,31 @@
 
 #endif
 
-#ifdef __aarch64__
+// #ifdef __aarch64__
+//
+// #ifdef __ARM_NEON__
+//
+// #include "SIMD/NEON.h"
+//
+// #ifdef SIMD
+// #undef SIMD
+// #endif
+// #define SIMD MantaRay::NEON
+//
+// #ifdef SIMDVEC
+// #undef SIMDVEC
+// #undef SIMDVEC_EXTEND
+// #endif
+//
+// #define SIMDVEC MantaRay::Vec128I
+// #define SIMDVEC_EXTEND MantaRay::Vec128IE
+//
+// #endif
+//
+// #endif
 
-#ifdef __ARM_NEON__
-
-#include "SIMD/NEON.h"
-
-#ifdef SIMD
-#undef SIMD
-#endif
-#define SIMD MantaRay::NEON
-
-#ifdef SIMDVEC
-#undef SIMDVEC
-#undef SIMDVEC_EXTEND
-#endif
-
-#define SIMDVEC MantaRay::Vec128I
-#define SIMDVEC_EXTEND MantaRay::Vec128IE
-
-#endif
-
+#ifndef SIMD
+#include "Container.h"
 #endif
 
 #endif //MANTARAY_PROCESSOR_H
