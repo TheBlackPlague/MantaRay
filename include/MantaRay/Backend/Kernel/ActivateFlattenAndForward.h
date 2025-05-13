@@ -45,7 +45,6 @@ namespace MantaRay
 
             constexpr s00 Step = sizeof(Vector) / sizeof(T);
 
-#pragma unroll
             for (s00 j = 0; j < N; j += Step) {
                 v2 = SIMD<T>::From(x0,          j);
                 v3 = SIMD<T>::From(w , stride + j);
@@ -58,7 +57,6 @@ namespace MantaRay
 
             stride += N;
 
-#pragma unroll
             for (s00 j = 0; j < N; j += Step) {
                 v2 = SIMD<T>::From(x1,          j);
                 v3 = SIMD<T>::From(w , stride + j);
