@@ -34,7 +34,7 @@ void BM_AccumulatorStack_Aurora(BM::State& state)
 
 void BM_Refresh_Starshard(BM::State& state)
 {
-    for (auto _ : state)StarshardNN.Refresh();
+    for (auto _ : state) StarshardNN.Refresh();
 }
 
 void BM_Refresh_Aurora(BM::State& state)

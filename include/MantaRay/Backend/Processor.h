@@ -8,6 +8,11 @@
 
 #define ALIGN
 
+#define STR(x) #x
+#define PRAGMA_CALL(x) _Pragma( STR(x) )
+#define UNROLL(x) PRAGMA_CALL(unroll x)
+#define UNROLL    PRAGMA_CALL(unroll  )
+
 #ifdef __amd64__
 
 #ifdef __SSE2__
