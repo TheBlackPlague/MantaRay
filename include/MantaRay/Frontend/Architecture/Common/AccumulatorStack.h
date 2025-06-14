@@ -52,8 +52,8 @@ namespace MantaRay
             Pointer--;
         }
 
-              Accumulator&                operator *()       { return Internal[Pointer]; }
-        const Accumulator&                operator *() const { return Internal[Pointer]; }
+              Accumulator& operator *()       { return Internal[Pointer]; }
+        const Accumulator& operator *() const { return Internal[Pointer]; }
 
     };
 
