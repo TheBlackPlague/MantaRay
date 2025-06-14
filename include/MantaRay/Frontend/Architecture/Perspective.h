@@ -28,14 +28,11 @@ namespace MantaRay
              s00  InputSize,
              s00 HiddenSize,
              s00 OutputSize,
-             s00 AccumulatorStackSize,
              I Scale,
              I QuantizationFeature,
              I QuantizationOutput>
     class Perspective
     {
-
-        static_assert(AccumulatorStackSize > 0, "The accumulator stack size must at least be greater than zero.");
 
         static_assert(Scale > 0 && QuantizationFeature > 127 && QuantizationOutput > 31,
                       "These scale and quantization constants don't seem right.");
@@ -48,27 +45,11 @@ namespace MantaRay
         ALIGN Array<I, HiddenSize * 2 * OutputSize> L1Weight;
         ALIGN Array<I,                  OutputSize> L1Bias  ;
 
-        using Accumulator      =            Accumulator<I,         HiddenSize>;
-        using AccumulatorStack = std::array<Accumulator, AccumulatorStackSize>;
-
-        AccumulatorStack Accumulators;
-        s00              AccumulatorP;
-
-        void Initialize()
-        {
-            const Accumulator accumulator;
-            std::fill(std::begin(Accumulators), std::end(Accumulators), accumulator);
-
-            AccumulatorP = 0;
-        }
-
         public:
-        Perspective() { Initialize(); } // NOLINT(*-pro-type-member-init)
+        Perspective() = default;
 
         Perspective(BinaryFileStream<>& stream)
         {
-            Initialize();
-
             stream.ReadArray(L0Weight);
             stream.ReadArray(L0Bias  );
             stream.ReadArray(L1Weight);
@@ -77,8 +58,6 @@ namespace MantaRay
 
         Perspective(BinaryMemoryStream& stream)
         {
-            Initialize();
-
             stream.ReadArray(L0Weight);
             stream.ReadArray(L0Bias  );
             stream.ReadArray(L1Weight);
@@ -97,7 +76,6 @@ namespace MantaRay
             ss << " | " << "Output Layer Size    : " <<                  OutputSize << std::endl;
             ss << " | " << "Input ->Hidden Weight: " <<  InputSize *     HiddenSize << std::endl;
             ss << " | " << "Hidden->Output Weight: " << HiddenSize * 2 * OutputSize << std::endl;
-            ss << " | " << "AccumulatorStackSize : " <<        AccumulatorStackSize << std::endl;
             ss << " | " << "Scale                : " <<                       Scale << std::endl;
             ss << " | " << "QuantizationFeature  : " <<         QuantizationFeature << std::endl;
             ss << " | " << "QuantizationOutput   : " <<         QuantizationOutput  << std::endl;
@@ -105,42 +83,16 @@ namespace MantaRay
             return ss.str();
         }
 
-        [[clang::always_inline]]
-        void Reset() { AccumulatorP = 0; }
+        void Refresh(Accumulator<I, HiddenSize>& accumulator) { accumulator.Bias(L0Bias); }
 
         [[clang::always_inline]]
-        void Push()
-        {
-            Accumulators[AccumulatorP + 1] = Accumulators[AccumulatorP];
-            AccumulatorP++;
-
-            assert(AccumulatorP < AccumulatorStackSize);
-        }
-
-        [[clang::always_inline]]
-        void Pop()
-        {
-            assert(AccumulatorP > 0);
-
-            AccumulatorP--;
-        }
-
-        [[clang::always_inline]]
-        void Refresh()
-        {
-            Accumulators[AccumulatorP].Zero();
-            Accumulators[AccumulatorP].Bias(L0Bias);
-        }
-
-        [[clang::always_inline]]
-        void Move(const u08 piece, const u08 color, const u08 from, const u08 to)
+        void Move(const u08 piece, const u08 color, const u08 from, const u08 to,
+                  Accumulator<I, HiddenSize>& accumulator)
         {
             const s00 fromIdxV =  color      * ColorStride + piece * PieceStride +  from      ;
             const s00 fromIdxU = (color ^ 1) * ColorStride + piece * PieceStride + (from ^ 56);
             const s00   toIdxV =  color      * ColorStride + piece * PieceStride +  to        ;
             const s00   toIdxU = (color ^ 1) * ColorStride + piece * PieceStride + (to   ^ 56);
-
-            Accumulator& accumulator = Accumulators[AccumulatorP];
 
             ArraySubAdd(
                 accumulator[0],
@@ -155,12 +107,10 @@ namespace MantaRay
         }
 
         [[clang::always_inline]]
-        void Insert(const u08 piece, const u08 color, const u08 sq)
+        void Insert(const u08 piece, const u08 color, const u08 sq, Accumulator<I, HiddenSize>& accumulator)
         {
             const s00 vIdx =  color      * ColorStride + piece * PieceStride +  sq      ;
             const s00 uIdx = (color ^ 1) * ColorStride + piece * PieceStride + (sq ^ 56);
-
-            Accumulator& accumulator = Accumulators[AccumulatorP];
 
             ArrayAdd(
                 accumulator[0],
@@ -173,12 +123,10 @@ namespace MantaRay
         }
 
         [[clang::always_inline]]
-        void Remove(const u08 piece, const u08 color, const u08 sq)
+        void Remove(const u08 piece, const u08 color, const u08 sq, Accumulator<I, HiddenSize>& accumulator)
         {
             const s00 vIdx =  color      * ColorStride + piece * PieceStride +  sq      ;
             const s00 uIdx = (color ^ 1) * ColorStride + piece * PieceStride + (sq ^ 56);
-
-            Accumulator& accumulator = Accumulators[AccumulatorP];
 
             ArraySub(
                 accumulator[0],
@@ -191,11 +139,9 @@ namespace MantaRay
         }
 
         [[clang::always_inline]]
-        O Evaluate(const u08 perspective)
+        O Evaluate(const u08 perspective, const Accumulator<I, HiddenSize>& accumulator)
         {
             assert(perspective < 2);
-
-            const Accumulator& accumulator = Accumulators[AccumulatorP];
 
             O output = ActivateFlattenAndForward<ActivationFunction, I, O>(
                 accumulator[perspective    ],
