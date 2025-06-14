@@ -11,19 +11,6 @@
 namespace MantaRay
 {
 
-    constexpr u64 CeilSqrt(const u64 n)
-    {
-        u64 l = 1, h = 1ULL << 32;
-        while (l < h) {
-            const u64 m = (l + h) >> 1;
-
-            if (m * m < n) l = m + 1;
-            else           h = m    ;
-        }
-
-        return l;
-    }
-
     template<auto ActivationFunction, QuantizedInteger T, QuantizedInteger U, s00 N, s00 M>
     [[clang::noinline]]
     Array<U, M> ActivateFlattenAndForward(
@@ -51,50 +38,38 @@ namespace MantaRay
 
 #endif
 
-            constexpr s00 Lanes = 3;
-
-            VectorE v32[Lanes * 2];
-            Vector  v16[Lanes * 2];
-
-            for (s00 r = Lanes; r < Lanes * 2; r++) v32[r] = SIMD<U>::Zero;
+            VectorE v0 = SIMD<U>::Zero;
+            VectorE v1 = SIMD<U>::Zero;
+            Vector  v2;
+            Vector  v3;
 
             constexpr s00 Step = sizeof(Vector) / sizeof(T);
 
-            auto Inner = [&w, &v32, &v16](const Array<T, N>& x, const s00 s, const s00 j) -> void
-            {
-                UNROLL
-                for (s00 r = 0; r < Lanes; r++) v16[        r] = SIMD<T>::From(x,     j + Step * r);
-                UNROLL
-                for (s00 r = 0; r < Lanes; r++) v16[Lanes + r] = SIMD<T>::From(w, s + j + Step * r);
+            for (s00 j = 0; j < N; j += Step) {
+                v2 = SIMD<T>::From(x0,          j);
+                v3 = SIMD<T>::From(w , stride + j);
 
-                UNROLL
-                for (s00 r = 0; r < Lanes; r++) v16[        r] = ActivationFunction(v16[r]);
+                v2 = ActivationFunction(v2);
 
-                UNROLL
-                for (s00 r = 0; r < Lanes; r++) v32[        r] = SIMD<T>::Madd(v16[r], v16[Lanes + r]);
-                UNROLL
-                for (s00 r = 0; r < Lanes; r++) v32[Lanes + r] = SIMD<U>:: Add(v32[r], v32[Lanes + r]);
-            };
-
-            UNROLL
-            for (s00 j = 0; j < N; j += Step * Lanes) Inner(x0, stride, j);
+                v1 = SIMD<T>::Madd(v2, v3);
+                v0 = SIMD<U>:: Add(v0, v1);
+            }
 
             stride += N;
 
-            UNROLL
-            for (s00 j = 0; j < N; j += Step * Lanes) Inner(x1, stride, j);
+            for (s00 j = 0; j < N; j += Step) {
+                v2 = SIMD<T>::From(x1,          j);
+                v3 = SIMD<T>::From(w , stride + j);
+
+                v2 = ActivationFunction(v2);
+
+                v1 = SIMD<T>::Madd(v2, v3);
+                v0 = SIMD<U>:: Add(v0, v1);
+            }
 
             stride += N;
 
-            constexpr s00 LaneAccumulationDepth = CeilSqrt(Lanes);
-
-            UNROLL
-            for (s00 l = 0; l < LaneAccumulationDepth; l++)
-            UNROLL
-            for (s00 r = 0, d = 1ULL << l; r + d < Lanes; r += d * 2)
-                v32[Lanes + r] = SIMD<U>::Add(v32[Lanes + r], v32[Lanes + r + d]);
-
-            y[i] = SIMD<U>::Sum(v32[Lanes]) + b[i];
+            y[i] = SIMD<U>::Sum(v0) + b[i];
 
 #else
 
