@@ -83,11 +83,11 @@ namespace MantaRay
             return ss.str();
         }
 
-        void Refresh(Accumulator<I, HiddenSize>& accumulator) { accumulator.Bias(L0Bias); }
+        void Refresh(Accumulator<I, HiddenSize>& accumulator) const { accumulator.Bias(L0Bias); }
 
         [[clang::always_inline]]
         void Move(const u08 piece, const u08 color, const u08 from, const u08 to,
-                  Accumulator<I, HiddenSize>& accumulator)
+                  Accumulator<I, HiddenSize>& accumulator) const
         {
             const s00 fromIdxV =  color      * ColorStride + piece * PieceStride +  from      ;
             const s00 fromIdxU = (color ^ 1) * ColorStride + piece * PieceStride + (from ^ 56);
@@ -107,7 +107,7 @@ namespace MantaRay
         }
 
         [[clang::always_inline]]
-        void Insert(const u08 piece, const u08 color, const u08 sq, Accumulator<I, HiddenSize>& accumulator)
+        void Insert(const u08 piece, const u08 color, const u08 sq, Accumulator<I, HiddenSize>& accumulator) const
         {
             const s00 vIdx =  color      * ColorStride + piece * PieceStride +  sq      ;
             const s00 uIdx = (color ^ 1) * ColorStride + piece * PieceStride + (sq ^ 56);
@@ -123,7 +123,7 @@ namespace MantaRay
         }
 
         [[clang::always_inline]]
-        void Remove(const u08 piece, const u08 color, const u08 sq, Accumulator<I, HiddenSize>& accumulator)
+        void Remove(const u08 piece, const u08 color, const u08 sq, Accumulator<I, HiddenSize>& accumulator) const
         {
             const s00 vIdx =  color      * ColorStride + piece * PieceStride +  sq      ;
             const s00 uIdx = (color ^ 1) * ColorStride + piece * PieceStride + (sq ^ 56);
@@ -139,7 +139,7 @@ namespace MantaRay
         }
 
         [[clang::always_inline]]
-        O Evaluate(const u08 perspective, const Accumulator<I, HiddenSize>& accumulator)
+        O Evaluate(const u08 perspective, const Accumulator<I, HiddenSize>& accumulator) const
         {
             assert(perspective < 2);
 

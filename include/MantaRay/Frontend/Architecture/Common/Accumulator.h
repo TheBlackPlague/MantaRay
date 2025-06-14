@@ -31,7 +31,7 @@ namespace MantaRay
         void Zero() { std::memset(Internal.data(), 0, sizeof(Array<T, N + (N * Colored)>)); }
 
         [[clang::always_inline]]
-        void Bias(Array<T, N>& bias)
+        void Bias(const Array<T, N>& bias)
         {
             ArrayCopy(bias, Slice<0, N>(Internal));
 
