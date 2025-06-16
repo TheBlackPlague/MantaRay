@@ -15,79 +15,79 @@
 // ReSharper disable CppLocalVariableMayBeConst
 TEST(ArrayCopy, i08_512)
 {
-    constexpr MantaRay::s00 N = 512;
+    constexpr MantaRay::usize N = 512;
 
-    ALIGN MantaRay::Array<MantaRay::i08, N> a = Generate<MantaRay::i08, N, 30>();
-    ALIGN MantaRay::Array<MantaRay::i08, N> b;
+    HWY_ALIGN MantaRay::Array<MantaRay::i08, N> a = Generate<MantaRay::i08, N, 30>();
+    HWY_ALIGN MantaRay::Array<MantaRay::i08, N> b;
 
     MantaRay::ArrayCopy(a, b);
 
-    for (MantaRay::s00 i = 0; i < N; i++)
+    for (MantaRay::usize i = 0; i < N; i++)
         EXPECT_EQ(a[i], b[i]);
 }
 
 TEST(ArrayCopy, i16_512)
 {
-    constexpr MantaRay::s00 N = 512;
+    constexpr MantaRay::usize N = 512;
 
-    ALIGN MantaRay::Array<MantaRay::i16, N> a = Generate<MantaRay::i16, N, 30>();
-    ALIGN MantaRay::Array<MantaRay::i16, N> b;
+    HWY_ALIGN MantaRay::Array<MantaRay::i16, N> a = Generate<MantaRay::i16, N, 30>();
+    HWY_ALIGN MantaRay::Array<MantaRay::i16, N> b;
 
     MantaRay::ArrayCopy(a, b);
 
-    for (MantaRay::s00 i = 0; i < N; i++)
+    for (MantaRay::usize i = 0; i < N; i++)
         EXPECT_EQ(a[i], b[i]);
 }
 
 TEST(ArrayCopy, i32_512)
 {
-    constexpr MantaRay::s00 N = 512;
+    constexpr MantaRay::usize N = 512;
 
-    ALIGN MantaRay::Array<MantaRay::i32, N> a = Generate<MantaRay::i32, N, 30>();
-    ALIGN MantaRay::Array<MantaRay::i32, N> b;
+    HWY_ALIGN MantaRay::Array<MantaRay::i32, N> a = Generate<MantaRay::i32, N, 30>();
+    HWY_ALIGN MantaRay::Array<MantaRay::i32, N> b;
 
     MantaRay::ArrayCopy(a, b);
 
-    for (MantaRay::s00 i = 0; i < N; i++)
+    for (MantaRay::usize i = 0; i < N; i++)
         EXPECT_EQ(a[i], b[i]);
 }
 
 TEST(ArrayCopy, i08_2048)
 {
-    constexpr MantaRay::s00 N = 2048;
+    constexpr MantaRay::usize N = 2048;
 
-    ALIGN MantaRay::Array<MantaRay::i08, N> a = Generate<MantaRay::i08, N, 30>();
-    ALIGN MantaRay::Array<MantaRay::i08, N> b;
+    HWY_ALIGN MantaRay::Array<MantaRay::i08, N> a = Generate<MantaRay::i08, N, 30>();
+    HWY_ALIGN MantaRay::Array<MantaRay::i08, N> b;
 
     MantaRay::ArrayCopy(a, b);
 
-    for (MantaRay::s00 i = 0; i < N; i++)
+    for (MantaRay::usize i = 0; i < N; i++)
         EXPECT_EQ(a[i], b[i]);
 }
 
 TEST(ArrayCopy, i16_2048)
 {
-    constexpr MantaRay::s00 N = 2048;
+    constexpr MantaRay::usize N = 2048;
 
-    ALIGN MantaRay::Array<MantaRay::i16, N> a = Generate<MantaRay::i16, N, 30>();
-    ALIGN MantaRay::Array<MantaRay::i16, N> b;
+    HWY_ALIGN MantaRay::Array<MantaRay::i16, N> a = Generate<MantaRay::i16, N, 30>();
+    HWY_ALIGN MantaRay::Array<MantaRay::i16, N> b;
 
     MantaRay::ArrayCopy(a, b);
 
-    for (MantaRay::s00 i = 0; i < N; i++)
+    for (MantaRay::usize i = 0; i < N; i++)
         EXPECT_EQ(a[i], b[i]);
 }
 
 TEST(ArrayCopy, i32_2048)
 {
-    constexpr MantaRay::s00 N = 2048;
+    constexpr MantaRay::usize N = 2048;
 
-    ALIGN MantaRay::Array<MantaRay::i32, N> a = Generate<MantaRay::i32, N, 30>();
-    ALIGN MantaRay::Array<MantaRay::i32, N> b;
+    HWY_ALIGN MantaRay::Array<MantaRay::i32, N> a = Generate<MantaRay::i32, N, 30>();
+    HWY_ALIGN MantaRay::Array<MantaRay::i32, N> b;
 
     MantaRay::ArrayCopy(a, b);
 
-    for (MantaRay::s00 i = 0; i < N; i++)
+    for (MantaRay::usize i = 0; i < N; i++)
         EXPECT_EQ(a[i], b[i]);
 }
 

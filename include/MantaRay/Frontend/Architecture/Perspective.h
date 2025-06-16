@@ -10,9 +10,7 @@
 #include <string>
 
 #include "../../Backend/Kernel/ActivateFlattenAndForward.h"
-#include "../../Backend/Kernel/ArrayAdd.h"
-#include "../../Backend/Kernel/ArraySub.h"
-#include "../../Backend/Kernel/ArraySubAdd.h"
+#include "../../Backend/Kernel/ArrayOperate.h"
 
 #include "../IO/BinaryFileStream.h"
 #include "../IO/BinaryMemoryStream.h"
@@ -24,10 +22,10 @@ namespace MantaRay
 
     template<QuantizedInteger I,
              QuantizedInteger O,
-             auto ActivationFunction,
-             s00  InputSize,
-             s00 HiddenSize,
-             s00 OutputSize,
+             typename ActivationFunction,
+             usize  InputSize,
+             usize HiddenSize,
+             usize OutputSize,
              I Scale,
              I QuantizationFeature,
              I QuantizationOutput>
@@ -37,13 +35,13 @@ namespace MantaRay
         static_assert(Scale > 0 && QuantizationFeature > 127 && QuantizationOutput > 31,
                       "These scale and quantization constants don't seem right.");
 
-        constexpr static s00 ColorStride = 64 * 6;
-        constexpr static s00 PieceStride = 64    ;
+        constexpr static usize ColorStride = 64 * 6;
+        constexpr static usize PieceStride = 64    ;
 
-        ALIGN Array<I,  InputSize *     HiddenSize> L0Weight;
-        ALIGN Array<I,                  HiddenSize> L0Bias  ;
-        ALIGN Array<I, HiddenSize * 2 * OutputSize> L1Weight;
-        ALIGN Array<I,                  OutputSize> L1Bias  ;
+        HWY_ALIGN Array<I,  InputSize *     HiddenSize> L0Weight;
+        HWY_ALIGN Array<I,                  HiddenSize> L0Bias  ;
+        HWY_ALIGN Array<I, HiddenSize * 2 * OutputSize> L1Weight;
+        HWY_ALIGN Array<I,                  OutputSize> L1Bias  ;
 
         public:
         Perspective() = default;
@@ -86,55 +84,163 @@ namespace MantaRay
         void Refresh(Accumulator<I, HiddenSize>& accumulator) const { accumulator.Bias(L0Bias); }
 
         [[clang::always_inline]]
-        void Move(const u08 piece, const u08 color, const u08 from, const u08 to,
-                  Accumulator<I, HiddenSize>& accumulator) const
+        void Normal(const u08 piece, const u08 side, const u08 origin, const u08 target,
+                    Accumulator<I, HiddenSize>& accumulator) const
         {
-            const s00 fromIdxV =  color      * ColorStride + piece * PieceStride +  from      ;
-            const s00 fromIdxU = (color ^ 1) * ColorStride + piece * PieceStride + (from ^ 56);
-            const s00   toIdxV =  color      * ColorStride + piece * PieceStride +  to        ;
-            const s00   toIdxU = (color ^ 1) * ColorStride + piece * PieceStride + (to   ^ 56);
+            const usize originIdx0 =  side      * ColorStride + piece * PieceStride +  origin      ;
+            const usize originIdx1 = (side ^ 1) * ColorStride + piece * PieceStride + (origin ^ 56);
+            const usize targetIdx0 =  side      * ColorStride + piece * PieceStride +  target      ;
+            const usize targetIdx1 = (side ^ 1) * ColorStride + piece * PieceStride + (target ^ 56);
 
-            ArraySubAdd(
+            ArrayOperate<Sub, Add>(
                 accumulator[0],
-                Slice<HiddenSize>(L0Weight, fromIdxV * HiddenSize),
-                Slice<HiddenSize>(L0Weight,   toIdxV * HiddenSize)
+                Slice<HiddenSize>(L0Weight, originIdx0 * HiddenSize),
+                Slice<HiddenSize>(L0Weight, targetIdx0 * HiddenSize)
             );
-            ArraySubAdd(
+            ArrayOperate<Sub, Add>(
                 accumulator[1],
-                Slice<HiddenSize>(L0Weight, fromIdxU * HiddenSize),
-                Slice<HiddenSize>(L0Weight,   toIdxU * HiddenSize)
+                Slice<HiddenSize>(L0Weight, originIdx1 * HiddenSize),
+                Slice<HiddenSize>(L0Weight, targetIdx1 * HiddenSize)
             );
         }
 
         [[clang::always_inline]]
-        void Insert(const u08 piece, const u08 color, const u08 sq, Accumulator<I, HiddenSize>& accumulator) const
+        void Capture(const u08 victimPiece, const u08 victimSide,
+                     const u08       piece, const u08       side, const u08 origin, const u08 target,
+                     Accumulator<I, HiddenSize>& accumulator) const
         {
-            const s00 vIdx =  color      * ColorStride + piece * PieceStride +  sq      ;
-            const s00 uIdx = (color ^ 1) * ColorStride + piece * PieceStride + (sq ^ 56);
+            const usize victimIdx0 =  victimSide      * ColorStride + victimPiece * PieceStride +  target      ;
+            const usize victimIdx1 = (victimSide ^ 1) * ColorStride + victimPiece * PieceStride + (target ^ 56);
 
-            ArrayAdd(
+            const usize originIdx0 =  side      * ColorStride + piece * PieceStride +  origin      ;
+            const usize originIdx1 = (side ^ 1) * ColorStride + piece * PieceStride + (origin ^ 56);
+            const usize targetIdx0 =  side      * ColorStride + piece * PieceStride +  target      ;
+            const usize targetIdx1 = (side ^ 1) * ColorStride + piece * PieceStride + (target ^ 56);
+
+            ArrayOperate<Sub, Sub, Add>(
                 accumulator[0],
-                Slice<HiddenSize>(L0Weight, vIdx * HiddenSize)
+                Slice<HiddenSize>(L0Weight, victimIdx0 * HiddenSize),
+                Slice<HiddenSize>(L0Weight, originIdx0 * HiddenSize),
+                Slice<HiddenSize>(L0Weight, targetIdx0 * HiddenSize)
             );
-            ArrayAdd(
+
+            ArrayOperate<Sub, Sub, Add>(
                 accumulator[1],
-                Slice<HiddenSize>(L0Weight, uIdx * HiddenSize)
+                Slice<HiddenSize>(L0Weight, victimIdx1 * HiddenSize),
+                Slice<HiddenSize>(L0Weight, originIdx1 * HiddenSize),
+                Slice<HiddenSize>(L0Weight, targetIdx1 * HiddenSize)
             );
         }
 
         [[clang::always_inline]]
-        void Remove(const u08 piece, const u08 color, const u08 sq, Accumulator<I, HiddenSize>& accumulator) const
+        void Promotion(const u08 promotionPiece, const u08 piece, const u08 side, const u08 origin, const u08 target,
+                       Accumulator<I, HiddenSize>& accumulator) const
         {
-            const s00 vIdx =  color      * ColorStride + piece * PieceStride +  sq      ;
-            const s00 uIdx = (color ^ 1) * ColorStride + piece * PieceStride + (sq ^ 56);
+            const usize originIdx0 =  side      * ColorStride +          piece * PieceStride +  origin      ;
+            const usize originIdx1 = (side ^ 1) * ColorStride +          piece * PieceStride + (origin ^ 56);
+            const usize targetIdx0 =  side      * ColorStride + promotionPiece * PieceStride +  target      ;
+            const usize targetIdx1 = (side ^ 1) * ColorStride + promotionPiece * PieceStride + (target ^ 56);
 
-            ArraySub(
+            ArrayOperate<Sub, Add>(
                 accumulator[0],
-                Slice<HiddenSize>(L0Weight, vIdx * HiddenSize)
+                Slice<HiddenSize>(L0Weight, originIdx0 * HiddenSize),
+                Slice<HiddenSize>(L0Weight, targetIdx0 * HiddenSize)
             );
-            ArraySub(
+            ArrayOperate<Sub, Add>(
                 accumulator[1],
-                Slice<HiddenSize>(L0Weight, uIdx * HiddenSize)
+                Slice<HiddenSize>(L0Weight, originIdx1 * HiddenSize),
+                Slice<HiddenSize>(L0Weight, targetIdx1 * HiddenSize)
+            );
+        }
+
+        [[clang::always_inline]]
+        void PromotionCapture(const u08 promotionPiece, const u08 victimPiece, const u08 victimSide,
+                              const u08 piece, const u08 side, const u08 origin, const u08 target,
+                              Accumulator<I, HiddenSize>& accumulator) const
+        {
+            const usize victimIdx0 =  victimSide      * ColorStride + victimPiece * PieceStride +  target      ;
+            const usize victimIdx1 = (victimSide ^ 1) * ColorStride + victimPiece * PieceStride + (target ^ 56);
+
+            const usize originIdx0 =  side      * ColorStride +          piece * PieceStride +  origin      ;
+            const usize originIdx1 = (side ^ 1) * ColorStride +          piece * PieceStride + (origin ^ 56);
+            const usize targetIdx0 =  side      * ColorStride + promotionPiece * PieceStride +  target      ;
+            const usize targetIdx1 = (side ^ 1) * ColorStride + promotionPiece * PieceStride + (target ^ 56);
+
+            ArrayOperate<Sub, Sub, Add>(
+                accumulator[0],
+                Slice<HiddenSize>(L0Weight, victimIdx0 * HiddenSize),
+                Slice<HiddenSize>(L0Weight, originIdx0 * HiddenSize),
+                Slice<HiddenSize>(L0Weight, targetIdx0 * HiddenSize)
+            );
+            ArrayOperate<Sub, Sub, Add>(
+                accumulator[1],
+                Slice<HiddenSize>(L0Weight, victimIdx1 * HiddenSize),
+                Slice<HiddenSize>(L0Weight, originIdx1 * HiddenSize),
+                Slice<HiddenSize>(L0Weight, targetIdx1 * HiddenSize)
+            );
+        }
+
+        [[clang::always_inline]]
+        void Castle(const u08 side, const u08 originK, const u08 targetK, const u08 originR, const u08 targetR,
+                    Accumulator<I, HiddenSize>& accumulator) const
+        {
+            constexpr static u08 King = 5;
+            constexpr static u08 Rook = 3;
+
+            const usize originKIdx0 =  side      * ColorStride + King * PieceStride +  originK      ;
+            const usize originKIdx1 = (side ^ 1) * ColorStride + King * PieceStride + (originK ^ 56);
+            const usize targetKIdx0 =  side      * ColorStride + King * PieceStride +  targetK      ;
+            const usize targetKIdx1 = (side ^ 1) * ColorStride + King * PieceStride + (targetK ^ 56);
+            const usize originRIdx0 =  side      * ColorStride + Rook * PieceStride +  originR      ;
+            const usize originRIdx1 = (side ^ 1) * ColorStride + Rook * PieceStride + (originR ^ 56);
+            const usize targetRIdx0 =  side      * ColorStride + Rook * PieceStride +  targetR      ;
+            const usize targetRIdx1 = (side ^ 1) * ColorStride + Rook * PieceStride + (targetR ^ 56);
+
+            ArrayOperate<Sub, Sub, Add, Add>(
+                accumulator[0],
+                Slice<HiddenSize>(L0Weight, originKIdx0 * HiddenSize),
+                Slice<HiddenSize>(L0Weight, originRIdx0 * HiddenSize),
+                Slice<HiddenSize>(L0Weight, targetKIdx0 * HiddenSize),
+                Slice<HiddenSize>(L0Weight, targetRIdx0 * HiddenSize)
+            );
+            ArrayOperate<Sub, Sub, Add, Add>(
+                accumulator[1],
+                Slice<HiddenSize>(L0Weight, originKIdx1 * HiddenSize),
+                Slice<HiddenSize>(L0Weight, originRIdx1 * HiddenSize),
+                Slice<HiddenSize>(L0Weight, targetKIdx1 * HiddenSize),
+                Slice<HiddenSize>(L0Weight, targetRIdx1 * HiddenSize)
+            );
+        }
+
+        [[clang::always_inline]]
+        void Insert(const u08 piece, const u08 side, const u08 sq, Accumulator<I, HiddenSize>& accumulator) const
+        {
+            const usize sqIdx0 =  side      * ColorStride + piece * PieceStride +  sq      ;
+            const usize sqIdx1 = (side ^ 1) * ColorStride + piece * PieceStride + (sq ^ 56);
+
+            ArrayOperate<Add>(
+                accumulator[0],
+                Slice<HiddenSize>(L0Weight, sqIdx0 * HiddenSize)
+            );
+            ArrayOperate<Add>(
+                accumulator[1],
+                Slice<HiddenSize>(L0Weight, sqIdx1 * HiddenSize)
+            );
+        }
+
+        [[clang::always_inline]]
+        void Remove(const u08 piece, const u08 side, const u08 sq, Accumulator<I, HiddenSize>& accumulator) const
+        {
+            const usize sqIdx0 =  side      * ColorStride + piece * PieceStride +  sq      ;
+            const usize sqIdx1 = (side ^ 1) * ColorStride + piece * PieceStride + (sq ^ 56);
+
+            ArrayOperate<Sub>(
+                accumulator[0],
+                Slice<HiddenSize>(L0Weight, sqIdx0 * HiddenSize)
+            );
+            ArrayOperate<Sub>(
+                accumulator[1],
+                Slice<HiddenSize>(L0Weight, sqIdx1 * HiddenSize)
             );
         }
 

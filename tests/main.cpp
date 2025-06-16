@@ -5,8 +5,6 @@
 
 // ReSharper disable CppUnusedIncludeDirective
 #include "Backend/Kernel/GTestActivateFlattenAndForward.h"
-#include "Backend/Kernel/GTestArrayAdd.h"
+#include "Backend/Kernel/GTestArrayOperate.h"
 #include "Backend/Kernel/GTestArrayCopy.h"
-#include "Backend/Kernel/GTestArraySub.h"
-#include "Backend/Kernel/GTestArraySubAdd.h"
 // ReSharper restore CppUnusedIncludeDirective

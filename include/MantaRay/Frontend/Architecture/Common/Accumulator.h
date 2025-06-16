@@ -11,11 +11,11 @@
 namespace MantaRay
 {
 
-    template<QuantizedInteger T, s00 N, bool Colored = true>
+    template<QuantizedInteger T, usize N, bool Colored = true>
     class Accumulator
     {
 
-        ALIGN Array<T, N + (N * Colored)> Internal;
+        HWY_ALIGN Array<T, N + (N * Colored)> Internal;
 
         public:
         [[clang::always_inline]]
@@ -40,10 +40,10 @@ namespace MantaRay
         }
 
         [[clang::always_inline]]
-              Array<T, N>& operator [](const s00 side)       requires Colored { return Slice<N>(Internal, side * N); }
+              Array<T, N>& operator [](const usize side)       requires Colored { return Slice<N>(Internal, side * N); }
 
         [[clang::always_inline]]
-        const Array<T, N>& operator [](const s00 side) const requires Colored { return Slice<N>(Internal, side * N); }
+        const Array<T, N>& operator [](const usize side) const requires Colored { return Slice<N>(Internal, side * N); }
 
     };
 

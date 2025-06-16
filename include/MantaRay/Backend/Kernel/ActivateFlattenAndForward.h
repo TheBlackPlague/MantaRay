@@ -5,13 +5,155 @@
 
 #ifndef MANTARAY_ACTIVATEFLATTENANDFORWARD_H
 #define MANTARAY_ACTIVATEFLATTENANDFORWARD_H
-
-#include "../Processor.h"
+\
+#include "../Base.h"
 
 namespace MantaRay
 {
 
-    template<auto ActivationFunction, QuantizedInteger T, QuantizedInteger U, s00 N, s00 M>
+    struct ActivationFunction {};
+
+    template<QuantizedInteger T, T Minimum, T Maximum>
+    struct ClippedReLU : ActivationFunction
+    { constexpr static T Min = Minimum; constexpr static T Max = Maximum; };
+
+    template<QuantizedInteger T, T Minimum, T Maximum>
+    struct SClippedReLU : ActivationFunction
+    { constexpr static T Min = Minimum; constexpr static T Max = Maximum; };
+
+    template<typename Function, QuantizedInteger T, QuantizedInteger U, usize N, usize M>
+    struct ActivateFlattenAndForwardDispatch
+    {
+        static Array<U, M> Dispatch(
+            const Array<T, N        >& x0,
+            const Array<T, N        >& x1,
+            const Array<T, N * 2 * M>& w ,
+            const Array<T,         M>& b ) { Array<U, M> y {}; return y; }
+    };
+
+    template<QuantizedInteger T, QuantizedInteger U, usize N, usize M, T Minimum, T Maximum>
+    struct ActivateFlattenAndForwardDispatch<ClippedReLU<T, Minimum, Maximum>, T, U, N, M>
+    {
+
+        static Array<U, M> Dispatch(
+            const Array<T, N        >& x0,
+            const Array<T, N        >& x1,
+            const Array<T, N * 2 * M>& w ,
+            const Array<T,         M>& b )
+        {
+            HWY_ALIGN Array<U, M> y;
+
+            constexpr LaneExpression<T> laneExprT;
+
+            const auto v0 = Highway::Set(laneExprT, Minimum);
+            const auto v1 = Highway::Set(laneExprT, Maximum);
+
+            usize stride = 0;
+
+            for (usize i = 0; i < M; i++) {
+                constexpr LaneExpression<U> laneExprU;
+
+                auto v2 = Highway::Zero(laneExprU);
+
+                for (usize j = 0; j < N; j += Highway::Lanes(laneExprT)) {
+                    const auto v3 = Highway::Load(laneExprT, x0.data() + j         );
+                    const auto v4 = Highway::Load(laneExprT, w .data() + j + stride);
+
+                    const auto v5 = Highway::Max(v0, v3);
+                    const auto v6 = Highway::Min(v1, v5);
+
+                    const auto v7 = Highway::WidenMulPairwiseAdd(laneExprU, v6, v4);
+
+                    v2 = Highway::Add(v2, v7);
+                }
+
+                stride += N;
+
+                for (usize j = 0; j < N; j += Highway::Lanes(laneExprT)) {
+                    const auto v3 = Highway::Load(laneExprT, x1.data() + j         );
+                    const auto v4 = Highway::Load(laneExprT, w .data() + j + stride);
+
+                    const auto v5 = Highway::Max(v0, v3);
+                    const auto v6 = Highway::Min(v1, v5);
+
+                    const auto v7 = Highway::WidenMulPairwiseAdd(laneExprU, v6, v4);
+
+                    v2 = Highway::Add(v2, v7);
+                }
+
+                stride += N;
+
+                y[i] = Highway::ReduceSum(laneExprU, v2) + b[i];
+            }
+
+            return y;
+        }
+
+    };
+
+    template<QuantizedInteger T, QuantizedInteger U, usize N, usize M, T Minimum, T Maximum>
+    struct ActivateFlattenAndForwardDispatch<SClippedReLU<T, Minimum, Maximum>, T, U, N, M>
+    {
+
+        static Array<U, M> Dispatch(
+            const Array<T, N        >& x0,
+            const Array<T, N        >& x1,
+            const Array<T, N * 2 * M>& w ,
+            const Array<T,         M>& b )
+        {
+            HWY_ALIGN Array<U, M> y;
+
+            constexpr LaneExpression<T> laneExprT;
+
+            const auto v0 = Highway::Set(laneExprT, Minimum);
+            const auto v1 = Highway::Set(laneExprT, Maximum);
+
+            usize stride = 0;
+
+            for (usize i = 0; i < M; i++) {
+                constexpr LaneExpression<U> laneExprU;
+
+                auto v2 = Highway::Zero(laneExprU);
+
+                for (usize j = 0; j < N; j += Highway::Lanes(laneExprT)) {
+                    const auto v3 = Highway::Load(laneExprT, x0.data() + j         );
+                    const auto v4 = Highway::Load(laneExprT, w .data() + j + stride);
+
+                    const auto v5 = Highway::Max(v0, v3);
+                    const auto v6 = Highway::Min(v1, v5);
+
+                    const auto v7 = Highway::Mul(laneExprT, v6, v4);
+                    const auto v8 = Highway::WidenMulPairwiseAdd(laneExprU, v6, v7);
+
+                    v2 = Highway::Add(v2, v8);
+                }
+
+                stride += N;
+
+                for (usize j = 0; j < N; j += Highway::Lanes(laneExprT)) {
+                    const auto v3 = Highway::Load(laneExprT, x1.data() + j         );
+                    const auto v4 = Highway::Load(laneExprT, w .data() + j + stride);
+
+                    const auto v5 = Highway::Max(v0, v3);
+                    const auto v6 = Highway::Min(v1, v5);
+
+                    const auto v7 = Highway::Mul(laneExprT, v6, v4);
+                    const auto v8 = Highway::WidenMulPairwiseAdd(laneExprU, v6, v7);
+
+                    v2 = Highway::Add(v2, v8);
+                }
+
+                stride += N;
+
+                y[i] = Highway::ReduceSum(laneExprU, v2) + b[i];
+            }
+
+            return y;
+        }
+
+    };
+
+    template<typename Function, QuantizedInteger T, QuantizedInteger U, usize N, usize M>
     [[clang::noinline]]
     Array<U, M> ActivateFlattenAndForward(
         const Array<T, N        >& x0,
@@ -19,77 +161,11 @@ namespace MantaRay
         const Array<T, N * 2 * M>& w ,
         const Array<T,         M>& b )
     {
-        ALIGN Array<U, M> y;
+        static_assert(std::is_base_of_v<ActivationFunction, Function>, "Invalid Activation Function Type");
 
-        s00 stride = 0;
-
-        for (s00 i = 0; i < M; i++) {
-#ifdef SIMD
-
-#ifdef __ARM_NEON__
-
-            using Vector  = SIMDVEC       <T>;
-            using VectorE = SIMDVEC_EXTEND<T>;
-
-#else
-
-            using Vector  = SIMDVEC;
-            using VectorE = SIMDVEC;
-
-#endif
-
-            VectorE v0 = SIMD<U>::Zero;
-            VectorE v1 = SIMD<U>::Zero;
-            Vector  v2;
-            Vector  v3;
-
-            constexpr s00 Step = sizeof(Vector) / sizeof(T);
-
-            for (s00 j = 0; j < N; j += Step) {
-                v2 = SIMD<T>::From(x0,          j);
-                v3 = SIMD<T>::From(w , stride + j);
-
-                v2 = ActivationFunction(v2);
-
-                v1 = SIMD<T>::Madd(v2, v3);
-                v0 = SIMD<U>:: Add(v0, v1);
-            }
-
-            stride += N;
-
-            for (s00 j = 0; j < N; j += Step) {
-                v2 = SIMD<T>::From(x1,          j);
-                v3 = SIMD<T>::From(w , stride + j);
-
-                v2 = ActivationFunction(v2);
-
-                v1 = SIMD<T>::Madd(v2, v3);
-                v0 = SIMD<U>:: Add(v0, v1);
-            }
-
-            stride += N;
-
-            y[i] = SIMD<U>::Sum(v0) + b[i];
-
-#else
-
-            U v0 = 0;
-
-            for (s00 j = 0; j < N; j++) {
-                v0 += ActivationFunction(x0[j]) * w[stride + j    ];
-                v0 += ActivationFunction(x1[j]) * w[stride + j + N];
-            }
-
-            stride += N * 2;
-
-            y[i] = v0 + b[i];
-
-#endif
-        }
-
-        return y;
+        return ActivateFlattenAndForwardDispatch<Function, T, U, N, M>::Dispatch(x0, x1, w, b);
     }
 
-}
+} // MantaRay
 
 #endif //MANTARAY_ACTIVATEFLATTENANDFORWARD_H

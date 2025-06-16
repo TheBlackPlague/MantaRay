@@ -9,8 +9,6 @@
 #include <fstream>
 #include <ios>
 
-#include "../../Backend/Container.h"
-
 namespace MantaRay
 {
 
@@ -28,13 +26,13 @@ namespace MantaRay
             Stream.open(path, std::ios::binary | (Read ? std::ios::in : std::ios::out));
         }
 
-        template<QuantizedInteger T, s00 N>
+        template<typename T, usize N>
         void ReadArray(Array<T, N>& dst) requires Read
         {
             Stream.read(reinterpret_cast<char*>(&dst), sizeof dst);
         }
 
-        template<QuantizedInteger T, s00 N>
+        template<typename T, usize N>
         void WriteArray(const Array<T, N>& src) requires (!Read)
         {
             Stream.write(reinterpret_cast<const char*>(&src), sizeof src);

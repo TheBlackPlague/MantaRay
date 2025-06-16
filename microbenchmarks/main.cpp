@@ -7,13 +7,12 @@
 
 #include <benchmark/benchmark.h>
 
-#include <MantaRay/Backend/Kernel/Activation/ClippedReLU.h>
 #include <MantaRay/Frontend/Architecture/Perspective.h>
 #include <MantaRay/Frontend/Architecture/Common/AccumulatorStack.h>
 
 namespace BM = benchmark;
 
-constexpr auto ClippedReLU = &MantaRay::ClippedReLU<MantaRay::i16, 0, 255>::Activate;
+using ClippedReLU = MantaRay::ClippedReLU<MantaRay::i16, 0, 255>;
 
 using Starshard = MantaRay::Perspective<MantaRay::i16, MantaRay::i32, ClippedReLU, 768, 256, 1, 400, 255, 64>;
 using Aurora    = MantaRay::Perspective<MantaRay::i16, MantaRay::i32, ClippedReLU, 768, 384, 1, 400, 255, 64>;
@@ -71,12 +70,12 @@ void BM_Remove_Aurora(BM::State& state)
 
 void BM_Move_Starshard(BM::State& state)
 {
-    for (auto _ : state) StarshardNN.Move(0, 0, 8, 24, *StarshardAccumulatorStack);
+    for (auto _ : state) StarshardNN.Normal(0, 0, 8, 24, *StarshardAccumulatorStack);
 }
 
 void BM_Move_Aurora(BM::State& state)
 {
-    for (auto _ : state) AuroraNN.Move(0, 0, 8, 24, *AuroraAccumulatorStack);
+    for (auto _ : state) AuroraNN.Normal(0, 0, 8, 24, *AuroraAccumulatorStack);
 }
 
 void BM_Evaluate_Starshard(BM::State& state)

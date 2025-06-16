@@ -9,8 +9,6 @@
 #include <istream>
 #include <streambuf>
 
-#include "../../Backend/Container.h"
-
 namespace MantaRay
 {
 
@@ -19,7 +17,7 @@ namespace MantaRay
     struct BinaryMemoryBuffer : StreamBuffer
     {
 
-        BinaryMemoryBuffer(const char* src, const s00 size)
+        BinaryMemoryBuffer(const char* src, const usize size)
         {
             auto* p (const_cast<char*>(src));
             this->setg(p, p, p + size);
@@ -32,11 +30,11 @@ namespace MantaRay
     struct BinaryMemoryStream final : virtual BinaryMemoryBuffer, ReadOnlyStream
     {
 
-        BinaryMemoryStream(const unsigned char* src, const s00 size) :
+        BinaryMemoryStream(const unsigned char* src, const usize size) :
             BinaryMemoryBuffer(reinterpret_cast<const char*>(src), size),
             ReadOnlyStream(static_cast<StreamBuffer*>(this)) {}
 
-        template<typename T, s00 Size>
+        template<typename T, usize Size>
         void ReadArray(std::array<T, Size>& array)
         {
             this->read(reinterpret_cast<char*>(&array), sizeof array);

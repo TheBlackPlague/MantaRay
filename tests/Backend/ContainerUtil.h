@@ -6,14 +6,14 @@
 #ifndef MANTARAY_CONTAINERUTIL_H
 #define MANTARAY_CONTAINERUTIL_H
 
-#include <MantaRay/Backend/Container.h>
+#include <MantaRay/Backend/Base.h>
 
-template<MantaRay::QuantizedInteger T, MantaRay::s00 N, T A>
-constexpr inline MantaRay::Array<T, N> Generate()
+template<MantaRay::QuantizedInteger T, MantaRay::usize N, T A>
+constexpr MantaRay::Array<T, N> Generate()
 {
-    ALIGN MantaRay::Array<T, N> result;
+    HWY_ALIGN MantaRay::Array<T, N> result;
 
-    for (MantaRay::s00 i = 0; i < N; i++)
+    for (MantaRay::usize i = 0; i < N; i++)
         result[i] = static_cast<T>(i % 2 == 0 ? A : 0);
 
     return result;

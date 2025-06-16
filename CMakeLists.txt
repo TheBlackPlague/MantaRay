@@ -12,6 +12,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 # === DEPENDENCIES ===
 include(DownloadDependencies.cmake)
+AddGoogleHighway()
 
 # === MantaRay Library ===
 add_library(MantaRay INTERFACE)
@@ -20,6 +21,8 @@ target_include_directories(MantaRay INTERFACE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>
 )
+
+target_link_libraries(MantaRay INTERFACE hwy)
 
 # === MantaRay Tests ===
 if(BUILD_TEST)

@@ -11,7 +11,7 @@
 namespace MantaRay
 {
 
-    template<QuantizedInteger I, s00 HiddenSize, s00 AccumulatorStackSize>
+    template<QuantizedInteger I, usize HiddenSize, usize AccumulatorStackSize>
     class AccumulatorStack
     {
 
@@ -21,7 +21,7 @@ namespace MantaRay
         using Storage = std::array<Accumulator, AccumulatorStackSize>;
 
         Storage Internal;
-        s00      Pointer;
+        usize    Pointer;
 
         public:
         AccumulatorStack()
