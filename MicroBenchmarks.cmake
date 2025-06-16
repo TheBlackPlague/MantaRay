@@ -17,7 +17,7 @@ function(AddMantaRayMicroBench Architecture Extension CompilerFlag)
     add_executable(${TARGET_NAME} microbenchmarks/main.cpp)
 
     target_compile_options(${TARGET_NAME} PRIVATE
-            ${CompilerFlag}
+            ${CompilerFlag};-mno-avx512vnni
             "$<$<CONFIG:Debug>:-Wall;-Wextra;-ftime-report>"
     )
 

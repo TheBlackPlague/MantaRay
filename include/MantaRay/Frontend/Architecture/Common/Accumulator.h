@@ -6,6 +6,8 @@
 #ifndef MANTARAY_ACCUMULATOR_H
 #define MANTARAY_ACCUMULATOR_H
 
+#include <cstring>
+
 #include "../../../Backend/Kernel/ArrayCopy.h"
 
 namespace MantaRay
