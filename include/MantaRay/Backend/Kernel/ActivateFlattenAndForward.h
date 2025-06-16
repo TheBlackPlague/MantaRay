@@ -5,7 +5,7 @@
 
 #ifndef MANTARAY_ACTIVATEFLATTENANDFORWARD_H
 #define MANTARAY_ACTIVATEFLATTENANDFORWARD_H
-\
+
 #include "../Base.h"
 
 namespace MantaRay
