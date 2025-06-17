@@ -83,6 +83,18 @@ namespace MantaRay
 
         void Refresh(Accumulator<I, HiddenSize>& accumulator) const { accumulator.Bias(L0Bias); }
 
+        struct AccumulatorUpdate {};
+
+        struct AccumulatorUpdateNormal : AccumulatorUpdate
+        {
+
+            u08  Piece;
+            u08   Side;
+            u08 Origin;
+            u08 Target;
+
+        };
+
         [[clang::always_inline]]
         void Normal(const u08 piece, const u08 side, const u08 origin, const u08 target,
                     Accumulator<I, HiddenSize>& accumulator) const
@@ -104,13 +116,24 @@ namespace MantaRay
             );
         }
 
+        struct AccumulatorUpdateCapture : AccumulatorUpdate
+        {
+
+            u08 VictimPiece;
+
+            u08  Piece;
+            u08   Side;
+            u08 Origin;
+            u08 Target;
+
+        };
+
         [[clang::always_inline]]
-        void Capture(const u08 victimPiece, const u08 victimSide,
-                     const u08       piece, const u08       side, const u08 origin, const u08 target,
+        void Capture(const u08 victimPiece, const u08 piece, const u08 side, const u08 origin, const u08 target,
                      Accumulator<I, HiddenSize>& accumulator) const
         {
-            const usize victimIdx0 =  victimSide      * ColorStride + victimPiece * PieceStride +  target      ;
-            const usize victimIdx1 = (victimSide ^ 1) * ColorStride + victimPiece * PieceStride + (target ^ 56);
+            const usize victimIdx0 = (side ^ 1) * ColorStride + victimPiece * PieceStride +  target      ;
+            const usize victimIdx1 =  side      * ColorStride + victimPiece * PieceStride + (target ^ 56);
 
             const usize originIdx0 =  side      * ColorStride + piece * PieceStride +  origin      ;
             const usize originIdx1 = (side ^ 1) * ColorStride + piece * PieceStride + (origin ^ 56);
@@ -131,6 +154,18 @@ namespace MantaRay
                 Slice<HiddenSize>(L0Weight, targetIdx1 * HiddenSize)
             );
         }
+
+        struct AccumulatorUpdatePromotion : AccumulatorUpdate
+        {
+
+            u08 PromotionPiece;
+
+            u08  Piece;
+            u08   Side;
+            u08 Origin;
+            u08 Target;
+
+        };
 
         [[clang::always_inline]]
         void Promotion(const u08 promotionPiece, const u08 piece, const u08 side, const u08 origin, const u08 target,
@@ -153,13 +188,27 @@ namespace MantaRay
             );
         }
 
+        struct AccumulatorUpdatePromotionCapture : AccumulatorUpdate
+        {
+
+            u08 PromotionPiece;
+
+            u08 VictimPiece;
+
+            u08  Piece;
+            u08   Side;
+            u08 Origin;
+            u08 Target;
+
+        };
+
         [[clang::always_inline]]
-        void PromotionCapture(const u08 promotionPiece, const u08 victimPiece, const u08 victimSide,
-                              const u08 piece, const u08 side, const u08 origin, const u08 target,
+        void PromotionCapture(const u08 promotionPiece, const u08 victimPiece, const u08 piece, const u08 side,
+                              const u08 origin, const u08 target,
                               Accumulator<I, HiddenSize>& accumulator) const
         {
-            const usize victimIdx0 =  victimSide      * ColorStride + victimPiece * PieceStride +  target      ;
-            const usize victimIdx1 = (victimSide ^ 1) * ColorStride + victimPiece * PieceStride + (target ^ 56);
+            const usize victimIdx0 = (side ^ 1) * ColorStride + victimPiece * PieceStride +  target      ;
+            const usize victimIdx1 =  side      * ColorStride + victimPiece * PieceStride + (target ^ 56);
 
             const usize originIdx0 =  side      * ColorStride +          piece * PieceStride +  origin      ;
             const usize originIdx1 = (side ^ 1) * ColorStride +          piece * PieceStride + (origin ^ 56);
@@ -179,6 +228,18 @@ namespace MantaRay
                 Slice<HiddenSize>(L0Weight, targetIdx1 * HiddenSize)
             );
         }
+
+        struct AccumulatorUpdateCastle : AccumulatorUpdate
+        {
+
+            u08 Side;
+
+            u08 OriginKing;
+            u08 TargetKing;
+            u08 OriginRook;
+            u08 TargetRook;
+
+        };
 
         [[clang::always_inline]]
         void Castle(const u08 side, const u08 originK, const u08 targetK, const u08 originR, const u08 targetR,
@@ -212,6 +273,15 @@ namespace MantaRay
             );
         }
 
+        struct AccumulatorUpdateInsert : AccumulatorUpdate
+        {
+
+            u08 Piece;
+            u08  Side;
+            u08    Sq;
+
+        };
+
         [[clang::always_inline]]
         void Insert(const u08 piece, const u08 side, const u08 sq, Accumulator<I, HiddenSize>& accumulator) const
         {
@@ -228,6 +298,8 @@ namespace MantaRay
             );
         }
 
+        struct AccumulatorUpdateRemove : AccumulatorUpdateInsert {};
+
         [[clang::always_inline]]
         void Remove(const u08 piece, const u08 side, const u08 sq, Accumulator<I, HiddenSize>& accumulator) const
         {
@@ -242,6 +314,92 @@ namespace MantaRay
                 accumulator[1],
                 Slice<HiddenSize>(L0Weight, sqIdx1 * HiddenSize)
             );
+        }
+
+        template<typename AccumulatorUpdateT>
+        [[clang::always_inline]]
+        void DispatchUpdate(const AccumulatorUpdateT& update, Accumulator<I, HiddenSize>& accumulator) const
+        requires std::is_base_of_v<AccumulatorUpdate, AccumulatorUpdateT>
+        {
+            if constexpr (std::is_same_v<AccumulatorUpdateT, AccumulatorUpdateNormal>) {
+                const auto& normalUpdate = static_cast<const AccumulatorUpdateNormal&>(update);
+                Normal(
+                    normalUpdate.Piece,
+                    normalUpdate.Side,
+                    normalUpdate.Origin,
+                    normalUpdate.Target,
+                    accumulator
+                );
+            }
+
+            if constexpr (std::is_same_v<AccumulatorUpdateT, AccumulatorUpdateCapture>) {
+                const auto& captureUpdate = static_cast<const AccumulatorUpdateCapture&>(update);
+                Capture(
+                    captureUpdate.VictimPiece,
+                    captureUpdate.Piece,
+                    captureUpdate.Side,
+                    captureUpdate.Origin,
+                    captureUpdate.Target,
+                    accumulator
+                );
+            }
+
+            if constexpr (std::is_same_v<AccumulatorUpdateT, AccumulatorUpdatePromotion>) {
+                const auto& promotionUpdate = static_cast<const AccumulatorUpdatePromotion&>(update);
+                Promotion(
+                    promotionUpdate.PromotionPiece,
+                    promotionUpdate.Piece,
+                    promotionUpdate.Side,
+                    promotionUpdate.Origin,
+                    promotionUpdate.Target,
+                    accumulator
+                );
+            }
+
+            if constexpr (std::is_same_v<AccumulatorUpdateT, AccumulatorUpdatePromotionCapture>) {
+                const auto& promotionCaptureUpdate = static_cast<const AccumulatorUpdatePromotionCapture&>(update);
+                PromotionCapture(
+                    promotionCaptureUpdate.PromotionPiece,
+                    promotionCaptureUpdate.VictimPiece,
+                    promotionCaptureUpdate.Piece,
+                    promotionCaptureUpdate.Side,
+                    promotionCaptureUpdate.Origin,
+                    promotionCaptureUpdate.Target,
+                    accumulator
+                );
+            }
+
+            if constexpr (std::is_same_v<AccumulatorUpdateT, AccumulatorUpdateCastle>) {
+                const auto& castleUpdate = static_cast<const AccumulatorUpdateCastle&>(update);
+                Castle(
+                    castleUpdate.Side,
+                    castleUpdate.OriginKing,
+                    castleUpdate.TargetKing,
+                    castleUpdate.OriginRook,
+                    castleUpdate.TargetRook,
+                    accumulator
+                );
+            }
+
+            if constexpr (std::is_same_v<AccumulatorUpdateT, AccumulatorUpdateInsert>) {
+                const auto& insertUpdate = static_cast<const AccumulatorUpdateInsert&>(update);
+                Insert(
+                    insertUpdate.Piece,
+                    insertUpdate.Side,
+                    insertUpdate.Sq,
+                    accumulator
+                );
+            }
+
+            if constexpr (std::is_same_v<AccumulatorUpdateT, AccumulatorUpdateRemove>) {
+                const auto& removeUpdate = static_cast<const AccumulatorUpdateRemove&>(update);
+                Remove(
+                    removeUpdate.Piece,
+                    removeUpdate.Side,
+                    removeUpdate.Sq,
+                    accumulator
+                );
+            }
         }
 
         [[clang::always_inline]]

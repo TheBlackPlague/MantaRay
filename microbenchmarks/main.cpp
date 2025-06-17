@@ -68,14 +68,134 @@ void BM_Remove_Aurora(BM::State& state)
     for (auto _ : state) AuroraNN.Remove(0, 0, 8, *AuroraAccumulatorStack);
 }
 
-void BM_Move_Starshard(BM::State& state)
+void BM_Normal_Starshard(BM::State& state)
 {
-    for (auto _ : state) StarshardNN.Normal(0, 0, 8, 24, *StarshardAccumulatorStack);
+    Starshard::AccumulatorUpdateNormal update {
+        .Piece  =  0,
+        .Side   =  0,
+        .Origin = 12,
+        .Target = 28
+    };
+
+    for (auto _ : state) StarshardNN.DispatchUpdate(update, *StarshardAccumulatorStack);
 }
 
-void BM_Move_Aurora(BM::State& state)
+void BM_Normal_Aurora(BM::State& state)
 {
-    for (auto _ : state) AuroraNN.Normal(0, 0, 8, 24, *AuroraAccumulatorStack);
+    Aurora::AccumulatorUpdateNormal update {
+        .Piece  =  0,
+        .Side   =  0,
+        .Origin = 12,
+        .Target = 28
+    };
+
+    for (auto _ : state) AuroraNN.DispatchUpdate(update, *AuroraAccumulatorStack);
+}
+
+void BM_Capture_Starshard(BM::State& state)
+{
+    Starshard::AccumulatorUpdateCapture update {
+        .VictimPiece =  0,
+        .Piece       =  0,
+        .Side        =  0,
+        .Origin      = 28,
+        .Target      = 35
+    };
+
+    for (auto _ : state) StarshardNN.DispatchUpdate(update, *StarshardAccumulatorStack);
+}
+
+void BM_Capture_Aurora(BM::State& state)
+{
+    Aurora::AccumulatorUpdateCapture update {
+        .VictimPiece =  0,
+        .Piece       =  0,
+        .Side        =  0,
+        .Origin      = 28,
+        .Target      = 35
+    };
+
+    for (auto _ : state) AuroraNN.DispatchUpdate(update, *AuroraAccumulatorStack);
+}
+
+void BM_Promotion_Starshard(BM::State& state)
+{
+    Starshard::AccumulatorUpdatePromotion update {
+        .PromotionPiece =  4,
+        .Piece          =  0,
+        .Side           =  0,
+        .Origin         = 48,
+        .Target         = 56
+    };
+
+    for (auto _ : state) StarshardNN.DispatchUpdate(update, *StarshardAccumulatorStack);
+}
+
+void BM_Promotion_Aurora(BM::State& state)
+{
+    Aurora::AccumulatorUpdatePromotion update {
+        .PromotionPiece =  4,
+        .Piece          =  0,
+        .Side           =  0,
+        .Origin         = 48,
+        .Target         = 56
+    };
+
+    for (auto _ : state) AuroraNN.DispatchUpdate(update, *AuroraAccumulatorStack);
+}
+
+void BM_PromotionCapture_Starshard(BM::State& state)
+{
+    Starshard::AccumulatorUpdatePromotionCapture update {
+        .PromotionPiece =  4,
+        .VictimPiece    =  2,
+        .Piece          =  0,
+        .Side           =  0,
+        .Origin         = 48,
+        .Target         = 57
+    };
+
+    for (auto _ : state) StarshardNN.DispatchUpdate(update, *StarshardAccumulatorStack);
+}
+
+void BM_PromotionCapture_Aurora(BM::State& state)
+{
+    Aurora::AccumulatorUpdatePromotionCapture update {
+        .PromotionPiece =  4,
+        .VictimPiece    =  2,
+        .Piece          =  0,
+        .Side           =  0,
+        .Origin         = 48,
+        .Target         = 57
+    };
+
+    for (auto _ : state) AuroraNN.DispatchUpdate(update, *AuroraAccumulatorStack);
+}
+
+void BM_Castle_Starshard(BM::State& state)
+{
+    Starshard::AccumulatorUpdateCastle update {
+        .Side          = 0,
+        .OriginKing    = 4,
+        .TargetKing    = 6,
+        .OriginRook    = 7,
+        .TargetRook    = 5
+    };
+
+    for (auto _ : state) StarshardNN.DispatchUpdate(update, *StarshardAccumulatorStack);
+}
+
+void BM_Castle_Aurora(BM::State& state)
+{
+    Aurora::AccumulatorUpdateCastle update {
+        .Side          = 0,
+        .OriginKing    = 4,
+        .TargetKing    = 6,
+        .OriginRook    = 7,
+        .TargetRook    = 5
+    };
+
+    for (auto _ : state) AuroraNN.DispatchUpdate(update, *AuroraAccumulatorStack);
 }
 
 void BM_Evaluate_Starshard(BM::State& state)
@@ -104,8 +224,20 @@ BENCHMARK(BM_Insert_Aurora);
 BENCHMARK(BM_Remove_Starshard);
 BENCHMARK(BM_Remove_Aurora);
 
-BENCHMARK(BM_Move_Starshard);
-BENCHMARK(BM_Move_Aurora);
+BENCHMARK(BM_Normal_Starshard);
+BENCHMARK(BM_Normal_Aurora);
+
+BENCHMARK(BM_Capture_Starshard);
+BENCHMARK(BM_Capture_Aurora);
+
+BENCHMARK(BM_Promotion_Starshard);
+BENCHMARK(BM_Promotion_Aurora);
+
+BENCHMARK(BM_PromotionCapture_Starshard);
+BENCHMARK(BM_PromotionCapture_Aurora);
+
+BENCHMARK(BM_Castle_Starshard);
+BENCHMARK(BM_Castle_Aurora);
 
 BENCHMARK(BM_Evaluate_Starshard);
 BENCHMARK(BM_Evaluate_Aurora);
