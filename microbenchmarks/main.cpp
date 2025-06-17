@@ -70,7 +70,7 @@ void BM_Remove_Aurora(BM::State& state)
 
 void BM_Normal_Starshard(BM::State& state)
 {
-    Starshard::AccumulatorUpdateNormal update {
+    constexpr Starshard::AccumulatorUpdateNormal update {
         .Piece  =  0,
         .Side   =  0,
         .Origin = 12,
@@ -82,7 +82,7 @@ void BM_Normal_Starshard(BM::State& state)
 
 void BM_Normal_Aurora(BM::State& state)
 {
-    Aurora::AccumulatorUpdateNormal update {
+    constexpr Aurora::AccumulatorUpdateNormal update {
         .Piece  =  0,
         .Side   =  0,
         .Origin = 12,
@@ -94,7 +94,7 @@ void BM_Normal_Aurora(BM::State& state)
 
 void BM_Capture_Starshard(BM::State& state)
 {
-    Starshard::AccumulatorUpdateCapture update {
+    constexpr Starshard::AccumulatorUpdateCapture update {
         .VictimPiece =  0,
         .Piece       =  0,
         .Side        =  0,
@@ -107,7 +107,7 @@ void BM_Capture_Starshard(BM::State& state)
 
 void BM_Capture_Aurora(BM::State& state)
 {
-    Aurora::AccumulatorUpdateCapture update {
+    constexpr Aurora::AccumulatorUpdateCapture update {
         .VictimPiece =  0,
         .Piece       =  0,
         .Side        =  0,
@@ -120,7 +120,7 @@ void BM_Capture_Aurora(BM::State& state)
 
 void BM_Promotion_Starshard(BM::State& state)
 {
-    Starshard::AccumulatorUpdatePromotion update {
+    constexpr Starshard::AccumulatorUpdatePromotion update {
         .PromotionPiece =  4,
         .Piece          =  0,
         .Side           =  0,
@@ -133,7 +133,7 @@ void BM_Promotion_Starshard(BM::State& state)
 
 void BM_Promotion_Aurora(BM::State& state)
 {
-    Aurora::AccumulatorUpdatePromotion update {
+    constexpr Aurora::AccumulatorUpdatePromotion update {
         .PromotionPiece =  4,
         .Piece          =  0,
         .Side           =  0,
@@ -146,7 +146,7 @@ void BM_Promotion_Aurora(BM::State& state)
 
 void BM_PromotionCapture_Starshard(BM::State& state)
 {
-    Starshard::AccumulatorUpdatePromotionCapture update {
+    constexpr Starshard::AccumulatorUpdatePromotionCapture update {
         .PromotionPiece =  4,
         .VictimPiece    =  2,
         .Piece          =  0,
@@ -160,7 +160,7 @@ void BM_PromotionCapture_Starshard(BM::State& state)
 
 void BM_PromotionCapture_Aurora(BM::State& state)
 {
-    Aurora::AccumulatorUpdatePromotionCapture update {
+    constexpr Aurora::AccumulatorUpdatePromotionCapture update {
         .PromotionPiece =  4,
         .VictimPiece    =  2,
         .Piece          =  0,
@@ -174,7 +174,7 @@ void BM_PromotionCapture_Aurora(BM::State& state)
 
 void BM_Castle_Starshard(BM::State& state)
 {
-    Starshard::AccumulatorUpdateCastle update {
+    constexpr Starshard::AccumulatorUpdateCastle update {
         .Side          = 0,
         .OriginKing    = 4,
         .TargetKing    = 6,
@@ -187,7 +187,7 @@ void BM_Castle_Starshard(BM::State& state)
 
 void BM_Castle_Aurora(BM::State& state)
 {
-    Aurora::AccumulatorUpdateCastle update {
+    constexpr Aurora::AccumulatorUpdateCastle update {
         .Side          = 0,
         .OriginKing    = 4,
         .TargetKing    = 6,
