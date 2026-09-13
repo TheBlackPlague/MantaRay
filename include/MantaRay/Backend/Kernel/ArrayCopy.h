@@ -46,6 +46,14 @@ namespace MantaRay
 #endif
     }
 
+    template<QuantizedInteger T, s00 N, s00 M>
+    [[clang::always_inline]]
+    void ArrayCopy(const std::array<Array<T, M>, N>& src, std::array<Array<T, M>, N>& dst)
+    {
+        UNROLL
+        for (s00 i = 0; i < N; i++) ArrayCopy(src[i], dst[i]);
+    }
+
 } // MantaRay
 
 #endif //MANTARAY_ARRAYCOPY_H
