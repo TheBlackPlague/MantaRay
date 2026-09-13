@@ -44,6 +44,7 @@ namespace MantaRay
             Vector  v3;
 
             constexpr s00 Step = sizeof(Vector) / sizeof(T);
+            static_assert(N >= Step && N % Step == 0, "Input size must be a multiple of the SIMD width.");
 
             for (s00 j = 0; j < N; j += Step) {
                 v2 = SIMD<T>::From(x0,          j);

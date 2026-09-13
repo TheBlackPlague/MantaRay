@@ -8,6 +8,7 @@
 
 #include <array>
 #include <cassert>
+#include <span>
 
 #include "Constraint.h"
 
@@ -21,34 +22,34 @@ namespace MantaRay
 
     template<s00 Begin, s00 Size, QuantizedInteger T, s00 N>
     [[clang::always_inline]]
-    constexpr const Array<T, Size>& Slice(const Array<T, N>& array) requires (Begin + Size <= N)
+    constexpr std::span<const T, Size> Slice(const Array<T, N>& array) requires (Begin <= N && Size <= N - Begin)
     {
-        return *reinterpret_cast<Array<T, Size> const*>(array.data() + Begin);
+        return std::span<const T, Size>(array.data() + Begin, Size);
     }
 
     template<s00 Begin, s00 Size, QuantizedInteger T, s00 N>
     [[clang::always_inline]]
-    constexpr Array<T, Size>& Slice(Array<T, N>& array) requires (Begin + Size <= N)
+    constexpr std::span<T, Size> Slice(Array<T, N>& array) requires (Begin <= N && Size <= N - Begin)
     {
-        return *reinterpret_cast<Array<T, Size>      *>(array.data() + Begin);
+        return std::span<T, Size>(array.data() + Begin, Size);
     }
 
     template<s00 Size, QuantizedInteger T, s00 N>
     [[clang::always_inline]]
-    const Array<T, Size>& Slice(const Array<T, N>& array, const s00 begin)
+    std::span<const T, Size> Slice(const Array<T, N>& array, const s00 begin) requires (Size <= N)
     {
-        assert(begin + Size <= N);
+        assert(begin <= N - Size);
 
-        return *reinterpret_cast<Array<T, Size> const*>(array.data() + begin);
+        return std::span<const T, Size>(array.data() + begin, Size);
     }
 
     template<s00 Size, QuantizedInteger T, s00 N>
     [[clang::always_inline]]
-    Array<T, Size>& Slice(Array<T, N>& array, const s00 begin)
+    std::span<T, Size> Slice(Array<T, N>& array, const s00 begin) requires (Size <= N)
     {
-        assert(begin + Size <= N);
+        assert(begin <= N - Size);
 
-        return *reinterpret_cast<Array<T, Size>      *>(array.data() + begin);
+        return std::span<T, Size>(array.data() + begin, Size);
     }
 
 } // MantaRay

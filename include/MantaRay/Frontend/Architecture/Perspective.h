@@ -36,17 +36,24 @@ namespace MantaRay
 
         static_assert(Scale > 0 && QuantizationFeature > 127 && QuantizationOutput > 31,
                       "These scale and quantization constants don't seem right.");
+        static_assert(InputSize >= 64 * 6 * 2, "The input layer cannot represent every piece-square feature.");
+        static_assert(OutputSize > 0, "The output layer size cannot be zero.");
 
         constexpr static s00 ColorStride = 64 * 6;
         constexpr static s00 PieceStride = 64    ;
 
-        ALIGN Array<I,  InputSize *     HiddenSize> L0Weight;
-        ALIGN Array<I,                  HiddenSize> L0Bias  ;
-        ALIGN Array<I, HiddenSize * 2 * OutputSize> L1Weight;
-        ALIGN Array<I,                  OutputSize> L1Bias  ;
+        using L0WeightStorage = std::array<Array<I, HiddenSize>, InputSize>;
+
+        static_assert(sizeof(L0WeightStorage) == sizeof(I) * InputSize * HiddenSize,
+                      "First-layer weight storage must remain tightly packed.");
+
+        ALIGN L0WeightStorage                         L0Weight;
+        ALIGN Array<I,                    HiddenSize> L0Bias  ;
+        ALIGN Array<I,   HiddenSize * 2 * OutputSize> L1Weight;
+        ALIGN Array<I,                    OutputSize> L1Bias  ;
 
         public:
-        Perspective() = default;
+        Perspective() : L0Weight{}, L0Bias{}, L1Weight{}, L1Bias{} {}
 
         Perspective(BinaryFileStream<>& stream)
         {
@@ -78,7 +85,7 @@ namespace MantaRay
             ss << " | " << "Hidden->Output Weight: " << HiddenSize * 2 * OutputSize << std::endl;
             ss << " | " << "Scale                : " <<                       Scale << std::endl;
             ss << " | " << "QuantizationFeature  : " <<         QuantizationFeature << std::endl;
-            ss << " | " << "QuantizationOutput   : " <<         QuantizationOutput  << std::endl;
+            ss << " | " << "QuantizationOutput   : " <<          QuantizationOutput << std::endl;
 
             return ss.str();
         }
@@ -89,6 +96,8 @@ namespace MantaRay
         void Move(const u08 piece, const u08 color, const u08 from, const u08 to,
                   Accumulator<I, HiddenSize>& accumulator) const
         {
+            assert(piece < 6 && color < 2 && from < 64 && to < 64);
+
             const s00 fromIdxV =  color      * ColorStride + piece * PieceStride +  from      ;
             const s00 fromIdxU = (color ^ 1) * ColorStride + piece * PieceStride + (from ^ 56);
             const s00   toIdxV =  color      * ColorStride + piece * PieceStride +  to        ;
@@ -96,45 +105,49 @@ namespace MantaRay
 
             ArraySubAdd(
                 accumulator[0],
-                Slice<HiddenSize>(L0Weight, fromIdxV * HiddenSize),
-                Slice<HiddenSize>(L0Weight,   toIdxV * HiddenSize)
+                L0Weight[fromIdxV],
+                L0Weight[  toIdxV]
             );
             ArraySubAdd(
                 accumulator[1],
-                Slice<HiddenSize>(L0Weight, fromIdxU * HiddenSize),
-                Slice<HiddenSize>(L0Weight,   toIdxU * HiddenSize)
+                L0Weight[fromIdxU],
+                L0Weight[  toIdxU]
             );
         }
 
         [[clang::always_inline]]
         void Insert(const u08 piece, const u08 color, const u08 sq, Accumulator<I, HiddenSize>& accumulator) const
         {
+            assert(piece < 6 && color < 2 && sq < 64);
+
             const s00 vIdx =  color      * ColorStride + piece * PieceStride +  sq      ;
             const s00 uIdx = (color ^ 1) * ColorStride + piece * PieceStride + (sq ^ 56);
 
             ArrayAdd(
                 accumulator[0],
-                Slice<HiddenSize>(L0Weight, vIdx * HiddenSize)
+                L0Weight[vIdx]
             );
             ArrayAdd(
                 accumulator[1],
-                Slice<HiddenSize>(L0Weight, uIdx * HiddenSize)
+                L0Weight[uIdx]
             );
         }
 
         [[clang::always_inline]]
         void Remove(const u08 piece, const u08 color, const u08 sq, Accumulator<I, HiddenSize>& accumulator) const
         {
+            assert(piece < 6 && color < 2 && sq < 64);
+
             const s00 vIdx =  color      * ColorStride + piece * PieceStride +  sq      ;
             const s00 uIdx = (color ^ 1) * ColorStride + piece * PieceStride + (sq ^ 56);
 
             ArraySub(
                 accumulator[0],
-                Slice<HiddenSize>(L0Weight, vIdx * HiddenSize)
+                L0Weight[vIdx]
             );
             ArraySub(
                 accumulator[1],
-                Slice<HiddenSize>(L0Weight, uIdx * HiddenSize)
+                L0Weight[uIdx]
             );
         }
 

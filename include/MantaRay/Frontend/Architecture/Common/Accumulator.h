@@ -15,35 +15,52 @@ namespace MantaRay
     class Accumulator
     {
 
-        ALIGN Array<T, N + (N * Colored)> Internal;
+        using Storage = std::array<Array<T, N>, 1 + Colored>;
+
+        static_assert(sizeof(Storage) == sizeof(T) * N * (1 + Colored),
+                      "Accumulator storage must remain tightly packed.");
+
+        ALIGN Storage Internal;
 
         public:
         [[clang::always_inline]]
         Accumulator() { Zero(); }
 
         [[clang::always_inline]]
-        Accumulator(const Accumulator& src) { ArrayCopy(src.Internal, Internal); }
+        Accumulator(const Accumulator& src)
+        {
+            ArrayCopy(src.Internal[0], Internal[0]);
+
+            if (Colored)
+            ArrayCopy(src.Internal[1], Internal[1]);
+        }
 
         [[clang::always_inline]]
-        void operator =(const Accumulator& src) { ArrayCopy(src.Internal, Internal); }
+        void operator =(const Accumulator& src)
+        {
+            ArrayCopy(src.Internal[0], Internal[0]);
+
+            if (Colored)
+            ArrayCopy(src.Internal[1], Internal[1]);
+        }
 
         [[clang::always_inline]]
-        void Zero() { std::memset(Internal.data(), 0, sizeof(Array<T, N + (N * Colored)>)); }
+        void Zero() { std::memset(&Internal, 0, sizeof Internal); }
 
         [[clang::always_inline]]
         void Bias(const Array<T, N>& bias)
         {
-            ArrayCopy(bias, Slice<0, N>(Internal));
+            ArrayCopy(bias, Internal[0]);
 
             if (Colored)
-            ArrayCopy(bias, Slice<N, N>(Internal));
+            ArrayCopy(bias, Internal[1]);
         }
 
         [[clang::always_inline]]
-              Array<T, N>& operator [](const s00 side)       requires Colored { return Slice<N>(Internal, side * N); }
+              Array<T, N>& operator [](const s00 side)       requires Colored { assert(side < 2); return Internal[side]; }
 
         [[clang::always_inline]]
-        const Array<T, N>& operator [](const s00 side) const requires Colored { return Slice<N>(Internal, side * N); }
+        const Array<T, N>& operator [](const s00 side) const requires Colored { assert(side < 2); return Internal[side]; }
 
     };
 
