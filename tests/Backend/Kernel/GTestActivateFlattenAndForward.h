@@ -24,7 +24,7 @@ TEST(ActivateFlattenAndForward, i16_512)
     ALIGN MantaRay::Array<MantaRay::i16, N> x0 = Generate<MantaRay::i16, N, 30>();
     ALIGN MantaRay::Array<MantaRay::i16, N> x1 = Generate<MantaRay::i16, N, 04>();
 
-    ALIGN MantaRay::Array<MantaRay::i16, N * 2 * M> w = Generate<MantaRay::i16, N * 2 * M, 0>();
+    ALIGN MantaRay::NArray<MantaRay::i16, M, N * 2> w = Generate<MantaRay::i16, M, N * 2, 0>();
 
     ALIGN MantaRay::Array<MantaRay::i16, M> b = Generate<MantaRay::i16, M, 0>();
 
@@ -35,19 +35,21 @@ TEST(ActivateFlattenAndForward, i16_512)
 TEST(ActivateFlattenAndForward, i16_2048)
 {
     constexpr MantaRay::s00 N = 2048;
-    constexpr MantaRay::s00 M = 1;
+    constexpr MantaRay::s00 M = 4;
 
     constexpr auto ClippedReLU = &MantaRay::ClippedReLU<MantaRay::i16, 0, 255>::Activate;
 
     ALIGN MantaRay::Array<MantaRay::i16, N> x0 = Generate<MantaRay::i16, N, 30>();
     ALIGN MantaRay::Array<MantaRay::i16, N> x1 = Generate<MantaRay::i16, N, 04>();
 
-    ALIGN MantaRay::Array<MantaRay::i16, N * 2 * M> w = Generate<MantaRay::i16, N * 2 * M, 0>();
+    ALIGN MantaRay::NArray<MantaRay::i16, M, N * 2> w = Generate<MantaRay::i16, M, N * 2, 0>();
 
     ALIGN MantaRay::Array<MantaRay::i16, M> b = Generate<MantaRay::i16, M, 0>();
 
     ALIGN auto result = MantaRay::ActivateFlattenAndForward<ClippedReLU, MantaRay::i16, MantaRay::i32, N, M>(x0, x1, w, b);
-    EXPECT_EQ(result[0], 0);
+
+    for (MantaRay::s00 i = 0; i < M; i++)
+        EXPECT_EQ(result[i], 0);
 }
 
 // ReSharper restore CppLocalVariableMayBeConst

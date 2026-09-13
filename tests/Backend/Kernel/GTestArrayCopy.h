@@ -91,4 +91,19 @@ TEST(ArrayCopy, i32_2048)
         EXPECT_EQ(a[i], b[i]);
 }
 
+TEST(ArrayCopy, i16_2x512)
+{
+    constexpr MantaRay::s00 N = 2;
+    constexpr MantaRay::s00 M = 512;
+
+    ALIGN MantaRay::NArray<MantaRay::i16, N, M> a = Generate<MantaRay::i16, N, M, 30>();
+    ALIGN MantaRay::NArray<MantaRay::i16, N, M> b;
+
+    MantaRay::ArrayCopy(a, b);
+
+    for (MantaRay::s00 i = 0; i < N; i++)
+        for (MantaRay::s00 j = 0; j < M; j++)
+            EXPECT_EQ(a[i][j], b[i][j]);
+}
+
 #endif //MANTARAY_GTESTARRAYCOPY_H
