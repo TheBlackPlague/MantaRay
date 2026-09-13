@@ -14,10 +14,10 @@ namespace MantaRay
     template<auto ActivationFunction, QuantizedInteger T, QuantizedInteger U, s00 N, s00 M>
     [[clang::noinline]]
     Array<U, M> ActivateFlattenAndForward(
-        const Array<T, N               >& x0,
-        const Array<T, N               >& x1,
-        const NArray<T, M, N * 2       >& w ,
-        const Array<T,               M>& b )
+        const  Array<T, N       >& x0,
+        const  Array<T, N       >& x1,
+        const NArray<T, M, N * 2>& w ,
+        const  Array<T, M       >& b )
     {
         ALIGN Array<U, M> y;
 
@@ -71,13 +71,8 @@ namespace MantaRay
             U v0 = 0;
 
             for (s00 j = 0; j < N; j++) {
-                const U x0Activated = static_cast<U>(ActivationFunction(x0[j]));
-                const U x1Activated = static_cast<U>(ActivationFunction(x1[j]));
-                const U w0 = static_cast<U>(w[i][j    ]);
-                const U w1 = static_cast<U>(w[i][j + N]);
-
-                v0 = WrapAdd(v0, WrapMul(x0Activated, w0));
-                v0 = WrapAdd(v0, WrapMul(x1Activated, w1));
+                v0 = WrapAdd(v0, WrapMul(static_cast<U>(ActivationFunction(x0[j])), static_cast<U>(w[i][j    ])));
+                v0 = WrapAdd(v0, WrapMul(static_cast<U>(ActivationFunction(x1[j])), static_cast<U>(w[i][j + N])));
             }
 
             y[i] = WrapAdd(v0, static_cast<U>(b[i]));
