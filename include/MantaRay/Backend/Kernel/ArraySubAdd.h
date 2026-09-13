@@ -61,7 +61,7 @@ namespace MantaRay
 
 #else
 
-        for (s00 i = 0; i < N; i++) base[i] = base[i] - sub[i] + add[i];
+        for (s00 i = 0; i < N; i++) base[i] = WrapAdd(WrapSub(base[i], sub[i]), add[i]);
 
 #endif
     }

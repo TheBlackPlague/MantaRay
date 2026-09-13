@@ -64,7 +64,7 @@ namespace MantaRay
             ebx = _mm_extract_epi32(xmm1, 1);
 
             // eax + ebx = (a + c) + (b + d) = a + c + b + d = a + b + c + d
-            return eax + ebx;
+            return WrapAdd(eax, ebx);
         }
 
     };
