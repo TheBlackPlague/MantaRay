@@ -96,27 +96,6 @@
 
 #endif
 
-#if defined(__AVX__) && !defined(__AVX2__)
-namespace MantaRay
-{
-    template<QuantizedInteger T>
-    struct SafeAVX : AVX<T>
-    {
-        [[clang::always_inline]]
-        static T Sum(const Vec256I& ymm0) requires std::is_same_v<T, i32>
-        {
-            const Vec128I xmm0 = _mm256_extractf128_si256(ymm0, 0);
-            const Vec128I xmm1 = _mm256_extractf128_si256(ymm0, 1);
-
-            return WrapAdd(SSE41<T>::Sum(xmm0), SSE41<T>::Sum(xmm1));
-        }
-    };
-}
-
-#undef SIMD
-#define SIMD MantaRay::SafeAVX
-#endif
-
 #endif
 
 // #ifdef __aarch64__

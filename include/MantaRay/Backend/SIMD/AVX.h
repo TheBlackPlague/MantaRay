@@ -299,7 +299,7 @@ namespace MantaRay
             ebx = SSE41<T>::Sum(xmm1);
 
             // eax + ebx = (a + b + c + d) + (e + f + g + h) = a + b + c + d + e + f + g + h
-            return eax + ebx;
+            return WrapAdd(eax, ebx);
         }
 
     };
