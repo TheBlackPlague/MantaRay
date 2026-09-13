@@ -17,8 +17,10 @@ namespace MantaRay
 
         using Storage = std::array<Array<T, N>, 1 + Colored>;
 
-        static_assert(sizeof(Storage) == sizeof(T) * N * (1 + Colored),
-                      "Accumulator storage must remain tightly packed.");
+        static_assert(
+            sizeof(Storage) == sizeof(T) * N * (1 + Colored),
+            "Accumulator storage must remain tightly packed."
+        );
 
         ALIGN Storage Internal;
 

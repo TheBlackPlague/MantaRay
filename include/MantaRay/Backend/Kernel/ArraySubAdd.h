@@ -44,6 +44,7 @@ namespace MantaRay
         SIMDVEC v2;
 
         constexpr s00 Step = sizeof(SIMDVEC) / sizeof(T);
+
         static_assert(N >= Step && N % Step == 0, "Array size must be a multiple of the SIMD width.");
 
         for (s00 i = 0; i < N; i += Step) {

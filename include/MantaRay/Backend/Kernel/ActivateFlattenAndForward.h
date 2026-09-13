@@ -44,6 +44,7 @@ namespace MantaRay
             Vector  v3;
 
             constexpr s00 Step = sizeof(Vector) / sizeof(T);
+
             static_assert(N >= Step && N % Step == 0, "Input size must be a multiple of the SIMD width.");
 
             for (s00 j = 0; j < N; j += Step) {
@@ -77,13 +78,8 @@ namespace MantaRay
             U v0 = 0;
 
             for (s00 j = 0; j < N; j++) {
-                const U x0Activated = static_cast<U>(ActivationFunction(x0[j]));
-                const U x1Activated = static_cast<U>(ActivationFunction(x1[j]));
-                const U w0 = static_cast<U>(w[stride + j    ]);
-                const U w1 = static_cast<U>(w[stride + j + N]);
-
-                v0 = WrapAdd(v0, WrapMul(x0Activated, w0));
-                v0 = WrapAdd(v0, WrapMul(x1Activated, w1));
+                v0 = WrapAdd(v0, WrapMul(static_cast<U>(ActivationFunction(x0[j])), static_cast<U>(w[stride + j    ])));
+                v0 = WrapAdd(v0, WrapMul(static_cast<U>(ActivationFunction(x1[j])), static_cast<U>(w[stride + j + N])));
             }
 
             stride += N * 2;
