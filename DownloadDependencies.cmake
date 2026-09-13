@@ -15,7 +15,7 @@ function(AddGoogleBenchmark)
     CPMAddPackage(
             NAME benchmark
             GITHUB_REPOSITORY google/benchmark
-            VERSION 1.9.3
+            GIT_TAG 559b7cc1aec1950a9e3f4e879b08cf0b00f796f0
             OPTIONS
             "BENCHMARK_ENABLE_TESTING OFF"
     )
