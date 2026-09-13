@@ -14,14 +14,12 @@ namespace MantaRay
     template<auto ActivationFunction, QuantizedInteger T, QuantizedInteger U, s00 N, s00 M>
     [[clang::noinline]]
     Array<U, M> ActivateFlattenAndForward(
-        const Array<T, N        >& x0,
-        const Array<T, N        >& x1,
-        const Array<T, N * 2 * M>& w ,
-        const Array<T,         M>& b )
+        const Array<T, N               >& x0,
+        const Array<T, N               >& x1,
+        const NArray<T, M, N * 2       >& w ,
+        const Array<T,               M>& b )
     {
         ALIGN Array<U, M> y;
-
-        s00 stride = 0;
 
         for (s00 i = 0; i < M; i++) {
 #ifdef SIMD
@@ -47,28 +45,24 @@ namespace MantaRay
             static_assert(N >= Step && N % Step == 0, "Input size must be a multiple of the SIMD width.");
 
             for (s00 j = 0; j < N; j += Step) {
-                v2 = SIMD<T>::From(x0,          j);
-                v3 = SIMD<T>::From(w , stride + j);
+                v2 = SIMD<T>::From(x0  , j);
+                v3 = SIMD<T>::From(w[i], j);
 
                 v2 = ActivationFunction(v2);
 
                 v1 = SIMD<T>::Madd(v2, v3);
                 v0 = SIMD<U>:: Add(v0, v1);
             }
-
-            stride += N;
 
             for (s00 j = 0; j < N; j += Step) {
-                v2 = SIMD<T>::From(x1,          j);
-                v3 = SIMD<T>::From(w , stride + j);
+                v2 = SIMD<T>::From(x1  ,     j);
+                v3 = SIMD<T>::From(w[i], N + j);
 
                 v2 = ActivationFunction(v2);
 
                 v1 = SIMD<T>::Madd(v2, v3);
                 v0 = SIMD<U>:: Add(v0, v1);
             }
-
-            stride += N;
 
             y[i] = WrapAdd(SIMD<U>::Sum(v0), static_cast<U>(b[i]));
 
@@ -79,14 +73,12 @@ namespace MantaRay
             for (s00 j = 0; j < N; j++) {
                 const U x0Activated = static_cast<U>(ActivationFunction(x0[j]));
                 const U x1Activated = static_cast<U>(ActivationFunction(x1[j]));
-                const U w0 = static_cast<U>(w[stride + j    ]);
-                const U w1 = static_cast<U>(w[stride + j + N]);
+                const U w0 = static_cast<U>(w[i][j    ]);
+                const U w1 = static_cast<U>(w[i][j + N]);
 
                 v0 = WrapAdd(v0, WrapMul(x0Activated, w0));
                 v0 = WrapAdd(v0, WrapMul(x1Activated, w1));
             }
-
-            stride += N * 2;
 
             y[i] = WrapAdd(v0, static_cast<U>(b[i]));
 

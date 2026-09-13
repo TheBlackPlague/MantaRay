@@ -44,11 +44,13 @@ namespace MantaRay
 
         static_assert(sizeof(NArray<I, InputSize, HiddenSize>) == sizeof(I) * InputSize * HiddenSize,
                       "First-layer weight storage must remain tightly packed.");
+        static_assert(sizeof(NArray<I, OutputSize, HiddenSize * 2>) == sizeof(I) * OutputSize * HiddenSize * 2,
+                      "Output-layer weight storage must remain tightly packed.");
 
-        ALIGN NArray<I, InputSize, HiddenSize>       L0Weight;
-        ALIGN Array<I,                   HiddenSize> L0Bias  ;
-        ALIGN Array<I,  HiddenSize * 2 * OutputSize> L1Weight;
-        ALIGN Array<I,                   OutputSize> L1Bias  ;
+        ALIGN NArray<I,  InputSize,     HiddenSize> L0Weight;
+        ALIGN Array <I,                 HiddenSize> L0Bias  ;
+        ALIGN NArray<I, OutputSize, HiddenSize * 2> L1Weight;
+        ALIGN Array <I,                 OutputSize> L1Bias  ;
 
         public:
         Perspective() = default;
