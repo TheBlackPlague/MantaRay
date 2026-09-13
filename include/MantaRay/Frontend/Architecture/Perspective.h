@@ -163,7 +163,7 @@ namespace MantaRay
                 L1Bias
             )[0];
 
-            return output * Scale / (QuantizationFeature * QuantizationOutput);
+            return WrapMul(output, static_cast<O>(Scale)) / (QuantizationFeature * QuantizationOutput);
         }
 
     };
