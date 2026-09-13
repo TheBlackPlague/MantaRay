@@ -15,7 +15,7 @@ namespace MantaRay
     class Accumulator
     {
 
-        using Storage = std::array<Array<T, N>, 1 + Colored>;
+        using Storage = NArray<T, 1 + Colored, N>;
 
         static_assert(
             sizeof(Storage) == sizeof(T) * N * (1 + Colored),
@@ -29,22 +29,10 @@ namespace MantaRay
         Accumulator() { Zero(); }
 
         [[clang::always_inline]]
-        Accumulator(const Accumulator& src)
-        {
-            ArrayCopy(src.Internal[0], Internal[0]);
-
-            if (Colored)
-            ArrayCopy(src.Internal[1], Internal[1]);
-        }
+        Accumulator(const Accumulator& src) { ArrayCopy(src.Internal, Internal); }
 
         [[clang::always_inline]]
-        void operator =(const Accumulator& src)
-        {
-            ArrayCopy(src.Internal[0], Internal[0]);
-
-            if (Colored)
-            ArrayCopy(src.Internal[1], Internal[1]);
-        }
+        void operator =(const Accumulator& src) { ArrayCopy(src.Internal, Internal); }
 
         [[clang::always_inline]]
         void Zero() { std::memset(&Internal, 0, sizeof Internal); }

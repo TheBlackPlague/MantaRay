@@ -42,15 +42,13 @@ namespace MantaRay
         constexpr static s00 ColorStride = 64 * 6;
         constexpr static s00 PieceStride = 64    ;
 
-        using L0WeightStorage = std::array<Array<I, HiddenSize>, InputSize>;
-
-        static_assert(sizeof(L0WeightStorage) == sizeof(I) * InputSize * HiddenSize,
+        static_assert(sizeof(NArray<I, InputSize, HiddenSize>) == sizeof(I) * InputSize * HiddenSize,
                       "First-layer weight storage must remain tightly packed.");
 
-        ALIGN L0WeightStorage                         L0Weight;
-        ALIGN Array<I,                    HiddenSize> L0Bias  ;
-        ALIGN Array<I,   HiddenSize * 2 * OutputSize> L1Weight;
-        ALIGN Array<I,                    OutputSize> L1Bias  ;
+        ALIGN NArray<I, InputSize, HiddenSize>       L0Weight;
+        ALIGN Array<I,                   HiddenSize> L0Bias  ;
+        ALIGN Array<I,  HiddenSize * 2 * OutputSize> L1Weight;
+        ALIGN Array<I,                   OutputSize> L1Bias  ;
 
         public:
         Perspective() = default;
