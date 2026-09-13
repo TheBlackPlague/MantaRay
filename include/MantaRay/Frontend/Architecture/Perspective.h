@@ -53,7 +53,7 @@ namespace MantaRay
         ALIGN Array<I,                    OutputSize> L1Bias  ;
 
         public:
-        Perspective() : L0Weight{}, L0Bias{}, L1Weight{}, L1Bias{} {}
+        Perspective() = default;
 
         Perspective(BinaryFileStream<>& stream)
         {
