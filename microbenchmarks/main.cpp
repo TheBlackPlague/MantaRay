@@ -31,12 +31,18 @@ StarshardStack StarshardAccumulatorStack;
 
 void BM_AccumulatorStack_Starshard(BM::State& state)
 {
-    for (auto _ : state) StarshardAccumulatorStack++; StarshardAccumulatorStack--;
+    for (auto _ : state) {
+        StarshardAccumulatorStack++;
+        StarshardAccumulatorStack--;
+    }
 }
 
 void BM_AccumulatorStack_Aurora(BM::State& state)
 {
-    for (auto _ : state) AuroraAccumulatorStack++; AuroraAccumulatorStack--;
+    for (auto _ : state) {
+        AuroraAccumulatorStack++;
+        AuroraAccumulatorStack--;
+    }
 }
 
 void BM_Refresh_Starshard(BM::State& state)

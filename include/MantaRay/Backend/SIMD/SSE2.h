@@ -129,9 +129,6 @@ namespace MantaRay
 
             Vec128I xmm1;
 
-            T eax;
-            T ebx;
-
             // xmm1 = [c, d, c, d]
             xmm1 = _mm_unpackhi_epi64(xmm0, xmm0);
 
@@ -145,7 +142,7 @@ namespace MantaRay
             Store(xmm1, xmm1Array, 0);
 
             // xmm1[0] + xmm1[1] = (a + c) + (b + d) = a + c + b + d = a + b + c + d
-            return xmm1Array[0] + xmm1Array[1];
+            return WrapAdd(xmm1Array[0], xmm1Array[1]);
         }
 
     };

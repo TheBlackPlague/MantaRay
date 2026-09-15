@@ -23,6 +23,7 @@ namespace MantaRay
         SIMDVEC<T> v1;
 
         constexpr s00 Step = sizeof(SIMDVEC<T>) / sizeof(T);
+        static_assert(N >= Step && N % Step == 0, "Array size must be a multiple of the SIMD width.");
 
         for (s00 i = 0; i < N; i += Step) {
             v0 = SIMD<T>::From(base , i);
@@ -40,6 +41,8 @@ namespace MantaRay
 
         constexpr s00 Step = sizeof(SIMDVEC) / sizeof(T);
 
+        static_assert(N >= Step && N % Step == 0, "Array size must be a multiple of the SIMD width.");
+
         for (s00 i = 0; i < N; i += Step) {
             v0 = SIMD<T>::From(base , i);
             v1 = SIMD<T>::From(delta, i);
@@ -53,7 +56,7 @@ namespace MantaRay
 
 #else
 
-        for (s00 i = 0; i < N; i++) base[i] += delta[i];
+        for (s00 i = 0; i < N; i++) base[i] = WrapAdd(base[i], delta[i]);
 
 #endif
     }

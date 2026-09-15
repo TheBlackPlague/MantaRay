@@ -38,10 +38,10 @@ namespace MantaRay
         [[clang::always_inline]]
         void operator ++(int)
         {
+            assert(Pointer < AccumulatorStackSize - 1);
+
             Internal[Pointer + 1] = Internal[Pointer];
             Pointer++;
-
-            assert(Pointer < AccumulatorStackSize);
         }
 
         [[clang::always_inline]]

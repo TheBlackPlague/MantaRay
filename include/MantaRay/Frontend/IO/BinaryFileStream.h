@@ -8,6 +8,7 @@
 
 #include <fstream>
 #include <ios>
+#include <type_traits>
 
 #include "../../Backend/Container.h"
 
@@ -28,14 +29,14 @@ namespace MantaRay
             Stream.open(path, std::ios::binary | (Read ? std::ios::in : std::ios::out));
         }
 
-        template<QuantizedInteger T, s00 N>
-        void ReadArray(Array<T, N>& dst) requires Read
+        template<typename T, s00 N>
+        void ReadArray(std::array<T, N>& dst) requires (Read && std::is_trivially_copyable_v<std::array<T, N>>)
         {
             Stream.read(reinterpret_cast<char*>(&dst), sizeof dst);
         }
 
-        template<QuantizedInteger T, s00 N>
-        void WriteArray(const Array<T, N>& src) requires (!Read)
+        template<typename T, s00 N>
+        void WriteArray(const std::array<T, N>& src) requires (!Read && std::is_trivially_copyable_v<std::array<T, N>>)
         {
             Stream.write(reinterpret_cast<const char*>(&src), sizeof src);
         }

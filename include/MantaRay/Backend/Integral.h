@@ -27,6 +27,33 @@ namespace MantaRay
     using u08 =  uint8_t;
     using i08 =   int8_t;
 
+    template<typename T>
+    [[clang::always_inline]]
+    T WrapAdd(const T lhs, const T rhs)
+    {
+        T result;
+        __builtin_add_overflow(lhs, rhs, &result);
+        return result;
+    }
+
+    template<typename T>
+    [[clang::always_inline]]
+    T WrapSub(const T lhs, const T rhs)
+    {
+        T result;
+        __builtin_sub_overflow(lhs, rhs, &result);
+        return result;
+    }
+
+    template<typename T>
+    [[clang::always_inline]]
+    T WrapMul(const T lhs, const T rhs)
+    {
+        T result;
+        __builtin_mul_overflow(lhs, rhs, &result);
+        return result;
+    }
+
 }
 
 #endif //MANTARAY_INTEGRAL_H
