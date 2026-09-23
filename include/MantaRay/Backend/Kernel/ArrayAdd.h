@@ -1,66 +1,34 @@
-//
-// Copyright (c) 2025 MantaRay authors. See the list of authors for more details.
-// Licensed under MIT.
-//
-
-#ifndef MANTARAY_ARRAYADD_H
-#define MANTARAY_ARRAYADD_H
-
+#pragma once
 #include "../Processor.h"
 
-namespace MantaRay
+namespace MantaRay::Backend::Kernel
 {
 
     template<QuantizedInteger T, s00 N>
     [[clang::always_inline]]
-    void ArrayAdd(Array<T, N>& base, const Array<T, N>& delta)
+    void Add(Array<T, N>& base, const Array<T, N>& delta)
     {
+
 #ifdef SIMD
 
-#ifdef __ARM_NEON__
-
-        SIMDVEC<T> v0;
-        SIMDVEC<T> v1;
-
-        constexpr s00 Step = sizeof(SIMDVEC<T>) / sizeof(T);
-        static_assert(N >= Step && N % Step == 0, "Array size must be a multiple of the SIMD width.");
-
-        for (s00 i = 0; i < N; i += Step) {
-            v0 = SIMD<T>::From(base , i);
-            v1 = SIMD<T>::From(delta, i);
-
-            v0 = SIMD<T>::Add(v0, v1);
-
-            SIMD<T>::Store(v0, base, i);
-        }
-
-#else
-
-        SIMDVEC v0;
-        SIMDVEC v1;
-
         constexpr s00 Step = sizeof(SIMDVEC) / sizeof(T);
+        if constexpr (N >= Step && N % Step == 0) {
+            for (s00 i = 0; i < N; i += Step) SIMD<T>::Store(
+                SIMD<T>::Add(
+                    SIMD<T>::From( base, i),
+                    SIMD<T>::From(delta, i)
+                ),
+                base,
+                i
+            );
+        } else
 
-        static_assert(N >= Step && N % Step == 0, "Array size must be a multiple of the SIMD width.");
+#endif
 
-        for (s00 i = 0; i < N; i += Step) {
-            v0 = SIMD<T>::From(base , i);
-            v1 = SIMD<T>::From(delta, i);
-
-            v0 = SIMD<T>::Add(v0, v1);
-
-            SIMD<T>::Store(v0, base, i);
+        {
+            for (s00 i = 0; i < N; ++i) base[i] = WrapAdd(base[i], delta[i]);
         }
 
-#endif
-
-#else
-
-        for (s00 i = 0; i < N; i++) base[i] = WrapAdd(base[i], delta[i]);
-
-#endif
     }
 
-} // MantaRay
-
-#endif //MANTARAY_ARRAYADD_H
+}

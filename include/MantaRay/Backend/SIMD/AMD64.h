@@ -11,12 +11,12 @@
 // ReSharper disable once CppUnusedIncludeDirective
 #include <immintrin.h>
 
-#include "../Constraint.h"
+#include "../../Common/Constraint.h"
 
 namespace MantaRay
 {
 
-    template<QuantizedInteger T>
+    template<QuantizedInteger _>
     struct AMD64 {};
 
 } // MantaRay

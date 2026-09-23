@@ -25,7 +25,7 @@ namespace MantaRay
     using Array = std::array<T, N>;
 
     template<QuantizedInteger T, s00 N, s00... Ns>
-    using NArray = typename IArray<T, N, Ns...>::Internal;
+    using NArray = IArray<T, N, Ns...>::Internal;
 
 } // MantaRay
 

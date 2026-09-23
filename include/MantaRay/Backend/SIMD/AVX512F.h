@@ -16,11 +16,9 @@ namespace MantaRay
     // 512-bit integer register
     using Vec512I = __m512i;
 
-#ifdef ALIGN
-#undef ALIGN
+#ifndef ALIGN
+#define ALIGN alignas(MantaRay::Alignment)
 #endif
-
-#define ALIGN alignas(sizeof(MantaRay::Vec512I))
 
     template<QuantizedInteger T>
     struct AVX512F : AVX2<T>

@@ -10,7 +10,8 @@
 
 #include "AMD64.h"
 
-#include "../Container.h"
+#include "../../Common/Alignment.h"
+#include "../../Common/Container.h"
 
 namespace MantaRay
 {
@@ -18,11 +19,9 @@ namespace MantaRay
     // 128-bit integer register
     using Vec128I = __m128i;
 
-#ifdef ALIGN
-#undef ALIGN
+#ifndef ALIGN
+#define ALIGN alignas(MantaRay::Alignment)
 #endif
-
-#define ALIGN alignas(sizeof(MantaRay::Vec128I))
 
     template<QuantizedInteger T>
     struct SSE2 : AMD64<T>

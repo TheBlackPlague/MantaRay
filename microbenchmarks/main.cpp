@@ -3,23 +3,31 @@
 // Licensed under MIT.
 //
 
-#include <cstdlib>
-
 #include <benchmark/benchmark.h>
 
-#include <MantaRay/Backend/Kernel/Activation/ClippedReLU.h>
-#include <MantaRay/Frontend/Architecture/Perspective.h>
-#include <MantaRay/Frontend/Architecture/Common/AccumulatorStack.h>
+#include <MantaRay/MantaRay.h>
 
 namespace BM = benchmark;
 
-constexpr auto ClippedReLU = &MantaRay::ClippedReLU<MantaRay::i16, 0, 255>::Activate;
+using namespace MantaRay;
 
-using Starshard = MantaRay::Perspective<MantaRay::i16, MantaRay::i32, ClippedReLU, 768, 256, 1, 400, 255, 64>;
-using Aurora    = MantaRay::Perspective<MantaRay::i16, MantaRay::i32, ClippedReLU, 768, 384, 1, 400, 255, 64>;
+template<s00 Hidden>
+using Architecture = Network<
+    Quantization<255, 64, 400>,
+    Mirror<
+        Accumulate<
+            Layer<768, Hidden, ClippedReLU<0, 1>>
+        >
+    >,
+    Concat,
+    Layer<2 * Hidden, 1>
+>;
 
-using StarshardStack = MantaRay::AccumulatorStack<MantaRay::i16, 256, 512>;
-using    AuroraStack = MantaRay::AccumulatorStack<MantaRay::i16, 384, 512>;
+using Starshard = Runtime::Network<Architecture<256>>;
+using    Aurora = Runtime::Network<Architecture<384>>;
+
+using StarshardStack = Runtime::AccumulatorStack<Architecture<256>, 512>;
+using    AuroraStack = Runtime::AccumulatorStack<Architecture<384>, 512>;
 
 Starshard StarshardNN;
 Aurora       AuroraNN;
@@ -33,6 +41,10 @@ void BM_AccumulatorStack_Starshard(BM::State& state)
 {
     for (auto _ : state) {
         StarshardAccumulatorStack++;
+
+        BM::DoNotOptimize(&*StarshardAccumulatorStack);
+        BM::ClobberMemory();
+
         StarshardAccumulatorStack--;
     }
 }
@@ -41,48 +53,84 @@ void BM_AccumulatorStack_Aurora(BM::State& state)
 {
     for (auto _ : state) {
         AuroraAccumulatorStack++;
+
+        BM::DoNotOptimize(&*AuroraAccumulatorStack);
+        BM::ClobberMemory();
+
         AuroraAccumulatorStack--;
     }
 }
 
 void BM_Refresh_Starshard(BM::State& state)
 {
-    for (auto _ : state) StarshardNN.Refresh(*StarshardAccumulatorStack);
+    for (auto _ : state) {
+        StarshardNN.Refresh(*StarshardAccumulatorStack);
+
+        BM::ClobberMemory();
+    }
 }
 
 void BM_Refresh_Aurora(BM::State& state)
 {
-    for (auto _ : state) AuroraNN.Refresh(*AuroraAccumulatorStack);
+    for (auto _ : state) {
+        AuroraNN.Refresh(*AuroraAccumulatorStack);
+
+        BM::ClobberMemory();
+    }
 }
 
 void BM_Insert_Starshard(BM::State& state)
 {
-    for (auto _ : state) StarshardNN.Insert(0, 0, 8, *StarshardAccumulatorStack);
+    for (auto _ : state) {
+        StarshardNN.Insert(0, 0, 8, *StarshardAccumulatorStack);
+
+        BM::ClobberMemory();
+    }
 }
 
 void BM_Insert_Aurora(BM::State& state)
 {
-    for (auto _ : state) AuroraNN.Insert(0, 0, 8, *AuroraAccumulatorStack);
+    for (auto _ : state) {
+        AuroraNN.Insert(0, 0, 8, *AuroraAccumulatorStack);
+
+        BM::ClobberMemory();
+    }
 }
 
 void BM_Remove_Starshard(BM::State& state)
 {
-    for (auto _ : state) StarshardNN.Remove(0, 0, 8, *StarshardAccumulatorStack);
+    for (auto _ : state) {
+        StarshardNN.Remove(0, 0, 8, *StarshardAccumulatorStack);
+
+        BM::ClobberMemory();
+    }
 }
 
 void BM_Remove_Aurora(BM::State& state)
 {
-    for (auto _ : state) AuroraNN.Remove(0, 0, 8, *AuroraAccumulatorStack);
+    for (auto _ : state) {
+        AuroraNN.Remove(0, 0, 8, *AuroraAccumulatorStack);
+
+        BM::ClobberMemory();
+    }
 }
 
 void BM_Move_Starshard(BM::State& state)
 {
-    for (auto _ : state) StarshardNN.Move(0, 0, 8, 24, *StarshardAccumulatorStack);
+    for (auto _ : state) {
+        StarshardNN.Move(0, 0, 8, 24, *StarshardAccumulatorStack);
+
+        BM::ClobberMemory();
+    }
 }
 
 void BM_Move_Aurora(BM::State& state)
 {
-    for (auto _ : state) AuroraNN.Move(0, 0, 8, 24, *AuroraAccumulatorStack);
+    for (auto _ : state) {
+        AuroraNN.Move(0, 0, 8, 24, *AuroraAccumulatorStack);
+
+        BM::ClobberMemory();
+    }
 }
 
 void BM_Evaluate_Starshard(BM::State& state)

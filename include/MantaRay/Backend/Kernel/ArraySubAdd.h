@@ -1,72 +1,39 @@
-//
-// Copyright (c) 2025 MantaRay authors. See the list of authors for more details.
-// Licensed under MIT.
-//
-
-#ifndef MANTARAY_ARRAYSUBADD_H
-#define MANTARAY_ARRAYSUBADD_H
+#pragma once
 
 #include "../Processor.h"
 
-namespace MantaRay
+namespace MantaRay::Backend::Kernel
 {
 
     template<QuantizedInteger T, s00 N>
     [[clang::always_inline]]
-    void ArraySubAdd(Array<T, N>& base, const Array<T, N>& sub, const Array<T, N>& add)
+    void SubAdd(Array<T, N>& base, const Array<T, N>& sub, const Array<T, N>& add)
     {
+
 #ifdef SIMD
-
-#ifdef __ARM_NEON__
-
-        SIMDVEC<T> v0;
-        SIMDVEC<T> v1;
-        SIMDVEC<T> v2;
-
-        constexpr s00 Step = sizeof(SIMDVEC<T>) / sizeof(T);
-        static_assert(N >= Step && N % Step == 0, "Array size must be a multiple of the SIMD width.");
-
-        for (s00 i = 0; i < N; i += Step) {
-            v0 = SIMD<T>::From(base, i);
-            v1 = SIMD<T>::From(sub , i);
-            v2 = SIMD<T>::From(add , i);
-
-            v0 = SIMD<T>::Sub(v0, v1);
-            v0 = SIMD<T>::Add(v0, v2);
-
-            SIMD<T>::Store(v0, base, i);
-        }
-
-#else
-
-        SIMDVEC v0;
-        SIMDVEC v1;
-        SIMDVEC v2;
 
         constexpr s00 Step = sizeof(SIMDVEC) / sizeof(T);
 
-        static_assert(N >= Step && N % Step == 0, "Array size must be a multiple of the SIMD width.");
+        if constexpr (N >= Step && N % Step == 0) {
+            for (s00 i = 0; i < N; i += Step) SIMD<T>::Store(
+                SIMD<T>::Add(
+                    SIMD<T>::Sub(
+                        SIMD<T>::From(base, i),
+                        SIMD<T>::From( sub, i)
+                    ),
+                    SIMD<T>::From(add, i)
+                ),
+                base,
+                i
+            );
+        } else
 
-        for (s00 i = 0; i < N; i += Step) {
-            v0 = SIMD<T>::From(base, i);
-            v1 = SIMD<T>::From(sub , i);
-            v2 = SIMD<T>::From(add , i);
+#endif
 
-            v0 = SIMD<T>::Sub(v0, v1);
-            v0 = SIMD<T>::Add(v0, v2);
-
-            SIMD<T>::Store(v0, base, i);
+        {
+            for (s00 i = 0; i < N; ++i) base[i] = WrapAdd(WrapSub(base[i], sub[i]), add[i]);
         }
 
-#endif
-
-#else
-
-        for (s00 i = 0; i < N; i++) base[i] = WrapAdd(WrapSub(base[i], sub[i]), add[i]);
-
-#endif
     }
 
 }
-
-#endif //MANTARAY_ARRAYSUBADD_H

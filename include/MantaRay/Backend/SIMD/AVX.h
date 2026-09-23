@@ -16,11 +16,9 @@ namespace MantaRay
     // 256-bit integer register
     using Vec256I = __m256i;
 
-#ifdef ALIGN
-#undef ALIGN
+#ifndef ALIGN
+#define ALIGN alignas(MantaRay::Alignment)
 #endif
-
-#define ALIGN alignas(sizeof(MantaRay::Vec256I))
 
     template<QuantizedInteger T>
     struct AVX : SSE41<T>

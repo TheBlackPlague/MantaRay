@@ -20,10 +20,9 @@ TEST(ArrayCopy, i08_512)
     ALIGN MantaRay::Array<MantaRay::i08, N> a = Generate<MantaRay::i08, N, 30>();
     ALIGN MantaRay::Array<MantaRay::i08, N> b;
 
-    MantaRay::ArrayCopy(a, b);
+    MantaRay::Backend::Kernel::Copy(a, b);
 
-    for (MantaRay::s00 i = 0; i < N; i++)
-        EXPECT_EQ(a[i], b[i]);
+    for (MantaRay::s00 i = 0; i < N; i++) EXPECT_EQ(a[i], b[i]);
 }
 
 TEST(ArrayCopy, i16_512)
@@ -33,10 +32,9 @@ TEST(ArrayCopy, i16_512)
     ALIGN MantaRay::Array<MantaRay::i16, N> a = Generate<MantaRay::i16, N, 30>();
     ALIGN MantaRay::Array<MantaRay::i16, N> b;
 
-    MantaRay::ArrayCopy(a, b);
+    MantaRay::Backend::Kernel::Copy(a, b);
 
-    for (MantaRay::s00 i = 0; i < N; i++)
-        EXPECT_EQ(a[i], b[i]);
+    for (MantaRay::s00 i = 0; i < N; i++) EXPECT_EQ(a[i], b[i]);
 }
 
 TEST(ArrayCopy, i32_512)
@@ -46,10 +44,9 @@ TEST(ArrayCopy, i32_512)
     ALIGN MantaRay::Array<MantaRay::i32, N> a = Generate<MantaRay::i32, N, 30>();
     ALIGN MantaRay::Array<MantaRay::i32, N> b;
 
-    MantaRay::ArrayCopy(a, b);
+    MantaRay::Backend::Kernel::Copy(a, b);
 
-    for (MantaRay::s00 i = 0; i < N; i++)
-        EXPECT_EQ(a[i], b[i]);
+    for (MantaRay::s00 i = 0; i < N; i++) EXPECT_EQ(a[i], b[i]);
 }
 
 TEST(ArrayCopy, i08_2048)
@@ -59,10 +56,9 @@ TEST(ArrayCopy, i08_2048)
     ALIGN MantaRay::Array<MantaRay::i08, N> a = Generate<MantaRay::i08, N, 30>();
     ALIGN MantaRay::Array<MantaRay::i08, N> b;
 
-    MantaRay::ArrayCopy(a, b);
+    MantaRay::Backend::Kernel::Copy(a, b);
 
-    for (MantaRay::s00 i = 0; i < N; i++)
-        EXPECT_EQ(a[i], b[i]);
+    for (MantaRay::s00 i = 0; i < N; i++) EXPECT_EQ(a[i], b[i]);
 }
 
 TEST(ArrayCopy, i16_2048)
@@ -72,10 +68,9 @@ TEST(ArrayCopy, i16_2048)
     ALIGN MantaRay::Array<MantaRay::i16, N> a = Generate<MantaRay::i16, N, 30>();
     ALIGN MantaRay::Array<MantaRay::i16, N> b;
 
-    MantaRay::ArrayCopy(a, b);
+    MantaRay::Backend::Kernel::Copy(a, b);
 
-    for (MantaRay::s00 i = 0; i < N; i++)
-        EXPECT_EQ(a[i], b[i]);
+    for (MantaRay::s00 i = 0; i < N; i++) EXPECT_EQ(a[i], b[i]);
 }
 
 TEST(ArrayCopy, i32_2048)
@@ -85,10 +80,9 @@ TEST(ArrayCopy, i32_2048)
     ALIGN MantaRay::Array<MantaRay::i32, N> a = Generate<MantaRay::i32, N, 30>();
     ALIGN MantaRay::Array<MantaRay::i32, N> b;
 
-    MantaRay::ArrayCopy(a, b);
+    MantaRay::Backend::Kernel::Copy(a, b);
 
-    for (MantaRay::s00 i = 0; i < N; i++)
-        EXPECT_EQ(a[i], b[i]);
+    for (MantaRay::s00 i = 0; i < N; i++) EXPECT_EQ(a[i], b[i]);
 }
 
 TEST(ArrayCopy, i16_2x512)
@@ -99,11 +93,9 @@ TEST(ArrayCopy, i16_2x512)
     ALIGN MantaRay::NArray<MantaRay::i16, N, M> a = Generate<MantaRay::i16, N, M, 30>();
     ALIGN MantaRay::NArray<MantaRay::i16, N, M> b;
 
-    MantaRay::ArrayCopy(a, b);
+    MantaRay::Backend::Kernel::Copy(a, b);
 
-    for (MantaRay::s00 i = 0; i < N; i++)
-        for (MantaRay::s00 j = 0; j < M; j++)
-            EXPECT_EQ(a[i][j], b[i][j]);
+    for (MantaRay::s00 i = 0; i < N; i++) for (MantaRay::s00 j = 0; j < M; j++) EXPECT_EQ(a[i][j], b[i][j]);
 }
 
 #endif //MANTARAY_GTESTARRAYCOPY_H

@@ -20,10 +20,9 @@ TEST(ArraySubAdd, i08_512)
     ALIGN MantaRay::Array<MantaRay::i08, N> a = Generate<MantaRay::i08, N, 30>();
     ALIGN MantaRay::Array<MantaRay::i08, N> b = Generate<MantaRay::i08, N, 04>();
 
-    MantaRay::ArraySubAdd(a, b, b);
+    MantaRay::Backend::Kernel::SubAdd(a, b, b);
 
-    for (MantaRay::s00 i = 0; i < N; i++)
-        EXPECT_EQ(a[i], static_cast<MantaRay::i08>(i % 2 == 0 ? 30 : 0));
+    for (MantaRay::s00 i = 0; i < N; i++) EXPECT_EQ(a[i], static_cast<MantaRay::i08>(i % 2 == 0 ? 30 : 0));
 }
 
 TEST(ArraySubAdd, i16_512)
@@ -33,10 +32,9 @@ TEST(ArraySubAdd, i16_512)
     ALIGN MantaRay::Array<MantaRay::i16, N> a = Generate<MantaRay::i16, N, 30>();
     ALIGN MantaRay::Array<MantaRay::i16, N> b = Generate<MantaRay::i16, N, 04>();
 
-    MantaRay::ArraySubAdd(a, b, b);
+    MantaRay::Backend::Kernel::SubAdd(a, b, b);
 
-    for (MantaRay::s00 i = 0; i < N; i++)
-        EXPECT_EQ(a[i], static_cast<MantaRay::i16>(i % 2 == 0 ? 30 : 0));
+    for (MantaRay::s00 i = 0; i < N; i++) EXPECT_EQ(a[i], static_cast<MantaRay::i16>(i % 2 == 0 ? 30 : 0));
 }
 
 TEST(ArraySubAdd, i32_512)
@@ -46,10 +44,9 @@ TEST(ArraySubAdd, i32_512)
     ALIGN MantaRay::Array<MantaRay::i32, N> a = Generate<MantaRay::i32, N, 30>();
     ALIGN MantaRay::Array<MantaRay::i32, N> b = Generate<MantaRay::i32, N, 04>();
 
-    MantaRay::ArraySubAdd(a, b, b);
+    MantaRay::Backend::Kernel::SubAdd(a, b, b);
 
-    for (MantaRay::s00 i = 0; i < N; i++)
-        EXPECT_EQ(a[i], i % 2 == 0 ? 30 : 0);
+    for (MantaRay::s00 i = 0; i < N; i++) EXPECT_EQ(a[i], i % 2 == 0 ? 30 : 0);
 }
 
 TEST(ArraySubAdd, i08_2048)
@@ -59,10 +56,9 @@ TEST(ArraySubAdd, i08_2048)
     ALIGN MantaRay::Array<MantaRay::i08, N> a = Generate<MantaRay::i08, N, -30>();
     ALIGN MantaRay::Array<MantaRay::i08, N> b = Generate<MantaRay::i08, N,  54>();
 
-    MantaRay::ArraySubAdd(a, b, b);
+    MantaRay::Backend::Kernel::SubAdd(a, b, b);
 
-    for (MantaRay::s00 i = 0; i < N; i++)
-        EXPECT_EQ(a[i], static_cast<MantaRay::i08>(i % 2 == 0 ? -30 : 0));
+    for (MantaRay::s00 i = 0; i < N; i++) EXPECT_EQ(a[i], static_cast<MantaRay::i08>(i % 2 == 0 ? -30 : 0));
 }
 
 TEST(ArraySubAdd, i16_2048)
@@ -72,10 +68,9 @@ TEST(ArraySubAdd, i16_2048)
     ALIGN MantaRay::Array<MantaRay::i16, N> a = Generate<MantaRay::i16, N, -30>();
     ALIGN MantaRay::Array<MantaRay::i16, N> b = Generate<MantaRay::i16, N,  54>();
 
-    MantaRay::ArraySubAdd(a, b, b);
+    MantaRay::Backend::Kernel::SubAdd(a, b, b);
 
-    for (MantaRay::s00 i = 0; i < N; i++)
-        EXPECT_EQ(a[i], static_cast<MantaRay::i16>(i % 2 == 0 ? -30 : 0));
+    for (MantaRay::s00 i = 0; i < N; i++) EXPECT_EQ(a[i], static_cast<MantaRay::i16>(i % 2 == 0 ? -30 : 0));
 }
 
 TEST(ArraySubAdd, i32_2048)
@@ -85,10 +80,9 @@ TEST(ArraySubAdd, i32_2048)
     ALIGN MantaRay::Array<MantaRay::i32, N> a = Generate<MantaRay::i32, N, -30>();
     ALIGN MantaRay::Array<MantaRay::i32, N> b = Generate<MantaRay::i32, N,  54>();
 
-    MantaRay::ArraySubAdd(a, b, b);
+    MantaRay::Backend::Kernel::SubAdd(a, b, b);
 
-    for (MantaRay::s00 i = 0; i < N; i++)
-        EXPECT_EQ(a[i], i % 2 == 0 ? -30 : 0);
+    for (MantaRay::s00 i = 0; i < N; i++) EXPECT_EQ(a[i], i % 2 == 0 ? -30 : 0);
 }
 
 #endif //MANTARAY_GTESTARRAYSUBADD_H

@@ -6,14 +6,12 @@
 #ifndef MANTARAY_INTEGRAL_H
 #define MANTARAY_INTEGRAL_H
 
-#include <cstdint>
-
 namespace MantaRay
 {
 
     // Short-notation for integral types
 
-    using s00 =   size_t;
+    using s00 = std::size_t;
 
     using u64 = uint64_t;
     using i64 =  int64_t;
@@ -29,7 +27,7 @@ namespace MantaRay
 
     template<typename T>
     [[clang::always_inline]]
-    T WrapAdd(const T lhs, const T rhs)
+    constexpr T WrapAdd(const T lhs, const T rhs)
     {
         T result;
         __builtin_add_overflow(lhs, rhs, &result);
@@ -38,7 +36,7 @@ namespace MantaRay
 
     template<typename T>
     [[clang::always_inline]]
-    T WrapSub(const T lhs, const T rhs)
+    constexpr T WrapSub(const T lhs, const T rhs)
     {
         T result;
         __builtin_sub_overflow(lhs, rhs, &result);
@@ -47,7 +45,7 @@ namespace MantaRay
 
     template<typename T>
     [[clang::always_inline]]
-    T WrapMul(const T lhs, const T rhs)
+    constexpr T WrapMul(const T lhs, const T rhs)
     {
         T result;
         __builtin_mul_overflow(lhs, rhs, &result);

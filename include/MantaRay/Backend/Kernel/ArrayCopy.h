@@ -1,57 +1,35 @@
-//
-// Copyright (c) 2025 MantaRay authors. See the list of authors for more details.
-// Licensed under MIT.
-//
-
-#ifndef MANTARAY_ARRAYCOPY_H
-#define MANTARAY_ARRAYCOPY_H
+#pragma once
 
 #include <cstring>
 
 #include "../Processor.h"
 
-namespace MantaRay
+namespace MantaRay::Backend::Kernel
 {
 
     template<typename T, s00 N>
     [[clang::always_inline]]
-    void ArrayCopy(const std::array<T, N>& src, std::array<T, N>& dst)
+    void Copy(const std::array<T, N>& src, std::array<T, N>& dst)
     {
-#ifdef SIMD
 
         if constexpr (QuantizedInteger<T>) {
 
-#ifdef __ARM_NEON__
+#ifdef SIMD
 
-            using Vector = SIMDVEC<T>;
-
-#else
-
-            using Vector = SIMDVEC;
+            constexpr s00 Step = sizeof(SIMDVEC) / sizeof(T);
+            if constexpr (N >= Step && N % Step == 0) {
+                for (s00 i = 0; i < N; i += Step) SIMD<T>::Store(SIMD<T>::From(src, i), dst, i);
+            } else
 
 #endif
 
-            Vector v0;
-
-            constexpr s00 Step = sizeof(Vector) / sizeof(T);
-            static_assert(N >= Step && N % Step == 0, "Array size must be a multiple of the SIMD width.");
-
-            for (s00 i = 0; i < N; i += Step) {
-                v0 = SIMD<T>::From(src, i);
-                SIMD<T>::Store(v0, dst, i);
+            {
+                if (&src != &dst) std::memcpy(dst.data(), src.data(), sizeof src);
             }
         } else {
-            UNROLL
-            for (s00 i = 0; i < N; i++) ArrayCopy(src[i], dst[i]);
+            for (s00 i = 0; i < N; ++i) Copy(src[i], dst[i]);
         }
 
-#else
-
-        std::memcpy(dst.data(), src.data(), sizeof src);
-
-#endif
     }
 
-} // MantaRay
-
-#endif //MANTARAY_ARRAYCOPY_H
+}
