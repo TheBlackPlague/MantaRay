@@ -93,8 +93,7 @@ namespace MantaRay::Runtime
         [[clang::always_inline]]
         void Refresh(State& state) const requires Traits::HasAccumulator
         {
-            for (s00 side = 0; side < Traits::PerspectiveCount; ++side)
-                Backend::Kernel::Copy(FeatureParameters().Bias, state[side]);
+            state.Bias(FeatureParameters().Bias);
         }
 
         [[clang::always_inline]]

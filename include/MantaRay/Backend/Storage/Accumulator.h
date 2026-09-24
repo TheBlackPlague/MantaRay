@@ -9,6 +9,7 @@
 #include <array>
 #include <cassert>
 #include <cstring>
+#include <utility>
 
 #include "../Traits.h"
 #include "../Kernel/ArrayCopy.h"
@@ -50,7 +51,13 @@ namespace MantaRay::Backend
 
         void Zero() { std::memset(Values.data(), 0, sizeof(Values)); }
 
-        void Bias(const Row& bias) { for (auto& row : Values) Kernel::Copy(bias, row); }
+        [[clang::always_inline]]
+        void Bias(const Row& bias)
+        {
+            [&]<s00... Sides>(std::index_sequence<Sides...>) {
+                (Kernel::Copy(bias, Values[Sides]), ...);
+            }(std::make_index_sequence<PerspectiveCount> {});
+        }
 
         Row& operator [](const s00 perspective)
         {
