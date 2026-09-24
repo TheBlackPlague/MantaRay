@@ -32,11 +32,12 @@ namespace MantaRay::Backend::Kernel
             constexpr s00 Step = sizeof(SIMDVEC) / sizeof(F);
 
             if constexpr (
-                HasSIMD                &&
-                std::is_same_v<F, i16> &&
-                std::is_same_v<W, i16> &&
-                std::is_same_v<S, i32> &&
-                Act::SIMDCompatible    &&
+                HasSIMD                                      &&
+                std::is_same_v<F, i16>                       &&
+                std::is_same_v<W, i16>                       &&
+                std::is_same_v<S, i32>                       &&
+                Act::SIMDCompatible                          &&
+                requires(SIMDVEC v) { SIMD<F>::Madd(v, v); } &&
                 N >= Step && N % Step == 0
             ) {
                 SIMDVEC sum = SIMD<S>::Zero;

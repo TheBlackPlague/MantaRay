@@ -54,6 +54,22 @@ namespace MantaRay
 
 }
 
+#elif !defined(MANTARAY_FORCE_SCALAR) && defined(__aarch64__) && (defined(__ARM_NEON) || defined(__ARM_NEON__))
+
+#include "SIMD/NEON.h"
+
+namespace MantaRay
+{
+
+    constexpr bool HasSIMD = true;
+
+    template<QuantizedInteger T>
+    using SIMD = NEON<T>;
+
+    using SIMDVEC = decltype(SIMD<i32>::From(i32 {}));
+
+}
+
 #else
 
 namespace MantaRay

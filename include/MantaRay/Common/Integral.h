@@ -6,6 +6,9 @@
 #ifndef MANTARAY_INTEGRAL_H
 #define MANTARAY_INTEGRAL_H
 
+#include <cstddef>
+#include <cstdint>
+
 namespace MantaRay
 {
 
