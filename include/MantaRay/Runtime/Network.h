@@ -38,15 +38,15 @@ namespace MantaRay::Runtime
         const auto& FeatureParameters() const requires Traits::HasAccumulator
         {
             if constexpr (Traits::PerspectiveCount == 2)
-                 return std::get<0>(Parameters_.Nodes).Inner;
-            else return std::get<0>(Parameters_.Nodes)      ;
+                 return std::get<0>(Parameters_.Nodes()).Inner;
+            else return std::get<0>(Parameters_.Nodes())      ;
         }
 
         template<typename Tail, typename Input, s00... Is>
         [[clang::always_inline]]
         auto EvaluateTail(const Input& input, std::index_sequence<Is...>) const
         {
-            const auto storage = std::tie(std::get<Is + 1>(Parameters_.Nodes)...);
+            const auto storage = std::tie(std::get<Is + 1>(Parameters_.Nodes())...);
 
             return Backend::LowerSequence<Q, std::tuple_element_t<Is, Tail>...>::template Run<true>(storage, input);
         }
@@ -175,8 +175,8 @@ namespace MantaRay::Runtime
             assert(piece < 6 && color < 2 && square < 64);
 
             Insert(
-                 color      * 384 + piece * 64 +  square      ,
-                (color ^ 1) * 384 + piece * 64 + (square ^ 56),
+                 color      * s00{384} + piece * s00{64} +  square      ,
+                (color ^ 1) * s00{384} + piece * s00{64} + (square ^ 56),
                 state
             );
         }
@@ -188,8 +188,8 @@ namespace MantaRay::Runtime
             assert(piece < 6 && color < 2 && square < 64);
 
             Remove(
-                 color      * 384 + piece * 64 +  square      ,
-                (color ^ 1) * 384 + piece * 64 + (square ^ 56),
+                 color      * s00 { 384 } + piece * s00 { 64 } +  square      ,
+                (color ^ 1) * s00 { 384 } + piece * s00 { 64 } + (square ^ 56),
                 state
             );
         }
@@ -201,8 +201,10 @@ namespace MantaRay::Runtime
             assert(piece < 6 && color < 2 && from < 64 && to < 64);
 
             MoveFeatures(
-                 color      * 384 + piece * 64 +  from      ,  color      * 384 + piece * 64 +  to      ,
-                (color ^ 1) * 384 + piece * 64 + (from ^ 56), (color ^ 1) * 384 + piece * 64 + (to ^ 56),
+                 color      * s00 { 384 } + piece * s00 { 64 } +   from      ,
+                 color      * s00 { 384 } + piece * s00 { 64 } +    to       ,
+                (color ^ 1) * s00 { 384 } + piece * s00 { 64 } +  (from ^ 56),
+                (color ^ 1) * s00 { 384 } + piece * s00 { 64 } +  ( to  ^ 56),
                 state
             );
         }
@@ -224,7 +226,7 @@ namespace MantaRay::Runtime
         {
             return [&]<typename... Stages>(std::tuple<Stages...>*) {
                 const auto result = Backend::LowerSequence<Q, Stages...>::template Run<true>(
-                    Parameters_.Nodes,
+                    Parameters_.Nodes(),
                     Backend::Value<Q, Traits::Input::Size> { input }
                 );
 

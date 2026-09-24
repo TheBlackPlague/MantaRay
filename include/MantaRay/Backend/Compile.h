@@ -192,7 +192,7 @@ namespace MantaRay::Backend
 
         template<bool Final, typename Input>
         static auto Run(const Storage<Q, Sequence<Stages...>>& storage, const Input& input)
-        { return LowerSequence<Q, Stages...>::template Run<Final>(storage.Nodes, input); }
+        { return LowerSequence<Q, Stages...>::template Run<Final>(storage.Nodes(), input); }
 
     };
 
@@ -204,7 +204,7 @@ namespace MantaRay::Backend
         static auto Run(const Storage<Q, Parallel<Branches...>>& storage, const Input& input)
         {
             return [&]<s00... Is>(std::index_sequence<Is...>) {
-                return std::tuple{Lower<Branches, Q>::template Run<false>(std::get<Is>(storage.Nodes), input)...};
+                return std::tuple{ Lower<Branches, Q>::template Run<false>(std::get<Is>(storage.Nodes()), input)... };
             }(std::index_sequence_for<Branches...> {});
         }
 

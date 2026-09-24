@@ -54,8 +54,8 @@ namespace MantaRay::IO
     {
         auto loaded = std::make_unique<Backend::NetworkStorage<Architecture>>();
 
-        auto& feature = std::get<0>(loaded->Nodes).Inner;
-        auto& dense   = std::get<2>(loaded->Nodes)      ;
+        auto& feature = std::get<0>(loaded->Nodes()).Inner;
+        auto& dense   = std::get<2>(loaded->Nodes())      ;
 
         std::array<i16, std::tuple_size_v<decltype(dense.Bias)>> bias {};
 

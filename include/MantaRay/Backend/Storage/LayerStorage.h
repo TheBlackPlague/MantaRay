@@ -73,16 +73,35 @@ namespace MantaRay::Backend
 
     };
 
-    template<typename Q, typename... N>
-    struct Storage<Q, Sequence<N...>>
+    template<typename Q>
+    struct Storage<Q, Sequence<>>
     {
 
-        std::tuple<Storage<Q, N>...> Nodes;
+        auto Nodes()       { return std::tuple {}; }
+        auto Nodes() const { return std::tuple {}; }
+
+        template<typename F> void VisitParameters(F&&)       {}
+        template<typename F> void VisitParameters(F&&) const {}
+
+    };
+
+    template<typename Q, typename N, typename... Tail>
+    struct Storage<Q, Sequence<N, Tail...>>
+    {
+
+        NO_UNIQUE_ADDRESS
+        Storage<Q, N> First;
+
+        NO_UNIQUE_ADDRESS
+        Storage<Q, Sequence<Tail...>> Rest;
+
+        auto Nodes()       { return std::tuple_cat(std::tie(First), Rest.Nodes()); }
+        auto Nodes() const { return std::tuple_cat(std::tie(First), Rest.Nodes()); }
 
         template<typename F> void VisitParameters(F&& f)
-        { std::apply([&](      auto&... node) { (node.VisitParameters(f), ...); }, Nodes); }
+        { First.VisitParameters(f); Rest.VisitParameters(f); }
         template<typename F> void VisitParameters(F&& f) const
-        { std::apply([&](const auto&... node) { (node.VisitParameters(f), ...); }, Nodes); }
+        { First.VisitParameters(f); Rest.VisitParameters(f); }
 
     };
 
