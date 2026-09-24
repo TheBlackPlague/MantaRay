@@ -1,0 +1,3 @@
+<component name="DependencyValidationManager">
+  <scope name="Project Code" pattern="file[Cerebrum]:include//*||file[Cerebrum]:microbenchmarks//*||file[Cerebrum]:tests//*" />
+</component>

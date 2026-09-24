@@ -1,6 +1,6 @@
 //
-// Copyright (c) 2026 MantaRay authors. See the list of authors for more details.
-// Licensed under MIT.
+// Copyright (c) 2025-2026 Shaheryar Sohail
+// SPDX-License-Identifier: MIT
 //
 
 #ifndef MANTARAY_BACKEND_KERNEL_ARRAYSUBADD_H
