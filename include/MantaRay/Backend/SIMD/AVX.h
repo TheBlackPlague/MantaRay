@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2025 MantaRay authors. See the list of authors for more details.
+// Copyright (c) 2026 MantaRay authors. See the list of authors for more details.
 // Licensed under MIT.
 //
 
@@ -16,22 +16,18 @@ namespace MantaRay
     // 256-bit integer register
     using Vec256I = __m256i;
 
-#ifndef ALIGN
-#define ALIGN alignas(MantaRay::Alignment)
-#endif
-
     template<QuantizedInteger T>
     struct AVX : SSE41<T>
     {
 
-        constexpr static Vec256I Zero = _mm256_setzero_si256();
+        constexpr static Vec256I Zero {};
 
         [[clang::always_inline]]
         static Vec256I From(const T value)
         {
-            if (std::is_same_v<T, i08>) return _mm256_set1_epi8 (value);
-            if (std::is_same_v<T, i16>) return _mm256_set1_epi16(value);
-            if (std::is_same_v<T, i32>) return _mm256_set1_epi32(value);
+            if constexpr (std::is_same_v<T, i08>) return _mm256_set1_epi8 (value);
+            if constexpr (std::is_same_v<T, i16>) return _mm256_set1_epi16(value);
+            if constexpr (std::is_same_v<T, i32>) return _mm256_set1_epi32(value);
 
             __builtin_unreachable();
         }
@@ -42,7 +38,7 @@ namespace MantaRay
         {
             static_assert(sizeof(array) >= sizeof(Vec256I), "Array size must be at least the width of a Vec256I.");
 
-            return _mm256_load_si256(reinterpret_cast<Vec256I const*>(&array[index]));
+            return _mm256_load_si256(reinterpret_cast<const Vec256I*>(&array[index]));
         }
 
         template<s00 Size>

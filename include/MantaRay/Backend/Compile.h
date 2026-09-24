@@ -1,5 +1,10 @@
-// Copyright (c) 2026 MantaRay authors. Licensed under MIT.
-#pragma once
+//
+// Copyright (c) 2026 MantaRay authors. See the list of authors for more details.
+// Licensed under MIT.
+//
+
+#ifndef MANTARAY_BACKEND_COMPILE_H
+#define MANTARAY_BACKEND_COMPILE_H
 
 #include <tuple>
 #include <type_traits>
@@ -13,7 +18,7 @@
 namespace MantaRay::Backend
 {
 
-    template<class A, class Q, s00 N>
+    template<typename A, typename Q, s00 N>
     struct ActivatedView
     {
 
@@ -22,11 +27,11 @@ namespace MantaRay::Backend
 
         const Array<typename Q::FeatureType, N>& Values;
 
-        auto operator[](s00 i) const { return Activation<A, Q>::Apply(Values[i]); }
+        auto operator [](const s00 i) const { return Activation<A, Q>::Apply(Values[i]); }
 
     };
 
-    template<class Q, s00 N, bool Product = false>
+    template<typename Q, s00 N, bool Product = false>
     struct Value
     {
 
@@ -35,13 +40,13 @@ namespace MantaRay::Backend
 
         using Element = std::conditional_t<Product, typename Q::SumType, typename Q::FeatureType>;
 
-        alignas(64) Array<Element, N> Values {};
+        ALIGN Array<Element, N> Values {};
 
-        auto operator[](s00 i) const { return Values[i]; }
+        auto operator [](const s00 i) const { return Values[i]; }
 
     };
 
-    template<class... Views>
+    template<typename... Views>
     struct ConcatView
     {
 
@@ -50,7 +55,7 @@ namespace MantaRay::Backend
 
         std::tuple<Views...> ViewsTuple;
 
-        auto operator[](s00 i) const
+        auto operator [](s00 i) const
         {
             using Element = decltype(std::get<0>(ViewsTuple)[0]);
 
@@ -72,16 +77,16 @@ namespace MantaRay::Backend
 
     };
 
-    template<class Transform, class Q, class L>
+    template<typename Transform, typename Q, typename L>
     struct TransformKernel;
 
-    template<class Q, s00 I, s00 O, class A>
+    template<typename Q, s00 I, s00 O, typename A>
     struct TransformKernel<Affine, Q, Layer<I, O, A>>
     {
 
         using L = Layer<I, O, A>;
 
-        template<class Input>
+        template<typename Input>
         static auto Run(const Storage<Q, L>& storage, const Input& input)
         {
             Array<typename Q::SumType, O> result {};
@@ -105,7 +110,7 @@ namespace MantaRay::Backend
             return result;
         }
 
-        template<class Previous, s00 N>
+        template<typename Previous, s00 N>
         static auto Run(
             const Storage<Q, L>& storage,
             const ConcatView<ActivatedView<Previous, Q, N>, ActivatedView<Previous, Q, N>>& input
@@ -123,33 +128,35 @@ namespace MantaRay::Backend
 
     };
 
-    template<class Node, class Q>
+    template<typename Node, typename Q>
     struct Lower;
 
-    template<class Q, class... Stages>
+    template<typename Q, typename... Stages>
     struct LowerSequence
     {
 
-        template<bool Final, s00 Index = 0, class Storages, class Input>
+        template<bool Final, s00 Index = 0, typename Storages, typename Input>
         static auto Run(const Storages& storage, const Input& input)
         {
             if constexpr (Index == sizeof...(Stages)) return input;
+            else {
+                using Node = std::tuple_element_t<Index, std::tuple<Stages...>>;
 
-            using Node = std::tuple_element_t<Index, std::tuple<Stages...>>;
+                auto output = Lower<Node, Q>::template Run<Final && Index + 1 == sizeof...(Stages)>(
+                    std::get<Index>(storage), input
+                );
 
-            auto output = Lower<Node, Q>::template Run<Final && Index + 1 ==
-                          sizeof...(Stages)>(std::get<Index>(storage), input);
-
-            return Run<Final, Index + 1>(storage, output);
+                return Run<Final, Index + 1>(storage, output);
+            }
         }
 
     };
 
-    template<s00 I, s00 O, class A, class T, class Q>
+    template<s00 I, s00 O, typename A, typename T, typename Q>
     struct Lower<Layer<I, O, A, T>, Q>
     {
 
-        template<bool Final, class Input>
+        template<bool Final, typename Input>
         static auto Run(const Storage<Q, Layer<I, O, A, T>>& storage, const Input& input)
         {
             static_assert(Input::Size == I);
@@ -169,31 +176,31 @@ namespace MantaRay::Backend
 
     };
 
-    template<class Q>
+    template<typename Q>
     struct Lower<Concat, Q>
     {
 
-        template<bool, class... Views>
+        template<bool, typename... Views>
         static auto Run(const Storage<Q, Concat>&, const std::tuple<Views...>& input)
-        { return ConcatView<Views...>{input}; }
+        { return ConcatView<Views...> { input }; }
 
     };
 
-    template<class... Stages, class Q>
+    template<typename... Stages, typename Q>
     struct Lower<Sequence<Stages...>, Q>
     {
 
-        template<bool Final, class Input>
+        template<bool Final, typename Input>
         static auto Run(const Storage<Q, Sequence<Stages...>>& storage, const Input& input)
         { return LowerSequence<Q, Stages...>::template Run<Final>(storage.Nodes, input); }
 
     };
 
-    template<class... Branches, class Q>
+    template<typename... Branches, typename Q>
     struct Lower<Parallel<Branches...>, Q>
     {
 
-        template<bool, class Input>
+        template<bool, typename Input>
         static auto Run(const Storage<Q, Parallel<Branches...>>& storage, const Input& input)
         {
             return [&]<s00... Is>(std::index_sequence<Is...>) {
@@ -203,11 +210,11 @@ namespace MantaRay::Backend
 
     };
 
-    template<class Branch, class Q>
+    template<typename Branch, typename Q>
     struct Lower<Residual<Branch>, Q>
     {
 
-        template<bool, class Input>
+        template<bool, typename Input>
         static auto Run(const Storage<Q, Residual<Branch>>& storage, const Input& input)
         {
             const auto branch = Lower<Branch, Q>::template Run<false>(storage.Inner, input);
@@ -223,7 +230,7 @@ namespace MantaRay::Backend
 
     };
 
-    template<class Q, class Result>
+    template<typename Q, typename Result>
     auto ScaleResult(const Result& result)
     {
         Array<typename Q::SumType, Result::Size> output;
@@ -238,8 +245,9 @@ namespace MantaRay::Backend
         }
 
         if constexpr (Result::Size == 1) return output[0];
-
-        return output;
+        else                             return output   ;
     }
 
 }
+
+#endif

@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2025 MantaRay authors. See the list of authors for more details.
+// Copyright (c) 2026 MantaRay authors. See the list of authors for more details.
 // Licensed under MIT.
 //
 
@@ -13,8 +13,6 @@
 namespace MantaRay
 {
 
-    // Short-notation for container types
-
     template<QuantizedInteger T, s00 N, s00... Ns>
     struct IArray { using Internal = std::array<typename IArray<T, Ns...>::Internal, N>; };
 
@@ -27,6 +25,6 @@ namespace MantaRay
     template<QuantizedInteger T, s00 N, s00... Ns>
     using NArray = IArray<T, N, Ns...>::Internal;
 
-} // MantaRay
+}
 
-#endif //MANTARAY_CONTAINER_H
+#endif

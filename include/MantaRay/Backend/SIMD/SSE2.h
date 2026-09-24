@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2025 MantaRay authors. See the list of authors for more details.
+// Copyright (c) 2026 MantaRay authors. See the list of authors for more details.
 // Licensed under MIT.
 //
 
@@ -19,22 +19,18 @@ namespace MantaRay
     // 128-bit integer register
     using Vec128I = __m128i;
 
-#ifndef ALIGN
-#define ALIGN alignas(MantaRay::Alignment)
-#endif
-
     template<QuantizedInteger T>
     struct SSE2 : AMD64<T>
     {
 
-        constexpr static Vec128I Zero = _mm_setzero_si128();
+        constexpr static Vec128I Zero {};
 
         [[clang::always_inline]]
         static Vec128I From(const T value)
         {
-            if (std::is_same_v<T, i08>) return _mm_set1_epi8 (value);
-            if (std::is_same_v<T, i16>) return _mm_set1_epi16(value);
-            if (std::is_same_v<T, i32>) return _mm_set1_epi32(value);
+            if constexpr (std::is_same_v<T, i08>) return _mm_set1_epi8 (value);
+            if constexpr (std::is_same_v<T, i16>) return _mm_set1_epi16(value);
+            if constexpr (std::is_same_v<T, i32>) return _mm_set1_epi32(value);
 
             __builtin_unreachable();
         }
@@ -45,7 +41,7 @@ namespace MantaRay
         {
             static_assert(sizeof(array) >= sizeof(Vec128I), "Array size must be at least the width of a Vec128I.");
 
-            return _mm_load_si128(reinterpret_cast<Vec128I const*>(&array[index]));
+            return _mm_load_si128(reinterpret_cast<const Vec128I*>(&array[index]));
         }
 
         template<s00 Size>
@@ -60,7 +56,7 @@ namespace MantaRay
         [[clang::always_inline]]
         static Vec128I Min(const Vec128I& xmm0, const Vec128I& xmm1)
         {
-            if (std::is_same_v<T, i16>) return _mm_min_epi16(xmm0, xmm1);
+            if constexpr (std::is_same_v<T, i16>) return _mm_min_epi16(xmm0, xmm1);
 
             constexpr static s00 Size = sizeof(Vec128I) / sizeof(T);
 
@@ -79,7 +75,7 @@ namespace MantaRay
         [[clang::always_inline]]
         static Vec128I Max(const Vec128I& xmm0, const Vec128I& xmm1)
         {
-            if (std::is_same_v<T, i16>) return _mm_max_epi16(xmm0, xmm1);
+            if constexpr (std::is_same_v<T, i16>) return _mm_max_epi16(xmm0, xmm1);
 
             constexpr static s00 Size = sizeof(Vec128I) / sizeof(T);
 
@@ -98,9 +94,9 @@ namespace MantaRay
         [[clang::always_inline]]
         static Vec128I Add(const Vec128I& xmm0, const Vec128I& xmm1)
         {
-            if (std::is_same_v<T, i08>) return _mm_add_epi8 (xmm0, xmm1);
-            if (std::is_same_v<T, i16>) return _mm_add_epi16(xmm0, xmm1);
-            if (std::is_same_v<T, i32>) return _mm_add_epi32(xmm0, xmm1);
+            if constexpr (std::is_same_v<T, i08>) return _mm_add_epi8 (xmm0, xmm1);
+            if constexpr (std::is_same_v<T, i16>) return _mm_add_epi16(xmm0, xmm1);
+            if constexpr (std::is_same_v<T, i32>) return _mm_add_epi32(xmm0, xmm1);
 
             __builtin_unreachable();
         }
@@ -108,9 +104,9 @@ namespace MantaRay
         [[clang::always_inline]]
         static Vec128I Sub(const Vec128I& xmm0, const Vec128I& xmm1)
         {
-            if (std::is_same_v<T, i08>) return _mm_sub_epi8 (xmm0, xmm1);
-            if (std::is_same_v<T, i16>) return _mm_sub_epi16(xmm0, xmm1);
-            if (std::is_same_v<T, i32>) return _mm_sub_epi32(xmm0, xmm1);
+            if constexpr (std::is_same_v<T, i08>) return _mm_sub_epi8 (xmm0, xmm1);
+            if constexpr (std::is_same_v<T, i16>) return _mm_sub_epi16(xmm0, xmm1);
+            if constexpr (std::is_same_v<T, i32>) return _mm_sub_epi32(xmm0, xmm1);
 
             __builtin_unreachable();
         }

@@ -1,3 +1,8 @@
+//
+// Copyright (c) 2026 MantaRay authors. See the list of authors for more details.
+// Licensed under MIT.
+//
+
 #ifndef MANTARAY_IO_WRITER_H
 #define MANTARAY_IO_WRITER_H
 
@@ -10,13 +15,13 @@ namespace MantaRay::IO
     [[nodiscard]]
     bool Write(Stream& stream, const Backend::NetworkStorage<Architecture>& source)
     {
-        constexpr std::uint32_t version = 4;
+        constexpr u32 version = 4;
 
-        constexpr std::uint32_t reserved = 0;
+        constexpr u32 reserved = 0;
 
-        constexpr std::uint64_t fingerprint = ArchitectureFingerprint<Architecture>();
+        constexpr u64 fingerprint = ArchitectureFingerprint<Architecture>();
 
-        const std::uint64_t bytes = Detail::ParameterBytes(source);
+        const u64 bytes = Detail::ParameterBytes(source);
         if (!Detail::WriteBytes (stream, Detail::Magic) ||
             !Detail::WriteTensor(stream, version      ) ||
             !Detail::WriteTensor(stream, reserved     ) ||

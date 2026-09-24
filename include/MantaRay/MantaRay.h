@@ -1,4 +1,10 @@
-#pragma once
+//
+// Copyright (c) 2026 MantaRay authors. See the list of authors for more details.
+// Licensed under MIT.
+//
+
+#ifndef MANTARAY_MANTARAY_H
+#define MANTARAY_MANTARAY_H
 
 #include "Architecture/Layer.h"
 #include "Architecture/Network.h"
@@ -18,3 +24,5 @@
 #include "Runtime/AccumulatorStack.h"
 #include "Runtime/Network.h"
 #include "Runtime/State.h"
+
+#endif

@@ -1,4 +1,10 @@
-#pragma once
+//
+// Copyright (c) 2026 MantaRay authors. See the list of authors for more details.
+// Licensed under MIT.
+//
+
+#ifndef MANTARAY_RUNTIME_NETWORK_H
+#define MANTARAY_RUNTIME_NETWORK_H
 
 #include <cassert>
 #include <utility>
@@ -15,7 +21,7 @@
 namespace MantaRay::Runtime
 {
 
-    template<class Architecture>
+    template<typename Architecture>
     class Network
     {
 
@@ -36,7 +42,7 @@ namespace MantaRay::Runtime
             else return std::get<0>(Parameters_.Nodes)      ;
         }
 
-        template<class Tail, class Input, s00... Is>
+        template<typename Tail, typename Input, s00... Is>
         [[clang::always_inline]]
         auto EvaluateTail(const Input& input, std::index_sequence<Is...>) const
         {
@@ -45,9 +51,9 @@ namespace MantaRay::Runtime
             return Backend::LowerSequence<Q, std::tuple_element_t<Is, Tail>...>::template Run<true>(storage, input);
         }
 
-        template<s00 I, s00 O, class A, class T, class Accumulator>
+        template<s00 I, s00 O, typename A, typename T, typename Accumulator>
         [[clang::always_inline]]
-        auto EvaluateAccumulated(Layer<I, O, A, T>, u08 perspective, const Accumulator& state) const
+        auto EvaluateAccumulated(Layer<I, O, A, T>, const u08 perspective, const Accumulator& state) const
         {
             using View = Backend::ActivatedView<A, Q, O>;
             using Tail = Traits::Tail;
@@ -58,7 +64,7 @@ namespace MantaRay::Runtime
                 return Backend::ScaleResult<Q>(EvaluateTail<Tail>(input,
                     std::make_index_sequence<std::tuple_size_v<Tail>> {} ));
             } else {
-                return Backend::ScaleResult<Q>(EvaluateTail<Tail>(View{state[0]},
+                return Backend::ScaleResult<Q>(EvaluateTail<Tail>(View { state[0] },
                     std::make_index_sequence<std::tuple_size_v<Tail>> {} ));
             }
         }
@@ -75,13 +81,13 @@ namespace MantaRay::Runtime
               Storage& Parameters()       noexcept { return Parameters_; }
         const Storage& Parameters() const noexcept { return Parameters_; }
 
-        template<class Stream>
+        template<typename Stream>
         bool ReadFrom(Stream& stream) { return IO::Read(stream, Parameters_); }
 
-        template<class Stream>
+        template<typename Stream>
         bool ReadLegacyV2(Stream& stream) { return IO::ReadLegacyV2(stream, Parameters_); }
 
-        template<class Stream>
+        template<typename Stream>
         bool WriteTo(Stream& stream) const { return IO::Write(stream, Parameters_); }
 
         [[clang::always_inline]]
@@ -92,7 +98,7 @@ namespace MantaRay::Runtime
         }
 
         [[clang::always_inline]]
-        void Insert(s00 feature, State& state) const
+        void Insert(const s00 feature, State& state) const
         requires (Traits::HasAccumulator && Traits::PerspectiveCount == 1)
         {
             assert(feature < Traits::Input::Size);
@@ -101,7 +107,7 @@ namespace MantaRay::Runtime
         }
 
         [[clang::always_inline]]
-        void Remove(s00 feature, State& state) const
+        void Remove(const s00 feature, State& state) const
         requires (Traits::HasAccumulator && Traits::PerspectiveCount == 1)
         {
             assert(feature < Traits::Input::Size);
@@ -110,7 +116,7 @@ namespace MantaRay::Runtime
         }
 
         [[clang::always_inline]]
-        void Move(s00 from, s00 to, State& state) const
+        void Move(const s00 from, const s00 to, State& state) const
         requires (Traits::HasAccumulator && Traits::PerspectiveCount == 1)
         {
             assert(from < Traits::Input::Size && to < Traits::Input::Size);
@@ -123,7 +129,7 @@ namespace MantaRay::Runtime
         }
 
         [[clang::always_inline]]
-        void Insert(s00 first, s00 second, State& state) const
+        void Insert(const s00 first, const s00 second, State& state) const
         requires (Traits::HasAccumulator && Traits::PerspectiveCount == 2)
         {
             assert(first < Traits::Input::Size && second < Traits::Input::Size);
@@ -133,7 +139,7 @@ namespace MantaRay::Runtime
         }
 
         [[clang::always_inline]]
-        void Remove(s00 first, s00 second, State& state) const
+        void Remove(const s00 first, const s00 second, State& state) const
         requires (Traits::HasAccumulator && Traits::PerspectiveCount == 2)
         {
             assert(first < Traits::Input::Size && second < Traits::Input::Size);
@@ -143,7 +149,7 @@ namespace MantaRay::Runtime
         }
 
         [[clang::always_inline]]
-        void MoveFeatures(s00 f0, s00 t0, s00 f1, s00 t1, State& state) const
+        void MoveFeatures(const s00 f0, const s00 t0, const s00 f1, const s00 t1, State& state) const
         requires (Traits::HasAccumulator && Traits::PerspectiveCount == 2)
         {
             assert(
@@ -203,7 +209,7 @@ namespace MantaRay::Runtime
         }
 
         [[clang::always_inline]]
-        auto Evaluate(u08 perspective, const State& state) const requires Traits::HasAccumulator
+        auto Evaluate(const u08 perspective, const State& state) const requires Traits::HasAccumulator
         {
             assert(perspective < Traits::PerspectiveCount);
 
@@ -217,10 +223,10 @@ namespace MantaRay::Runtime
         [[clang::always_inline]]
         auto Evaluate(const Array<F, Traits::Input::Size>& input) const requires (!Traits::HasAccumulator)
         {
-            return [&]<class... Stages>(std::tuple<Stages...>*) {
+            return [&]<typename... Stages>(std::tuple<Stages...>*) {
                 const auto result = Backend::LowerSequence<Q, Stages...>::template Run<true>(
                     Parameters_.Nodes,
-                    Backend::Value<Q, Traits::Input::Size>{ input }
+                    Backend::Value<Q, Traits::Input::Size> { input }
                 );
 
                 return Backend::ScaleResult<Q>(result);
@@ -230,3 +236,5 @@ namespace MantaRay::Runtime
     };
 
 }
+
+#endif

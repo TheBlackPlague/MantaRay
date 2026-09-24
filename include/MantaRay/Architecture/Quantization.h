@@ -3,7 +3,8 @@
 // Licensed under MIT.
 //
 
-#pragma once
+#ifndef MANTARAY_QUANTIZATION_H
+#define MANTARAY_QUANTIZATION_H
 
 #include "../Common/Constraint.h"
 
@@ -11,19 +12,20 @@ namespace MantaRay
 {
 
     template<
-        int A,
-        int B,
-        int Scale,
+        i32 A,
+        i32 B,
+        i32 Scale,
         QuantizedInteger Feature = i16,
-        QuantizedInteger Weight = i16,
-        QuantizedInteger Sum = i32
+        QuantizedInteger  Weight = i16,
+        QuantizedInteger     Sum = i32
     >
     struct Quantization
     {
-        static constexpr int QA = A;
-        static constexpr int QB = B;
 
-        static constexpr int OutputScale = Scale;
+        static constexpr i32 QA = A;
+        static constexpr i32 QB = B;
+
+        static constexpr i32 OutputScale = Scale;
 
         using FeatureType = Feature;
         using  WeightType =  Weight;
@@ -32,3 +34,5 @@ namespace MantaRay
     };
 
 }
+
+#endif

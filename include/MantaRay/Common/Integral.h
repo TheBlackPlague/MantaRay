@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2025 MantaRay authors. See the list of authors for more details.
+// Copyright (c) 2026 MantaRay authors. See the list of authors for more details.
 // Licensed under MIT.
 //
 
@@ -9,21 +9,19 @@
 namespace MantaRay
 {
 
-    // Short-notation for integral types
-
     using s00 = std::size_t;
 
-    using u64 = uint64_t;
-    using i64 =  int64_t;
+    using u64 = std::uint64_t;
+    using i64 =  std::int64_t;
 
-    using u32 = uint32_t;
-    using i32 =  int32_t;
+    using u32 = std::uint32_t;
+    using i32 =  std::int32_t;
 
-    using u16 = uint16_t;
-    using i16 =  int16_t;
+    using u16 = std::uint16_t;
+    using i16 =  std::int16_t;
 
-    using u08 =  uint8_t;
-    using i08 =   int8_t;
+    using u08 = std::uint8_t;
+    using i08 =  std::int8_t;
 
     template<typename T>
     [[clang::always_inline]]
@@ -54,4 +52,4 @@ namespace MantaRay
 
 }
 
-#endif //MANTARAY_INTEGRAL_H
+#endif

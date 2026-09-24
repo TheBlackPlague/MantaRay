@@ -1,4 +1,10 @@
-#pragma once
+//
+// Copyright (c) 2026 MantaRay authors. See the list of authors for more details.
+// Licensed under MIT.
+//
+
+#ifndef MANTARAY_BACKEND_KERNEL_REQUANTIZE_H
+#define MANTARAY_BACKEND_KERNEL_REQUANTIZE_H
 
 #include <algorithm>
 #include <limits>
@@ -9,7 +15,7 @@ namespace MantaRay::Backend::Kernel
 {
 
     template<typename Q>
-    constexpr Q::FeatureType Requantize(typename Q::SumType value)
+    constexpr Q::FeatureType Requantize(const typename Q::SumType value)
     {
         using F = Q::FeatureType;
 
@@ -23,7 +29,7 @@ namespace MantaRay::Backend::Kernel
     }
 
     template<typename Q>
-    constexpr Q::SumType FinalScale(typename Q::SumType value)
+    constexpr Q::SumType FinalScale(const typename Q::SumType value)
     {
         using S = Q::SumType;
 
@@ -31,3 +37,5 @@ namespace MantaRay::Backend::Kernel
     }
 
 }
+
+#endif

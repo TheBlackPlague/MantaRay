@@ -3,7 +3,8 @@
 // Licensed under MIT.
 //
 
-#pragma once
+#ifndef MANTARAY_BACKEND_ACCUMULATOR_H
+#define MANTARAY_BACKEND_ACCUMULATOR_H
 
 #include <array>
 #include <cassert>
@@ -18,6 +19,7 @@ namespace MantaRay::Backend
     template<typename Architecture>
     struct Accumulator
     {
+
         using Traits = ArchitectureTraits<Architecture>;
 
         static_assert(Traits::HasAccumulator, "This architecture has no incremental feature transformer.");
@@ -25,13 +27,13 @@ namespace MantaRay::Backend
         using FeatureType = Traits::Quantization::FeatureType;
         using Layer       = Traits::AccumulatorLayer         ;
 
-        static constexpr std::size_t HiddenSize = Layer::OutputSize;
+        static constexpr s00 HiddenSize = Layer::OutputSize;
 
-        static constexpr std::size_t PerspectiveCount = Traits::PerspectiveCount;
+        static constexpr s00 PerspectiveCount = Traits::PerspectiveCount;
 
         using Row = std::array<FeatureType, HiddenSize>;
 
-        alignas(64) std::array<Row, PerspectiveCount> Values;
+        ALIGN std::array<Row, PerspectiveCount> Values;
 
         Accumulator() { Zero(); }
 
@@ -50,14 +52,14 @@ namespace MantaRay::Backend
 
         void Bias(const Row& bias) { for (auto& row : Values) Kernel::Copy(bias, row); }
 
-        Row& operator[](std::size_t perspective)
+        Row& operator [](const s00 perspective)
         {
             assert(perspective < PerspectiveCount);
 
             return Values[perspective];
         }
 
-        const Row& operator[](std::size_t perspective) const
+        const Row& operator [](const s00 perspective) const
         {
             assert(perspective < PerspectiveCount);
 
@@ -67,3 +69,5 @@ namespace MantaRay::Backend
     };
 
 }
+
+#endif

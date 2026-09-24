@@ -3,6 +3,14 @@
 // Licensed under MIT.
 //
 
-#pragma once
+#ifndef MANTARAY_CONCAT_H
+#define MANTARAY_CONCAT_H
 
-namespace MantaRay { struct Concat {}; }
+namespace MantaRay
+{
+
+    struct Concat {};
+
+}
+
+#endif

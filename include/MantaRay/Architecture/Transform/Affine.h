@@ -3,6 +3,14 @@
 // Licensed under MIT.
 //
 
-#pragma once
+#ifndef MANTARAY_AFFINE_H
+#define MANTARAY_AFFINE_H
 
-namespace MantaRay { struct Affine {}; }
+namespace MantaRay
+{
+
+    struct Affine {};
+
+}
+
+#endif

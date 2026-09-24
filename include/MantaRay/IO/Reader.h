@@ -1,3 +1,8 @@
+//
+// Copyright (c) 2026 MantaRay authors. See the list of authors for more details.
+// Licensed under MIT.
+//
+
 #ifndef MANTARAY_IO_READER_H
 #define MANTARAY_IO_READER_H
 
@@ -16,11 +21,11 @@ namespace MantaRay::IO
     {
         std::array<std::byte, 8> magic {};
 
-        std::uint32_t version     = 0;
-        std::uint32_t reserved    = 0;
-        std::uint64_t fingerprint = 0;
+        u32 version     = 0;
+        u32 reserved    = 0;
+        u64 fingerprint = 0;
 
-        std::uint64_t bytes = 0;
+        u64 bytes = 0;
         if (!Detail::ReadBytes (stream, magic      ) || magic != Detail::Magic                                 ||
             !Detail::ReadTensor(stream, version    ) || version != 4                                           ||
             !Detail::ReadTensor(stream, reserved   ) || reserved != 0                                          ||
@@ -58,7 +63,7 @@ namespace MantaRay::IO
             !Detail::ReadTensor(stream,   dense.Weight) || !Detail::ReadTensor(stream,         bias)  )
             return false;
 
-        for (std::size_t i = 0; i < bias.size(); i++) dense.Bias[i] = bias[i];
+        for (s00 i = 0; i < bias.size(); i++) dense.Bias[i] = bias[i];
 
         destination = std::move(*loaded);
 

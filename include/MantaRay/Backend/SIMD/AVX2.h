@@ -1,9 +1,9 @@
 //
-// Copyright (c) 2025 MantaRay authors. See the list of authors for more details.
+// Copyright (c) 2026 MantaRay authors. See the list of authors for more details.
 // Licensed under MIT.
 //
 
-#ifdef  __AVX2__
+#ifdef __AVX2__
 
 #ifndef MANTARAY_AVX2_H
 #define MANTARAY_AVX2_H
@@ -20,9 +20,9 @@ namespace MantaRay
         [[clang::always_inline]]
         static Vec256I Min(const Vec256I& ymm0, const Vec256I& ymm1)
         {
-            if (std::is_same_v<T, i08>) return _mm256_min_epi8 (ymm0, ymm1);
-            if (std::is_same_v<T, i16>) return _mm256_min_epi16(ymm0, ymm1);
-            if (std::is_same_v<T, i32>) return _mm256_min_epi32(ymm0, ymm1);
+            if constexpr (std::is_same_v<T, i08>) return _mm256_min_epi8 (ymm0, ymm1);
+            if constexpr (std::is_same_v<T, i16>) return _mm256_min_epi16(ymm0, ymm1);
+            if constexpr (std::is_same_v<T, i32>) return _mm256_min_epi32(ymm0, ymm1);
 
             __builtin_unreachable();
         }
@@ -30,9 +30,9 @@ namespace MantaRay
         [[clang::always_inline]]
         static Vec256I Max(const Vec256I& ymm0, const Vec256I& ymm1)
         {
-            if (std::is_same_v<T, i08>) return _mm256_max_epi8 (ymm0, ymm1);
-            if (std::is_same_v<T, i16>) return _mm256_max_epi16(ymm0, ymm1);
-            if (std::is_same_v<T, i32>) return _mm256_max_epi32(ymm0, ymm1);
+            if constexpr (std::is_same_v<T, i08>) return _mm256_max_epi8 (ymm0, ymm1);
+            if constexpr (std::is_same_v<T, i16>) return _mm256_max_epi16(ymm0, ymm1);
+            if constexpr (std::is_same_v<T, i32>) return _mm256_max_epi32(ymm0, ymm1);
 
             __builtin_unreachable();
         }
@@ -40,9 +40,9 @@ namespace MantaRay
         [[clang::always_inline]]
         static Vec256I Add(const Vec256I& ymm0, const Vec256I& ymm1)
         {
-            if (std::is_same_v<T, i08>) return _mm256_add_epi8 (ymm0, ymm1);
-            if (std::is_same_v<T, i16>) return _mm256_add_epi16(ymm0, ymm1);
-            if (std::is_same_v<T, i32>) return _mm256_add_epi32(ymm0, ymm1);
+            if constexpr (std::is_same_v<T, i08>) return _mm256_add_epi8 (ymm0, ymm1);
+            if constexpr (std::is_same_v<T, i16>) return _mm256_add_epi16(ymm0, ymm1);
+            if constexpr (std::is_same_v<T, i32>) return _mm256_add_epi32(ymm0, ymm1);
 
             __builtin_unreachable();
         }
@@ -50,9 +50,9 @@ namespace MantaRay
         [[clang::always_inline]]
         static Vec256I Sub(const Vec256I& ymm0, const Vec256I& ymm1)
         {
-            if (std::is_same_v<T, i08>) return _mm256_sub_epi8 (ymm0, ymm1);
-            if (std::is_same_v<T, i16>) return _mm256_sub_epi16(ymm0, ymm1);
-            if (std::is_same_v<T, i32>) return _mm256_sub_epi32(ymm0, ymm1);
+            if constexpr (std::is_same_v<T, i08>) return _mm256_sub_epi8 (ymm0, ymm1);
+            if constexpr (std::is_same_v<T, i16>) return _mm256_sub_epi16(ymm0, ymm1);
+            if constexpr (std::is_same_v<T, i32>) return _mm256_sub_epi32(ymm0, ymm1);
 
             __builtin_unreachable();
         }

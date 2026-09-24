@@ -1,4 +1,10 @@
-#pragma once
+//
+// Copyright (c) 2026 MantaRay authors. See the list of authors for more details.
+// Licensed under MIT.
+//
+
+#ifndef MANTARAY_GTESTACTIVATECONCATAFFINE_H
+#define MANTARAY_GTESTACTIVATECONCATAFFINE_H
 
 #include <gtest/gtest.h>
 
@@ -46,3 +52,5 @@ void CheckActivateConcatAffine()
 
 TEST(ActivateConcatAffine, i16_512 ) { CheckActivateConcatAffine< 512, 1>(); }
 TEST(ActivateConcatAffine, i16_2048) { CheckActivateConcatAffine<2048, 4>(); }
+
+#endif

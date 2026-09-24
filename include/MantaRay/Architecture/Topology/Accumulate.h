@@ -3,6 +3,20 @@
 // Licensed under MIT.
 //
 
-#pragma once
+#ifndef MANTARAY_ACCUMULATE_H
+#define MANTARAY_ACCUMULATE_H
 
-namespace MantaRay { template<typename T> struct Accumulate { using Inner = T; }; }
+namespace MantaRay
+{
+
+    template<typename T>
+    struct Accumulate
+    {
+
+        using Inner = T;
+
+    };
+
+}
+
+#endif

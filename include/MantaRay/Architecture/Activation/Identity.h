@@ -3,6 +3,14 @@
 // Licensed under MIT.
 //
 
-#pragma once
+#ifndef MANTARAY_IDENTITY_H
+#define MANTARAY_IDENTITY_H
 
-namespace MantaRay { struct Identity {}; }
+namespace MantaRay
+{
+
+    struct Identity {};
+
+}
+
+#endif

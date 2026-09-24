@@ -1,4 +1,10 @@
-#pragma once
+//
+// Copyright (c) 2026 MantaRay authors. See the list of authors for more details.
+// Licensed under MIT.
+//
+
+#ifndef MANTARAY_BACKEND_KERNEL_ACTIVATECONCATAFFINE_H
+#define MANTARAY_BACKEND_KERNEL_ACTIVATECONCATAFFINE_H
 
 #include "../Activation.h"
 
@@ -22,18 +28,17 @@ namespace MantaRay::Backend::Kernel
 
         ALIGN Array<S, M> output;
 
-        for (s00 i = 0; i < M; ++i) {
-
-#ifdef SIMD
-
+        for (s00 i = 0; i < M; i++) {
             constexpr s00 Step = sizeof(SIMDVEC) / sizeof(F);
+
             if constexpr (
+                HasSIMD                &&
                 std::is_same_v<F, i16> &&
                 std::is_same_v<W, i16> &&
                 std::is_same_v<S, i32> &&
                 Act::SIMDCompatible    &&
                 N >= Step && N % Step == 0
-                ) {
+            ) {
                 SIMDVEC sum = SIMD<S>::Zero;
 
                 for (s00 j = 0; j < N; j += Step) {
@@ -49,14 +54,10 @@ namespace MantaRay::Backend::Kernel
                 }
 
                 output[i] = WrapAdd(SIMD<S>::Sum(sum), bias[i]);
-            } else
-
-#endif
-
-            {
+            } else {
                 S sum = 0;
 
-                for (s00 j = 0; j < N; ++j) {
+                for (s00 j = 0; j < N; j++) {
                     sum = WrapAdd(sum, WrapMul(static_cast<S>(Act::Apply(x0[j])), static_cast<S>(weights[i][    j])));
                     sum = WrapAdd(sum, WrapMul(static_cast<S>(Act::Apply(x1[j])), static_cast<S>(weights[i][N + j])));
                 }
@@ -69,3 +70,5 @@ namespace MantaRay::Backend::Kernel
     }
 
 }
+
+#endif

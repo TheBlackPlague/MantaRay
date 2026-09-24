@@ -3,8 +3,22 @@
 // Licensed under MIT.
 //
 
-#pragma once
+#ifndef MANTARAY_SEQUENCE_H
+#define MANTARAY_SEQUENCE_H
 
 #include <tuple>
 
-namespace MantaRay { template<typename... T> struct Sequence { using Nodes = std::tuple<T...>; }; }
+namespace MantaRay
+{
+
+    template<typename... T>
+    struct Sequence
+    {
+
+        using Nodes = std::tuple<T...>;
+
+    };
+
+}
+
+#endif

@@ -3,7 +3,8 @@
 // Licensed under MIT.
 //
 
-#pragma once
+#ifndef MANTARAY_NETWORK_H
+#define MANTARAY_NETWORK_H
 
 #include <tuple>
 
@@ -21,3 +22,5 @@ namespace MantaRay
     };
 
 }
+
+#endif

@@ -3,6 +3,20 @@
 // Licensed under MIT.
 //
 
-#pragma once
+#ifndef MANTARAY_RESIDUAL_H
+#define MANTARAY_RESIDUAL_H
 
-namespace MantaRay { template<typename T> struct Residual { using Inner = T; }; }
+namespace MantaRay
+{
+
+    template<typename T>
+    struct Residual
+    {
+
+        using Inner = T;
+
+    };
+
+}
+
+#endif

@@ -1,8 +1,16 @@
-#pragma once
+//
+// Copyright (c) 2026 MantaRay authors. See the list of authors for more details.
+// Licensed under MIT.
+//
+
+#ifndef MANTARAY_BACKEND_LAYERSTORAGE_H
+#define MANTARAY_BACKEND_LAYERSTORAGE_H
 
 #include <array>
 #include <tuple>
 #include <utility>
+
+#include "../../Common/Alignment.h"
 
 namespace MantaRay::Backend
 {
@@ -10,24 +18,24 @@ namespace MantaRay::Backend
     template<typename Q, typename N>
     struct Storage;
 
-    template<typename Q, std::size_t I, std::size_t O, typename A>
+    template<typename Q, s00 I, s00 O, typename A>
     struct Storage<Q, Accumulate<Layer<I, O, A>>>
     {
 
-        alignas(64) std::array<std::array<typename Q::FeatureType, O>, I> Weight;
-        alignas(64) std::array<           typename Q::FeatureType, O    >   Bias;
+        ALIGN std::array<std::array<typename Q::FeatureType, O>, I> Weight;
+        ALIGN std::array<           typename Q::FeatureType, O    >   Bias;
 
         template<typename F> void VisitParameters(F&& f)       { f(Weight); f(Bias); }
         template<typename F> void VisitParameters(F&& f) const { f(Weight); f(Bias); }
 
     };
 
-    template<typename Q, std::size_t I, std::size_t O, typename A>
+    template<typename Q, s00 I, s00 O, typename A>
     struct Storage<Q, Layer<I, O, A>>
     {
 
-        alignas(64) std::array<std::array<typename Q::WeightType, I>, O> Weight;
-        alignas(64) std::array<           typename Q::   SumType,     O>   Bias;
+        ALIGN std::array<std::array<typename Q::WeightType, I>, O> Weight;
+        ALIGN std::array<           typename Q::   SumType,     O>   Bias;
 
         template<typename F> void VisitParameters(F&& f)       { f(Weight); f(Bias); }
         template<typename F> void VisitParameters(F&& f) const { f(Weight); f(Bias); }
@@ -82,3 +90,5 @@ namespace MantaRay::Backend
     struct Storage<Q, Parallel<N...>> : Storage<Q, Sequence<N...>> {};
 
 }
+
+#endif

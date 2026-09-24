@@ -1,4 +1,10 @@
-#pragma once
+//
+// Copyright (c) 2026 MantaRay authors. See the list of authors for more details.
+// Licensed under MIT.
+//
+
+#ifndef MANTARAY_BACKEND_ACTIVATION_H
+#define MANTARAY_BACKEND_ACTIVATION_H
 
 #include <algorithm>
 #include <limits>
@@ -22,19 +28,15 @@ namespace MantaRay::Backend
 
         static constexpr bool SIMDCompatible = true;
 
-        static constexpr F Apply   (F x) { return x; }
-        static constexpr S ApplySum(S x) { return x; }
-
-#ifdef SIMD
+        static constexpr F Apply   (const F x) { return x; }
+        static constexpr S ApplySum(const S x) { return x; }
 
         [[clang::always_inline]]
-        static SIMDVEC ApplyVector(SIMDVEC x) { return x; }
-
-#endif
+        static SIMDVEC ApplyVector(const SIMDVEC x) requires HasSIMD { return x; }
 
     };
 
-    template<int Minimum, int Maximum, typename Q>
+    template<i32 Minimum, i32 Maximum, typename Q>
     struct Activation<ClippedReLU<Minimum, Maximum>, Q>
     {
 
@@ -44,7 +46,7 @@ namespace MantaRay::Backend
         static constexpr bool SIMDCompatible = true;
 
         template<typename T, i64 Scale>
-        static constexpr T Clamp(T x)
+        static constexpr T Clamp(const T x)
         {
             static_assert(
                 static_cast<i64>(Minimum) * Scale >= std::numeric_limits<T>::min() &&
@@ -59,13 +61,11 @@ namespace MantaRay::Backend
             );
         }
 
-        static constexpr F Apply   (F x) { return Clamp<F,                           Q::QA>(x); }
-        static constexpr S ApplySum(S x) { return Clamp<S, static_cast<i64>(Q::QA) * Q::QB>(x); }
-
-#ifdef SIMD
+        static constexpr F Apply   (const F x) { return Clamp<F,                           Q::QA>(x); }
+        static constexpr S ApplySum(const S x) { return Clamp<S, static_cast<i64>(Q::QA) * Q::QB>(x); }
 
         [[clang::always_inline]]
-        static SIMDVEC ApplyVector(SIMDVEC x)
+        static SIMDVEC ApplyVector(const SIMDVEC x) requires HasSIMD
         {
             static_assert(
                 static_cast<i64>(Minimum) * Q::QA >= std::numeric_limits<F>::min() &&
@@ -78,11 +78,9 @@ namespace MantaRay::Backend
             return SIMD<F>::Min(upper, SIMD<F>::Max(lower, x));
         }
 
-#endif
-
     };
 
-    template<int Minimum, int Maximum, typename Q>
+    template<i32 Minimum, i32 Maximum, typename Q>
     struct Activation<SquaredClippedReLU<Minimum, Maximum>, Q>
     {
 
@@ -94,16 +92,18 @@ namespace MantaRay::Backend
         static constexpr bool SIMDCompatible = false;
 
         template<typename T, i64 Scale>
-        static constexpr T Square(T x)
+        static constexpr T Square(const T x)
         {
             const i64 result = static_cast<i64>(x) * static_cast<i64>(x) / Scale;
 
             return static_cast<T>(std::min(result, static_cast<i64>(std::numeric_limits<T>::max())));
         }
 
-        static constexpr F Apply   (F x) { return Square<F,                           Q::QA>(Clip::Apply   (x)); }
-        static constexpr S ApplySum(S x) { return Square<S, static_cast<i64>(Q::QA) * Q::QB>(Clip::ApplySum(x)); }
+        static constexpr F Apply   (const F x) { return Square<F,                           Q::QA>(Clip::Apply   (x)); }
+        static constexpr S ApplySum(const S x) { return Square<S, static_cast<i64>(Q::QA) * Q::QB>(Clip::ApplySum(x)); }
 
     };
 
 }
+
+#endif

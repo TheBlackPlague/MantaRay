@@ -1,12 +1,12 @@
 //
-// Copyright (c) 2025 MantaRay authors. See the list of authors for more details.
+// Copyright (c) 2026 MantaRay authors. See the list of authors for more details.
 // Licensed under MIT.
 //
 
 #ifdef __SSE4_1__
 
-#ifndef MANTARAY_SSE4_H
-#define MANTARAY_SSE4_H
+#ifndef MANTARAY_SSE41_H
+#define MANTARAY_SSE41_H
 
 #include "SSE2.h"
 
@@ -20,10 +20,10 @@ namespace MantaRay
         [[clang::always_inline]]
         static Vec128I Min(const Vec128I& xmm0, const Vec128I& xmm1)
         {
-            if (std::is_same_v<T, i08>) return _mm_min_epi8 (xmm0, xmm1);
-            if (std::is_same_v<T, i32>) return _mm_min_epi32(xmm0, xmm1);
+            if constexpr (std::is_same_v<T, i08>) return _mm_min_epi8 (xmm0, xmm1);
+            if constexpr (std::is_same_v<T, i32>) return _mm_min_epi32(xmm0, xmm1);
 
-            if (std::is_same_v<T, i16>) return SSE2<T>::Min(xmm0, xmm1);
+            if constexpr (std::is_same_v<T, i16>) return SSE2<T>::Min(xmm0, xmm1);
 
             __builtin_unreachable();
         }
@@ -31,10 +31,10 @@ namespace MantaRay
         [[clang::always_inline]]
         static Vec128I Max(const Vec128I& xmm0, const Vec128I& xmm1)
         {
-            if (std::is_same_v<T, i08>) return _mm_max_epi8 (xmm0, xmm1);
-            if (std::is_same_v<T, i32>) return _mm_max_epi32(xmm0, xmm1);
+            if constexpr (std::is_same_v<T, i08>) return _mm_max_epi8 (xmm0, xmm1);
+            if constexpr (std::is_same_v<T, i32>) return _mm_max_epi32(xmm0, xmm1);
 
-            if (std::is_same_v<T, i16>) return SSE2<T>::Max(xmm0, xmm1);
+            if constexpr (std::is_same_v<T, i16>) return SSE2<T>::Max(xmm0, xmm1);
 
             __builtin_unreachable();
         }
@@ -71,6 +71,6 @@ namespace MantaRay
 
 } // MantaRay
 
-#endif //MANTARAY_SSE4_H
+#endif //MANTARAY_SSE41_H
 
 #endif

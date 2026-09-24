@@ -1,3 +1,8 @@
+//
+// Copyright (c) 2026 MantaRay authors. See the list of authors for more details.
+// Licensed under MIT.
+//
+
 #ifndef MANTARAY_IO_BINARYFILESTREAM_H
 #define MANTARAY_IO_BINARYFILESTREAM_H
 
@@ -6,6 +11,8 @@
 #include <fstream>
 #include <limits>
 #include <span>
+
+#include "../Common/Integral.h"
 
 namespace MantaRay
 {
@@ -23,7 +30,7 @@ namespace MantaRay
         [[nodiscard]]
         bool ReadBytes(const std::span<std::byte> destination) requires Read
         {
-            if (destination.size() > static_cast<std::size_t>(std::numeric_limits<std::streamsize>::max())) {
+            if (destination.size() > static_cast<s00>(std::numeric_limits<std::streamsize>::max())) {
                 Stream.setstate(std::ios::failbit);
                 return false;
             }
@@ -37,15 +44,15 @@ namespace MantaRay
         }
 
         [[nodiscard]]
-        bool ReadBytes(void* destination, const std::size_t size) requires Read
+        bool ReadBytes(void* destination, const s00 size) requires Read
         {
-            return ReadBytes({static_cast<std::byte*>(destination), size});
+            return ReadBytes({ static_cast<std::byte*>(destination), size });
         }
 
         [[nodiscard]]
         bool WriteBytes(const std::span<const std::byte> source) requires (!Read)
         {
-            if (source.size() > static_cast<std::size_t>(std::numeric_limits<std::streamsize>::max())) {
+            if (source.size() > static_cast<s00>(std::numeric_limits<std::streamsize>::max())) {
                 Stream.setstate(std::ios::failbit);
                 return false;
             }
@@ -59,9 +66,9 @@ namespace MantaRay
         }
 
         [[nodiscard]]
-        bool WriteBytes(const void* source, const std::size_t size) requires (!Read)
+        bool WriteBytes(const void* source, const s00 size) requires (!Read)
         {
-            return WriteBytes({static_cast<const std::byte*>(source), size});
+            return WriteBytes({ static_cast<const std::byte*>(source), size });
         }
 
         [[nodiscard]]

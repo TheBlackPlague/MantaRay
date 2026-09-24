@@ -3,8 +3,22 @@
 // Licensed under MIT.
 //
 
-#pragma once
+#ifndef MANTARAY_PARALLEL_H
+#define MANTARAY_PARALLEL_H
 
 #include <tuple>
 
-namespace MantaRay { template<typename... T> struct Parallel { using Branches = std::tuple<T...>; }; }
+namespace MantaRay
+{
+
+    template<typename... T>
+    struct Parallel
+    {
+
+        using Branches = std::tuple<T...>;
+
+    };
+
+}
+
+#endif

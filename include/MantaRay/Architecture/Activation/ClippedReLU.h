@@ -3,18 +3,23 @@
 // Licensed under MIT.
 //
 
-#pragma once
+#ifndef MANTARAY_CLIPPEDRELU_H
+#define MANTARAY_CLIPPEDRELU_H
+
+#include "../../Common/Integral.h"
 
 namespace MantaRay
 {
 
-    template<int Min, int Max>
+    template<i32 Min, i32 Max>
     struct ClippedReLU
     {
 
-        static constexpr int Minimum = Min;
-        static constexpr int Maximum = Max;
+        static constexpr i32 Minimum = Min;
+        static constexpr i32 Maximum = Max;
 
     };
 
 }
+
+#endif

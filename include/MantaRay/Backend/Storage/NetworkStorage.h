@@ -1,4 +1,10 @@
-#pragma once
+//
+// Copyright (c) 2026 MantaRay authors. See the list of authors for more details.
+// Licensed under MIT.
+//
+
+#ifndef MANTARAY_BACKEND_NETWORKSTORAGE_H
+#define MANTARAY_BACKEND_NETWORKSTORAGE_H
 
 #include "LayerStorage.h"
 
@@ -19,3 +25,5 @@ namespace MantaRay::Backend
     };
 
 }
+
+#endif

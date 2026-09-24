@@ -3,20 +3,23 @@
 // Licensed under MIT.
 //
 
-#pragma once
+#ifndef MANTARAY_LAYER_H
+#define MANTARAY_LAYER_H
 
 #include "Activation/Identity.h"
 #include "Transform/Affine.h"
 
+#include "../Common/Integral.h"
+
 namespace MantaRay
 {
 
-    template<std::size_t I, std::size_t O, typename A = Identity, typename T = Affine>
+    template<s00 I, s00 O, typename A = Identity, typename T = Affine>
     struct Layer
     {
 
-        static constexpr std::size_t  InputSize = I;
-        static constexpr std::size_t OutputSize = O;
+        static constexpr s00  InputSize = I;
+        static constexpr s00 OutputSize = O;
 
         using Activation = A;
         using Transform = T;
@@ -24,3 +27,5 @@ namespace MantaRay
     };
 
 }
+
+#endif

@@ -1,9 +1,16 @@
+//
+// Copyright (c) 2026 MantaRay authors. See the list of authors for more details.
+// Licensed under MIT.
+//
+
 #ifndef MANTARAY_IO_BINARYMEMORYSTREAM_H
 #define MANTARAY_IO_BINARYMEMORYSTREAM_H
 
 #include <cstddef>
 #include <cstring>
 #include <span>
+
+#include "../Common/Integral.h"
 
 namespace MantaRay
 {
@@ -13,17 +20,17 @@ namespace MantaRay
 
         std::span<const std::byte> Data;
 
-        std::size_t Position = 0;
+        s00 Position = 0;
 
         bool Valid = true;
 
         public:
         explicit BinaryMemoryStream(const std::span<const std::byte> data) : Data(data) {}
 
-        BinaryMemoryStream(const unsigned char* data, const std::size_t size) :
+        BinaryMemoryStream(const  u08* data, const s00 size) :
             Data(reinterpret_cast<const std::byte*>(data), size) {}
 
-        BinaryMemoryStream(const          char* data, const std::size_t size) :
+        BinaryMemoryStream(const char* data, const s00 size) :
             Data(reinterpret_cast<const std::byte*>(data), size) {}
 
         [[nodiscard]]
@@ -42,19 +49,19 @@ namespace MantaRay
         }
 
         [[nodiscard]]
-        bool ReadBytes(void* destination, const std::size_t size)
+        bool ReadBytes(void* destination, const s00 size)
         {
-            return ReadBytes({static_cast<std::byte*>(destination), size});
+            return ReadBytes({ static_cast<std::byte*>(destination), size });
         }
 
         [[nodiscard]]
         bool Good() const { return Valid; }
 
         [[nodiscard]]
-        std::size_t Remaining() const { return Data.size() - Position; }
+        s00 Remaining() const { return Data.size() - Position; }
 
         [[nodiscard]]
-        std::size_t Offset() const { return Position; }
+        s00 Offset() const { return Position; }
 
     };
 

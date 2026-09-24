@@ -3,6 +3,20 @@
 // Licensed under MIT.
 //
 
-#pragma once
+#ifndef MANTARAY_MIRROR_H
+#define MANTARAY_MIRROR_H
 
-namespace MantaRay { template<typename T> struct Mirror { using Inner = T; }; }
+namespace MantaRay
+{
+
+    template<typename T>
+    struct Mirror
+    {
+
+        using Inner = T;
+
+    };
+
+}
+
+#endif

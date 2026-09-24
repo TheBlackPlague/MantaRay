@@ -3,21 +3,32 @@
 // Licensed under MIT.
 //
 
-#pragma once
+#ifndef MANTARAY_BACKEND_TRAITS_H
+#define MANTARAY_BACKEND_TRAITS_H
 
 #include <limits>
 #include <tuple>
 #include <type_traits>
 
+#include "../Architecture/Layer.h"
 #include "../Architecture/Network.h"
+#include "../Architecture/Quantization.h"
+#include "../Architecture/Activation/ClippedReLU.h"
+#include "../Architecture/Activation/SquaredClippedReLU.h"
+#include "../Architecture/Topology/Accumulate.h"
+#include "../Architecture/Topology/Concat.h"
+#include "../Architecture/Topology/Mirror.h"
+#include "../Architecture/Topology/Parallel.h"
+#include "../Architecture/Topology/Residual.h"
+#include "../Architecture/Topology/Sequence.h"
 
 namespace MantaRay::Backend
 {
 
     struct InvalidShape {};
 
-    template<std::size_t N>
-    struct VectorShape { static constexpr std::size_t Size = N; };
+    template<s00 N>
+    struct VectorShape { static constexpr s00 Size = N; };
 
     template<typename... S>
     struct BundleShape { using Shapes = std::tuple<S...>; };
@@ -28,10 +39,10 @@ namespace MantaRay::Backend
     template<>
     struct ActivationTraits<Identity> { static constexpr bool Valid = true; };
 
-    template<int L, int H>
+    template<i32 L, i32 H>
     struct ActivationTraits<ClippedReLU<L, H>> { static constexpr bool Valid = L < H; };
 
-    template<int L, int H>
+    template<i32 L, i32 H>
     struct ActivationTraits<SquaredClippedReLU<L, H>> { static constexpr bool Valid = 0 <= L && L < H; };
 
     template<typename _>
@@ -51,7 +62,7 @@ namespace MantaRay::Backend
 
     };
 
-    template<std::size_t I, std::size_t O, typename A, typename T>
+    template<s00 I, s00 O, typename A, typename T>
     struct NodeTraits<Layer<I, O, A, T>>
     {
 
@@ -65,7 +76,7 @@ namespace MantaRay::Backend
     template<typename N>
     struct NodeTraits<Accumulate<N>> : NodeTraits<N> { static constexpr bool Valid = false; };
 
-    template<std::size_t I, std::size_t O, typename A>
+    template<s00 I, s00 O, typename A>
     struct NodeTraits<Accumulate<Layer<I, O, A>>> : NodeTraits<Layer<I, O, A>> {};
 
     template<typename N>
@@ -92,7 +103,7 @@ namespace MantaRay::Backend
 
     };
 
-    template<std::size_t... Ns>
+    template<s00... Ns>
     struct Connect<Concat, BundleShape<VectorShape<Ns>...>>
     {
 
@@ -116,7 +127,6 @@ namespace MantaRay::Backend
     };
 
     template<typename Incoming, typename N, typename... Ns>
-
     struct Chain<Incoming, N, Ns...>
     {
 
@@ -170,7 +180,7 @@ namespace MantaRay::Backend
     template<typename S>
     inline constexpr bool IsVector = false;
 
-    template<std::size_t N>
+    template<s00 N>
     inline constexpr bool IsVector<VectorShape<N>> = true;
 
     template<typename N>
@@ -182,41 +192,41 @@ namespace MantaRay::Backend
 
     };
 
-    template<typename    N > inline constexpr bool StatelessNode                    =  true                     ;
-    template<typename    N > inline constexpr bool StatelessNode<Accumulate<N    >> = false                     ;
-    template<typename    N > inline constexpr bool StatelessNode<Mirror    <N    >> = false                     ;
-    template<typename... Ns> inline constexpr bool StatelessNode<Sequence  <Ns...>> = (StatelessNode<Ns> && ...);
-    template<typename... Ns> inline constexpr bool StatelessNode<Parallel  <Ns...>> = (StatelessNode<Ns> && ...);
-    template<typename    N > inline constexpr bool StatelessNode<Residual  <N    >> =  StatelessNode<N >        ;
+    template<typename    N > constexpr inline bool StatelessNode                    =  true                     ;
+    template<typename    N > constexpr inline bool StatelessNode<Accumulate<N    >> = false                     ;
+    template<typename    N > constexpr inline bool StatelessNode<Mirror    <N    >> = false                     ;
+    template<typename... Ns> constexpr inline bool StatelessNode<Sequence  <Ns...>> = (StatelessNode<Ns> && ...);
+    template<typename... Ns> constexpr inline bool StatelessNode<Parallel  <Ns...>> = (StatelessNode<Ns> && ...);
+    template<typename    N > constexpr inline bool StatelessNode<Residual  <N    >> =  StatelessNode<N >        ;
 
     template<typename _>
     struct AccumulatorTraits
     {
 
-        static constexpr bool          HasAccumulator = false;
-        static constexpr std::size_t PerspectiveCount =     0;
+        static constexpr bool   HasAccumulator = false;
+        static constexpr s00 PerspectiveCount =     0;
 
         using AccumulatorLayer = void;
 
     };
 
-    template<std::size_t I, std::size_t O, typename A>
+    template<s00 I, s00 O, typename A>
     struct AccumulatorTraits<Accumulate<Layer<I, O, A>>>
     {
 
-        static constexpr bool          HasAccumulator = true;
-        static constexpr std::size_t PerspectiveCount =    1;
+        static constexpr bool   HasAccumulator = true;
+        static constexpr s00 PerspectiveCount =    1;
 
         using AccumulatorLayer = Layer<I, O, A>;
 
     };
 
-    template<std::size_t I, std::size_t O, typename A>
+    template<s00 I, s00 O, typename A>
     struct AccumulatorTraits<Mirror<Accumulate<Layer<I, O, A>>>>
     {
 
-        static constexpr bool          HasAccumulator = true;
-        static constexpr std::size_t PerspectiveCount =    2;
+        static constexpr bool   HasAccumulator = true;
+        static constexpr s00 PerspectiveCount =    2;
 
         using AccumulatorLayer = Layer<I, O, A>;
 
@@ -224,7 +234,7 @@ namespace MantaRay::Backend
 
     template<typename _> struct QuantizationTraits { static constexpr bool Valid = false; };
 
-    template<int A, int B, int S, QuantizedInteger F, QuantizedInteger W, QuantizedInteger U>
+    template<i32 A, i32 B, i32 S, QuantizedInteger F, QuantizedInteger W, QuantizedInteger U>
     struct QuantizationTraits<Quantization<A, B, S, F, W, U>>
     {
 
@@ -234,33 +244,33 @@ namespace MantaRay::Backend
         static constexpr bool Valid = A > 0 && B > 0 && S > 0 &&
             A <= NumericLimits<F>::max() && B <= NumericLimits<W>::max() && S <= NumericLimits<U>::max() &&
             sizeof(U) >= sizeof(F) && sizeof(U) >= sizeof(W) &&
-            static_cast<std::int64_t>(A) * B <= NumericLimits<U>::max();
+            static_cast<i64>(A) * B <= NumericLimits<U>::max();
 
     };
 
     template<typename A, typename _> struct QuantizedActivation : std::bool_constant<ActivationTraits<A>::Valid> {};
 
-    template<int L, int H, typename Q> struct QuantizedActivation<ClippedReLU<L, H>, Q> : std::bool_constant<
+    template<i32 L, i32 H, typename Q> struct QuantizedActivation<ClippedReLU<L, H>, Q> : std::bool_constant<
         ActivationTraits<ClippedReLU<L, H>>::Valid &&
 
-        static_cast<std::int64_t>(L) * Q::QA         >= std::numeric_limits<typename Q::FeatureType>::min() &&
-        static_cast<std::int64_t>(H) * Q::QA         <= std::numeric_limits<typename Q::FeatureType>::max() &&
-        static_cast<std::int64_t>(L) * Q::QA * Q::QB >= std::numeric_limits<typename Q::    SumType>::min() &&
-        static_cast<std::int64_t>(H) * Q::QA * Q::QB <= std::numeric_limits<typename Q::    SumType>::max()
+        static_cast<i64>(L) * Q::QA         >= std::numeric_limits<typename Q::FeatureType>::min() &&
+        static_cast<i64>(H) * Q::QA         <= std::numeric_limits<typename Q::FeatureType>::max() &&
+        static_cast<i64>(L) * Q::QA * Q::QB >= std::numeric_limits<typename Q::    SumType>::min() &&
+        static_cast<i64>(H) * Q::QA * Q::QB <= std::numeric_limits<typename Q::    SumType>::max()
     > {};
 
-    template<int L, int H, typename Q> struct QuantizedActivation<SquaredClippedReLU<L, H>, Q> : std::bool_constant<
+    template<i32 L, i32 H, typename Q> struct QuantizedActivation<SquaredClippedReLU<L, H>, Q> : std::bool_constant<
         ActivationTraits<SquaredClippedReLU<L, H>   >::Valid &&
         QuantizedActivation<    ClippedReLU<L, H>, Q>::value &&
 
         H <= std::numeric_limits<typename Q::FeatureType>::max() / Q::QA /         H &&
         H <= std::numeric_limits<typename Q::    SumType>::max() / Q::QA / Q::QB / H &&
-        static_cast<std::int64_t>(H) * Q::QA * Q::QB <= 3037000499LL
+        static_cast<i64>(H) * Q::QA * Q::QB <= 3037000499LL
     > {};
 
-    template<typename _, typename __> struct QuantizedNode : std::true_type {};
+    template<typename N, typename Q> struct QuantizedNode : std::true_type {};
 
-    template<std::size_t I, std::size_t O, typename A, typename T, typename Q>
+    template<s00 I, s00 O, typename A, typename T, typename Q>
     struct QuantizedNode<Layer<I, O, A, T>, Q> : QuantizedActivation<A, Q> {};
 
     template<typename    N , typename Q> struct QuantizedNode<Accumulate<N>, Q> : QuantizedNode<N, Q> {};
@@ -300,12 +310,10 @@ namespace MantaRay::Backend
 
         static constexpr bool Valid = [] {
             if constexpr (!QuantizationTraits<Q>::Valid) return false;
-
-            return NodeTraits<Sequence<N, Ns...>>::Valid && IsVector<Output>   &&
-                   (StatelessNode<N > || AccumulatorTraits<N>::HasAccumulator) &&
-                   (StatelessNode<Ns> && ...                                 ) &&
-                    QuantizedNode<N , Q>::value                                &&
-                   (QuantizedNode<Ns, Q>::value && ...                       )  ;
+            else return NodeTraits<Sequence<N, Ns...>>::Valid && IsVector<Output> &&
+                        (StatelessNode<N> || AccumulatorTraits<N>::HasAccumulator) &&
+                        (StatelessNode<Ns> && ...) && QuantizedNode<N, Q>::value &&
+                        (QuantizedNode<Ns, Q>::value && ...);
         }();
 
     };
@@ -313,3 +321,5 @@ namespace MantaRay::Backend
     template<typename A> concept ValidArchitecture = ArchitectureTraits<A>::Valid;
 
 }
+
+#endif

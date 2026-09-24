@@ -34,17 +34,17 @@ target_include_directories(MantaRay INTERFACE
         $<INSTALL_INTERFACE:include>
 )
 
-if(BUILD_TEST OR BUILD_MB)
+if(BUILD_TESTS OR BUILD_BENCHMARKS)
     include(DownloadDependencies.cmake)
 endif()
 
-if(BUILD_TEST)
+if(BUILD_TESTS)
     enable_testing()
     AddGoogleTest()
     include(Tests.cmake)
 endif()
 
-if(BUILD_MB)
+if(BUILD_BENCHMARKS)
     AddGoogleBenchmark()
     include(MicroBenchmarks.cmake)
 endif()

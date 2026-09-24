@@ -1,3 +1,8 @@
+//
+// Copyright (c) 2026 MantaRay authors. See the list of authors for more details.
+// Licensed under MIT.
+//
+
 #ifndef MANTARAY_IO_FORMAT_H
 #define MANTARAY_IO_FORMAT_H
 
@@ -11,7 +16,7 @@
 #include <span>
 #include <type_traits>
 
-#include "../Architecture/Network.h"
+#include "../Backend/Storage/NetworkStorage.h"
 
 namespace MantaRay::IO
 {
@@ -22,11 +27,11 @@ namespace MantaRay::IO
         struct FingerprintState
         {
 
-            std::uint64_t Value = 14695981039346656037ULL;
+            u64 Value = 14695981039346656037ULL;
 
-            constexpr void Add(std::uint64_t value)
+            constexpr void Add(u64 value)
             {
-                for (unsigned i = 0; i < 8; ++i) {
+                for (u32 i = 0; i < 8; ++i) {
                     Value = (Value ^ (value & 255)) * 1099511628211ULL;
                     value >>= 8;
                 }
@@ -47,24 +52,28 @@ namespace MantaRay::IO
 
     };
 
-    template<int Minimum, int Maximum>
+    template<i32 Minimum, i32 Maximum>
     struct Fingerprint<ClippedReLU<Minimum, Maximum>>
     {
 
         static constexpr void Append(Detail::FingerprintState& hash)
         {
-            hash.Add(2); hash.Add(Minimum); hash.Add(Maximum);
+            hash.Add(2);
+            hash.Add(Minimum);
+            hash.Add(Maximum);
         }
 
     };
 
-    template<int Minimum, int Maximum>
+    template<i32 Minimum, i32 Maximum>
     struct Fingerprint<SquaredClippedReLU<Minimum, Maximum>>
     {
 
         static constexpr void Append(Detail::FingerprintState& hash)
         {
-            hash.Add(3); hash.Add(Minimum); hash.Add(Maximum);
+            hash.Add(3);
+            hash.Add(Minimum);
+            hash.Add(Maximum);
         }
 
     };
@@ -77,7 +86,7 @@ namespace MantaRay::IO
 
     };
 
-    template<std::size_t Input, std::size_t Output, typename Activation, typename Transform>
+    template<s00 Input, s00 Output, typename Activation, typename Transform>
     struct Fingerprint<Layer<Input, Output, Activation, Transform>>
     {
 
@@ -100,7 +109,8 @@ namespace MantaRay::IO
 
         static constexpr void Append(Detail::FingerprintState& hash)
         {
-            hash.Add(6); Fingerprint<T>::Append(hash);
+            hash.Add(6);
+            Fingerprint<T>::Append(hash);
         }
 
     };
@@ -111,7 +121,8 @@ namespace MantaRay::IO
 
         static constexpr void Append(Detail::FingerprintState& hash)
         {
-            hash.Add(7); Fingerprint<T>::Append(hash);
+            hash.Add(7);
+            Fingerprint<T>::Append(hash);
         }
 
     };
@@ -119,7 +130,9 @@ namespace MantaRay::IO
     template<>
     struct Fingerprint<Concat>
     {
+
         static constexpr void Append(Detail::FingerprintState& hash) { hash.Add(8); }
+
     };
 
     template<typename... T>
@@ -128,7 +141,9 @@ namespace MantaRay::IO
 
         static constexpr void Append(Detail::FingerprintState& hash)
         {
-            hash.Add(9); hash.Add(sizeof...(T)); (Fingerprint<T>::Append(hash), ...);
+            hash.Add(9);
+            hash.Add(sizeof...(T));
+            (Fingerprint<T>::Append(hash), ...);
         }
 
     };
@@ -139,7 +154,8 @@ namespace MantaRay::IO
 
         static constexpr void Append(Detail::FingerprintState& hash)
         {
-            hash.Add(10); Fingerprint<T>::Append(hash);
+            hash.Add(10);
+            Fingerprint<T>::Append(hash);
         }
 
     };
@@ -150,19 +166,27 @@ namespace MantaRay::IO
 
         static constexpr void Append(Detail::FingerprintState& hash)
         {
-            hash.Add(11); hash.Add(sizeof...(T)); (Fingerprint<T>::Append(hash), ...);
+            hash.Add(11);
+            hash.Add(sizeof...(T));
+            (Fingerprint<T>::Append(hash), ...);
         }
 
     };
 
-    template<int A, int B, int Scale, typename Feature, typename Weight, typename Sum>
+    template<i32 A, i32 B, i32 Scale, typename Feature, typename Weight, typename Sum>
     struct Fingerprint<Quantization<A, B, Scale, Feature, Weight, Sum>>
     {
 
         static constexpr void Append(Detail::FingerprintState& hash)
         {
-            hash.Add(12); hash.Add(A); hash.Add(B); hash.Add(Scale);
-            hash.Add(sizeof(Feature)); hash.Add(sizeof(Weight)); hash.Add(sizeof(Sum));
+            hash.Add(12);
+            hash.Add(A);
+            hash.Add(B);
+            hash.Add(Scale);
+
+            hash.Add(sizeof(Feature));
+            hash.Add(sizeof(Weight));
+            hash.Add(sizeof(Sum));
         }
 
     };
@@ -173,21 +197,22 @@ namespace MantaRay::IO
 
         static constexpr void Append(Detail::FingerprintState& hash)
         {
-            hash.Add(13); Fingerprint<Q>::Append(hash);
-            hash.Add(sizeof...(T)); (Fingerprint<T>::Append(hash), ...);
+            hash.Add(13);
+            Fingerprint<Q>::Append(hash);
+            hash.Add(sizeof...(T));
+            (Fingerprint<T>::Append(hash), ...);
         }
 
     };
 
     template<typename Architecture>
-    consteval std::uint64_t ArchitectureFingerprint()
+    consteval u64 ArchitectureFingerprint()
     {
-
         Detail::FingerprintState hash;
 
         Fingerprint<Architecture>::Append(hash);
-        return hash.Value;
 
+        return hash.Value;
     }
 
     namespace Detail
@@ -199,7 +224,7 @@ namespace MantaRay::IO
             if constexpr (requires { { stream.ReadBytes(destination) } -> std::same_as<bool>; }) {
                 return stream.ReadBytes(destination);
             } else {
-                if (destination.size() > static_cast<std::size_t>(std::numeric_limits<std::streamsize>::max()))
+                if (destination.size() > static_cast<s00>(std::numeric_limits<std::streamsize>::max()))
                     return false;
 
                 stream.read(
@@ -217,7 +242,7 @@ namespace MantaRay::IO
             if constexpr (requires { { stream.WriteBytes(source) } -> std::same_as<bool>; }) {
                 return stream.WriteBytes(source);
             } else {
-                if (source.size() > static_cast<std::size_t>(std::numeric_limits<std::streamsize>::max()))
+                if (source.size() > static_cast<s00>(std::numeric_limits<std::streamsize>::max()))
                     return false;
 
                 stream.write(
@@ -246,15 +271,15 @@ namespace MantaRay::IO
 
             static_assert(std::is_integral_v<T>);
 
-            static constexpr std::size_t Value = sizeof(T);
+            static constexpr s00 Value = sizeof(T);
 
         };
 
-        template<typename T, std::size_t N>
+        template<typename T, s00 N>
         struct PackedBytes<std::array<T, N>>
         {
 
-            static constexpr std::size_t Value = N * PackedBytes<T>::Value;
+            static constexpr s00 Value = N * PackedBytes<T>::Value;
 
             static_assert(sizeof(std::array<T, N>) == Value, "Parameter arrays must be tightly packed.");
 
@@ -299,9 +324,9 @@ namespace MantaRay::IO
         }
 
         template<typename Storage>
-        std::uint64_t ParameterBytes(const Storage& storage)
+        u64 ParameterBytes(const Storage& storage)
         {
-            std::uint64_t count = 0;
+            u64 count = 0;
 
             storage.VisitParameters([&]<typename T0>(const T0& _) {
                 count += PackedBytes<std::remove_cvref_t<T0>>::Value;
@@ -320,11 +345,11 @@ namespace MantaRay::IO
 
         template<
             typename Q,
-            std::size_t Input,
-            std::size_t Hidden,
+            s00 Input,
+            s00 Hidden,
             typename Activation,
-            std::size_t DenseInput,
-            std::size_t Output,
+            s00 DenseInput,
+            s00 Output,
             typename DenseActivation
         >
         struct LegacyV2<
