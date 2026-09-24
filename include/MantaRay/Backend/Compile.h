@@ -22,8 +22,8 @@ namespace MantaRay::Backend
     struct ActivatedView
     {
 
-        static constexpr s00           Size =     N;
-        static constexpr bool ProductDomain = false;
+        constexpr static s00           Size =     N;
+        constexpr static bool ProductDomain = false;
 
         const Array<typename Q::FeatureType, N>& Values;
 
@@ -35,8 +35,8 @@ namespace MantaRay::Backend
     struct Value
     {
 
-        static constexpr s00           Size =       N;
-        static constexpr bool ProductDomain = Product;
+        constexpr static s00           Size =       N;
+        constexpr static bool ProductDomain = Product;
 
         using Element = std::conditional_t<Product, typename Q::SumType, typename Q::FeatureType>;
 
@@ -50,8 +50,8 @@ namespace MantaRay::Backend
     struct ConcatView
     {
 
-        static constexpr s00           Size = (Views::Size + ...);
-        static constexpr bool ProductDomain =               false;
+        constexpr static s00           Size = (Views::Size + ...);
+        constexpr static bool ProductDomain =               false;
 
         std::tuple<Views...> ViewsTuple;
 

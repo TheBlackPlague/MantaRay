@@ -48,7 +48,7 @@ namespace MantaRay::IO
     struct Fingerprint<Identity>
     {
 
-        static constexpr void Append(Detail::FingerprintState& hash) { hash.Add(1); }
+        constexpr static void Append(Detail::FingerprintState& hash) { hash.Add(1); }
 
     };
 
@@ -56,7 +56,7 @@ namespace MantaRay::IO
     struct Fingerprint<ClippedReLU<Minimum, Maximum>>
     {
 
-        static constexpr void Append(Detail::FingerprintState& hash)
+        constexpr static void Append(Detail::FingerprintState& hash)
         {
             hash.Add(2);
             hash.Add(Minimum);
@@ -69,7 +69,7 @@ namespace MantaRay::IO
     struct Fingerprint<SquaredClippedReLU<Minimum, Maximum>>
     {
 
-        static constexpr void Append(Detail::FingerprintState& hash)
+        constexpr static void Append(Detail::FingerprintState& hash)
         {
             hash.Add(3);
             hash.Add(Minimum);
@@ -82,7 +82,7 @@ namespace MantaRay::IO
     struct Fingerprint<Affine>
     {
 
-        static constexpr void Append(Detail::FingerprintState& hash) { hash.Add(4); }
+        constexpr static void Append(Detail::FingerprintState& hash) { hash.Add(4); }
 
     };
 
@@ -90,7 +90,7 @@ namespace MantaRay::IO
     struct Fingerprint<Layer<Input, Output, Activation, Transform>>
     {
 
-        static constexpr void Append(Detail::FingerprintState& hash)
+        constexpr static void Append(Detail::FingerprintState& hash)
         {
             hash.Add(5);
 
@@ -107,7 +107,7 @@ namespace MantaRay::IO
     struct Fingerprint<Accumulate<T>>
     {
 
-        static constexpr void Append(Detail::FingerprintState& hash)
+        constexpr static void Append(Detail::FingerprintState& hash)
         {
             hash.Add(6);
             Fingerprint<T>::Append(hash);
@@ -119,7 +119,7 @@ namespace MantaRay::IO
     struct Fingerprint<Mirror<T>>
     {
 
-        static constexpr void Append(Detail::FingerprintState& hash)
+        constexpr static void Append(Detail::FingerprintState& hash)
         {
             hash.Add(7);
             Fingerprint<T>::Append(hash);
@@ -131,7 +131,7 @@ namespace MantaRay::IO
     struct Fingerprint<Concat>
     {
 
-        static constexpr void Append(Detail::FingerprintState& hash) { hash.Add(8); }
+        constexpr static void Append(Detail::FingerprintState& hash) { hash.Add(8); }
 
     };
 
@@ -139,7 +139,7 @@ namespace MantaRay::IO
     struct Fingerprint<Parallel<T...>>
     {
 
-        static constexpr void Append(Detail::FingerprintState& hash)
+        constexpr static void Append(Detail::FingerprintState& hash)
         {
             hash.Add(9);
             hash.Add(sizeof...(T));
@@ -152,7 +152,7 @@ namespace MantaRay::IO
     struct Fingerprint<Residual<T>>
     {
 
-        static constexpr void Append(Detail::FingerprintState& hash)
+        constexpr static void Append(Detail::FingerprintState& hash)
         {
             hash.Add(10);
             Fingerprint<T>::Append(hash);
@@ -164,7 +164,7 @@ namespace MantaRay::IO
     struct Fingerprint<Sequence<T...>>
     {
 
-        static constexpr void Append(Detail::FingerprintState& hash)
+        constexpr static void Append(Detail::FingerprintState& hash)
         {
             hash.Add(11);
             hash.Add(sizeof...(T));
@@ -177,7 +177,7 @@ namespace MantaRay::IO
     struct Fingerprint<Quantization<A, B, Scale, Feature, Weight, Sum>>
     {
 
-        static constexpr void Append(Detail::FingerprintState& hash)
+        constexpr static void Append(Detail::FingerprintState& hash)
         {
             hash.Add(12);
             hash.Add(A);
@@ -195,7 +195,7 @@ namespace MantaRay::IO
     struct Fingerprint<Network<Q, T...>>
     {
 
-        static constexpr void Append(Detail::FingerprintState& hash)
+        constexpr static void Append(Detail::FingerprintState& hash)
         {
             hash.Add(13);
             Fingerprint<Q>::Append(hash);
@@ -271,7 +271,7 @@ namespace MantaRay::IO
 
             static_assert(std::is_integral_v<T>);
 
-            static constexpr s00 Value = sizeof(T);
+            constexpr static s00 Value = sizeof(T);
 
         };
 
@@ -279,7 +279,7 @@ namespace MantaRay::IO
         struct PackedBytes<std::array<T, N>>
         {
 
-            static constexpr s00 Value = N * PackedBytes<T>::Value;
+            constexpr static s00 Value = N * PackedBytes<T>::Value;
 
             static_assert(sizeof(std::array<T, N>) == Value, "Parameter arrays must be tightly packed.");
 
@@ -335,7 +335,7 @@ namespace MantaRay::IO
             return count;
         }
 
-        inline constexpr std::array Magic = {
+        constexpr inline std::array Magic = {
             std::byte { 'M' }, std::byte { 'A' }, std::byte { 'N' }, std::byte { 'T' },
             std::byte { 'A' }, std::byte { 'R' }, std::byte { 'A' }, std::byte { 'Y' }
         };

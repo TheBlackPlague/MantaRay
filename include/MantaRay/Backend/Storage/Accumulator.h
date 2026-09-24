@@ -27,9 +27,9 @@ namespace MantaRay::Backend
         using FeatureType = Traits::Quantization::FeatureType;
         using Layer       = Traits::AccumulatorLayer         ;
 
-        static constexpr s00 HiddenSize = Layer::OutputSize;
+        constexpr static s00 HiddenSize = Layer::OutputSize;
 
-        static constexpr s00 PerspectiveCount = Traits::PerspectiveCount;
+        constexpr static s00 PerspectiveCount = Traits::PerspectiveCount;
 
         using Row = std::array<FeatureType, HiddenSize>;
 

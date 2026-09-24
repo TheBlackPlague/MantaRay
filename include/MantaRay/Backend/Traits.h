@@ -28,34 +28,34 @@ namespace MantaRay::Backend
     struct InvalidShape {};
 
     template<s00 N>
-    struct VectorShape { static constexpr s00 Size = N; };
+    struct VectorShape { constexpr static s00 Size = N; };
 
     template<typename... S>
     struct BundleShape { using Shapes = std::tuple<S...>; };
 
     template<typename _>
-    struct ActivationTraits { static constexpr bool Valid = false; };
+    struct ActivationTraits { constexpr static bool Valid = false; };
 
     template<>
-    struct ActivationTraits<Identity> { static constexpr bool Valid = true; };
+    struct ActivationTraits<Identity> { constexpr static bool Valid = true; };
 
     template<i32 L, i32 H>
-    struct ActivationTraits<ClippedReLU<L, H>> { static constexpr bool Valid = L < H; };
+    struct ActivationTraits<ClippedReLU<L, H>> { constexpr static bool Valid = L < H; };
 
     template<i32 L, i32 H>
-    struct ActivationTraits<SquaredClippedReLU<L, H>> { static constexpr bool Valid = 0 <= L && L < H; };
+    struct ActivationTraits<SquaredClippedReLU<L, H>> { constexpr static bool Valid = 0 <= L && L < H; };
 
     template<typename _>
-    struct TransformTraits { static constexpr bool Valid = false; };
+    struct TransformTraits { constexpr static bool Valid = false; };
 
     template<>
-    struct TransformTraits<Affine> { static constexpr bool Valid = true; };
+    struct TransformTraits<Affine> { constexpr static bool Valid = true; };
 
     template<typename _>
     struct NodeTraits
     {
 
-        static constexpr bool Valid = false;
+        constexpr static bool Valid = false;
 
         using  Input = InvalidShape;
         using Output = InvalidShape;
@@ -66,7 +66,7 @@ namespace MantaRay::Backend
     struct NodeTraits<Layer<I, O, A, T>>
     {
 
-        static constexpr bool Valid = I > 0 && O > 0 && ActivationTraits<A>::Valid && TransformTraits<T>::Valid;
+        constexpr static bool Valid = I > 0 && O > 0 && ActivationTraits<A>::Valid && TransformTraits<T>::Valid;
 
         using  Input = VectorShape<I>;
         using Output = VectorShape<O>;
@@ -74,7 +74,7 @@ namespace MantaRay::Backend
     };
 
     template<typename N>
-    struct NodeTraits<Accumulate<N>> : NodeTraits<N> { static constexpr bool Valid = false; };
+    struct NodeTraits<Accumulate<N>> : NodeTraits<N> { constexpr static bool Valid = false; };
 
     template<s00 I, s00 O, typename A>
     struct NodeTraits<Accumulate<Layer<I, O, A>>> : NodeTraits<Layer<I, O, A>> {};
@@ -83,7 +83,7 @@ namespace MantaRay::Backend
     struct NodeTraits<Mirror<N>>
     {
 
-        static constexpr bool Valid = NodeTraits<N>::Valid;
+        constexpr static bool Valid = NodeTraits<N>::Valid;
 
         using  Input = NodeTraits<N>::Input;
         using Output = BundleShape<
@@ -97,7 +97,7 @@ namespace MantaRay::Backend
     struct Connect
     {
 
-        static constexpr bool Valid = NodeTraits<N>::Valid && std::is_same_v<Incoming, typename NodeTraits<N>::Input>;
+        constexpr static bool Valid = NodeTraits<N>::Valid && std::is_same_v<Incoming, typename NodeTraits<N>::Input>;
 
         using Output = NodeTraits<N>::Output;
 
@@ -107,7 +107,7 @@ namespace MantaRay::Backend
     struct Connect<Concat, BundleShape<VectorShape<Ns>...>>
     {
 
-        static constexpr bool Valid = sizeof...(Ns) > 0 && ((Ns > 0) && ...);
+        constexpr static bool Valid = sizeof...(Ns) > 0 && ((Ns > 0) && ...);
 
         using Output = VectorShape<(Ns + ... + 0)>;
 
@@ -120,7 +120,7 @@ namespace MantaRay::Backend
     struct Chain<Incoming>
     {
 
-        static constexpr bool Valid = true;
+        constexpr static bool Valid = true;
 
         using Output = Incoming;
 
@@ -133,7 +133,7 @@ namespace MantaRay::Backend
         using Connection = Connect<N, Incoming>;
         using Rest = Chain<typename Connection::Output, Ns...>;
 
-        static constexpr bool Valid = Connection::Valid && Rest::Valid;
+        constexpr static bool Valid = Connection::Valid && Rest::Valid;
 
         using Output = Rest::Output;
 
@@ -143,7 +143,7 @@ namespace MantaRay::Backend
     struct NodeTraits<Sequence<>>
     {
 
-        static constexpr bool Valid = false;
+        constexpr static bool Valid = false;
 
         using  Input = InvalidShape;
         using Output = InvalidShape;
@@ -156,7 +156,7 @@ namespace MantaRay::Backend
         using First = NodeTraits<N>;
         using Rest  = Chain<typename First::Output, Ns...>;
 
-        static constexpr bool Valid = First::Valid && Rest::Valid;
+        constexpr static bool Valid = First::Valid && Rest::Valid;
 
         using Input  = First::Input;
         using Output = Rest::Output;
@@ -172,22 +172,22 @@ namespace MantaRay::Backend
         using  Input = NodeTraits<N>::Input;
         using Output = BundleShape<typename NodeTraits<N>::Output, typename NodeTraits<Ns>::Output...>;
 
-        static constexpr bool Valid = NodeTraits<N>::Valid && (NodeTraits<Ns>::Valid && ...) &&
+        constexpr static bool Valid = NodeTraits<N>::Valid && (NodeTraits<Ns>::Valid && ...) &&
             (std::is_same_v<Input, typename NodeTraits<Ns>::Input> && ...);
 
     };
 
     template<typename S>
-    inline constexpr bool IsVector = false;
+    constexpr inline bool IsVector = false;
 
     template<s00 N>
-    inline constexpr bool IsVector<VectorShape<N>> = true;
+    constexpr inline bool IsVector<VectorShape<N>> = true;
 
     template<typename N>
     struct NodeTraits<Residual<N>> : NodeTraits<N>
     {
 
-        static constexpr bool Valid = NodeTraits<N>::Valid && IsVector<typename NodeTraits<N>::Input> &&
+        constexpr static bool Valid = NodeTraits<N>::Valid && IsVector<typename NodeTraits<N>::Input> &&
             std::is_same_v<typename NodeTraits<N>::Input, typename NodeTraits<N>::Output>;
 
     };
@@ -203,8 +203,8 @@ namespace MantaRay::Backend
     struct AccumulatorTraits
     {
 
-        static constexpr bool   HasAccumulator = false;
-        static constexpr s00 PerspectiveCount =     0;
+        constexpr static bool   HasAccumulator = false;
+        constexpr static s00 PerspectiveCount =     0;
 
         using AccumulatorLayer = void;
 
@@ -214,8 +214,8 @@ namespace MantaRay::Backend
     struct AccumulatorTraits<Accumulate<Layer<I, O, A>>>
     {
 
-        static constexpr bool   HasAccumulator = true;
-        static constexpr s00 PerspectiveCount =    1;
+        constexpr static bool   HasAccumulator = true;
+        constexpr static s00 PerspectiveCount =    1;
 
         using AccumulatorLayer = Layer<I, O, A>;
 
@@ -225,14 +225,14 @@ namespace MantaRay::Backend
     struct AccumulatorTraits<Mirror<Accumulate<Layer<I, O, A>>>>
     {
 
-        static constexpr bool   HasAccumulator = true;
-        static constexpr s00 PerspectiveCount =    2;
+        constexpr static bool   HasAccumulator = true;
+        constexpr static s00 PerspectiveCount =    2;
 
         using AccumulatorLayer = Layer<I, O, A>;
 
     };
 
-    template<typename _> struct QuantizationTraits { static constexpr bool Valid = false; };
+    template<typename _> struct QuantizationTraits { constexpr static bool Valid = false; };
 
     template<i32 A, i32 B, i32 S, QuantizedInteger F, QuantizedInteger W, QuantizedInteger U>
     struct QuantizationTraits<Quantization<A, B, S, F, W, U>>
@@ -241,7 +241,7 @@ namespace MantaRay::Backend
         template<QuantizedInteger Q>
         using NumericLimits = std::numeric_limits<Q>;
 
-        static constexpr bool Valid = A > 0 && B > 0 && S > 0 &&
+        constexpr static bool Valid = A > 0 && B > 0 && S > 0 &&
             A <= NumericLimits<F>::max() && B <= NumericLimits<W>::max() && S <= NumericLimits<U>::max() &&
             sizeof(U) >= sizeof(F) && sizeof(U) >= sizeof(W) &&
             static_cast<i64>(A) * B <= NumericLimits<U>::max();
@@ -287,7 +287,7 @@ namespace MantaRay::Backend
     struct ArchitectureTraits
     {
 
-        static constexpr bool Valid = false;
+        constexpr static bool Valid = false;
 
         using  Input = InvalidShape;
         using Output = InvalidShape;
@@ -308,7 +308,7 @@ namespace MantaRay::Backend
         using  Input = NodeTraits<Sequence<N, Ns...>>:: Input;
         using Output = NodeTraits<Sequence<N, Ns...>>::Output;
 
-        static constexpr bool Valid = [] {
+        constexpr static bool Valid = [] {
             if constexpr (!QuantizationTraits<Q>::Valid) return false;
             else return NodeTraits<Sequence<N, Ns...>>::Valid && IsVector<Output> &&
                         (StatelessNode<N> || AccumulatorTraits<N>::HasAccumulator) &&

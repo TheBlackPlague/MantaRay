@@ -18,8 +18,8 @@ namespace MantaRay
     struct Layer
     {
 
-        static constexpr s00  InputSize = I;
-        static constexpr s00 OutputSize = O;
+        constexpr static s00  InputSize = I;
+        constexpr static s00 OutputSize = O;
 
         using Activation = A;
         using Transform = T;

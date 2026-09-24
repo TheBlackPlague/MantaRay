@@ -15,8 +15,8 @@ namespace MantaRay
     struct ClippedReLU
     {
 
-        static constexpr i32 Minimum = Min;
-        static constexpr i32 Maximum = Max;
+        constexpr static i32 Minimum = Min;
+        constexpr static i32 Maximum = Max;
 
     };
 

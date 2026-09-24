@@ -26,10 +26,10 @@ namespace MantaRay::Backend
         using F = Q::FeatureType;
         using S = Q::    SumType;
 
-        static constexpr bool SIMDCompatible = true;
+        constexpr static bool SIMDCompatible = true;
 
-        static constexpr F Apply   (const F x) { return x; }
-        static constexpr S ApplySum(const S x) { return x; }
+        constexpr static F Apply   (const F x) { return x; }
+        constexpr static S ApplySum(const S x) { return x; }
 
         [[clang::always_inline]]
         static SIMDVEC ApplyVector(const SIMDVEC x) requires HasSIMD { return x; }
@@ -43,10 +43,10 @@ namespace MantaRay::Backend
         using F = Q::FeatureType;
         using S = Q::    SumType;
 
-        static constexpr bool SIMDCompatible = true;
+        constexpr static bool SIMDCompatible = true;
 
         template<typename T, i64 Scale>
-        static constexpr T Clamp(const T x)
+        constexpr static T Clamp(const T x)
         {
             static_assert(
                 static_cast<i64>(Minimum) * Scale >= std::numeric_limits<T>::min() &&
@@ -61,8 +61,8 @@ namespace MantaRay::Backend
             );
         }
 
-        static constexpr F Apply   (const F x) { return Clamp<F,                           Q::QA>(x); }
-        static constexpr S ApplySum(const S x) { return Clamp<S, static_cast<i64>(Q::QA) * Q::QB>(x); }
+        constexpr static F Apply   (const F x) { return Clamp<F,                           Q::QA>(x); }
+        constexpr static S ApplySum(const S x) { return Clamp<S, static_cast<i64>(Q::QA) * Q::QB>(x); }
 
         [[clang::always_inline]]
         static SIMDVEC ApplyVector(const SIMDVEC x) requires HasSIMD
@@ -89,18 +89,18 @@ namespace MantaRay::Backend
 
         using Clip = Activation<ClippedReLU<Minimum, Maximum>, Q>;
 
-        static constexpr bool SIMDCompatible = false;
+        constexpr static bool SIMDCompatible = false;
 
         template<typename T, i64 Scale>
-        static constexpr T Square(const T x)
+        constexpr static T Square(const T x)
         {
             const i64 result = static_cast<i64>(x) * static_cast<i64>(x) / Scale;
 
             return static_cast<T>(std::min(result, static_cast<i64>(std::numeric_limits<T>::max())));
         }
 
-        static constexpr F Apply   (const F x) { return Square<F,                           Q::QA>(Clip::Apply   (x)); }
-        static constexpr S ApplySum(const S x) { return Square<S, static_cast<i64>(Q::QA) * Q::QB>(Clip::ApplySum(x)); }
+        constexpr static F Apply   (const F x) { return Square<F,                           Q::QA>(Clip::Apply   (x)); }
+        constexpr static S ApplySum(const S x) { return Square<S, static_cast<i64>(Q::QA) * Q::QB>(Clip::ApplySum(x)); }
 
     };
 

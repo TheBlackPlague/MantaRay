@@ -22,10 +22,10 @@ namespace MantaRay
     struct Quantization
     {
 
-        static constexpr i32 QA = A;
-        static constexpr i32 QB = B;
+        constexpr static i32 QA = A;
+        constexpr static i32 QB = B;
 
-        static constexpr i32 OutputScale = Scale;
+        constexpr static i32 OutputScale = Scale;
 
         using FeatureType = Feature;
         using  WeightType =  Weight;
