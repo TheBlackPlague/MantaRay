@@ -25,9 +25,9 @@ namespace MantaRay
         [[clang::always_inline]]
         static Vec256I From(const T value)
         {
-            if constexpr (std::is_same_v<T, i08>) return _mm256_set1_epi8 (value);
-            if constexpr (std::is_same_v<T, i16>) return _mm256_set1_epi16(value);
-            if constexpr (std::is_same_v<T, i32>) return _mm256_set1_epi32(value);
+            if (std::is_same_v<T, i08>) return _mm256_set1_epi8 (value);
+            if (std::is_same_v<T, i16>) return _mm256_set1_epi16(value);
+            if (std::is_same_v<T, i32>) return _mm256_set1_epi32(value);
 
             __builtin_unreachable();
         }

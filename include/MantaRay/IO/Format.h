@@ -300,8 +300,13 @@ namespace MantaRay::IO
 
             if (!ReadBytes(stream, std::as_writable_bytes(std::span(&destination, 1)))) return false;
 
-            if constexpr      (std::endian::native == std::endian::big   ) SwapBytes(destination);
-            else static_assert(std::endian::native == std::endian::little, "Mixed-endian targets are unsupported.");
+            static_assert(
+                std::endian::native == std::endian::little ||
+                std::endian::native == std::endian::big     ,
+                "Mixed-endian targets are unsupported."
+            );
+
+            if (std::endian::native == std::endian::big) SwapBytes(destination);
 
             return true;
         }
@@ -311,16 +316,19 @@ namespace MantaRay::IO
         {
             static_assert(sizeof(T) == PackedBytes<T>::Value);
 
-            if constexpr     (std::endian::native == std::endian::little) {
+            static_assert(
+                std::endian::native == std::endian::little ||
+                std::endian::native == std::endian::big     ,
+                "Mixed-endian targets are unsupported."
+            );
+
+            if (std::endian::native == std::endian::little)
                 return WriteBytes(stream, std::as_bytes(std::span(&source, 1)));
-            } else {
-                static_assert(std::endian::native == std::endian::big   , "Mixed-endian targets are unsupported.");
 
-                auto swapped = std::make_unique<T>(source);
-                SwapBytes(*swapped);
+            auto swapped = std::make_unique<T>(source);
+            SwapBytes(*swapped);
 
-                return WriteBytes(stream, std::as_bytes(std::span(swapped.get(), 1)));
-            }
+            return WriteBytes(stream, std::as_bytes(std::span(swapped.get(), 1)));
         }
 
         template<typename Storage>

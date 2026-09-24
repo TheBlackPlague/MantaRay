@@ -167,8 +167,8 @@ namespace MantaRay::Backend
             for (s00 i = 0; i < O; ++i) {
                 const auto activated = Activation<A, Q>::ApplySum(sums[i]);
 
-                if constexpr (Final) output.Values[i] =                       activated ;
-                else                 output.Values[i] = Kernel::Requantize<Q>(activated);
+                if (Final) output.Values[i] =                       activated ;
+                else       output.Values[i] = Kernel::Requantize<Q>(activated);
             }
 
             return output;
@@ -236,7 +236,7 @@ namespace MantaRay::Backend
         Array<typename Q::SumType, Result::Size> output;
 
         for (s00 i = 0; i < Result::Size; ++i) {
-            if constexpr (Result::ProductDomain)
+            if (Result::ProductDomain)
                  output[i] = Kernel::FinalScale<Q>(result[i]);
             else output[i] = WrapMul(
                 static_cast<Q::SumType>(result[i]),

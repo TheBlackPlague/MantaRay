@@ -25,9 +25,9 @@ namespace MantaRay
         [[clang::always_inline]]
         static Vec512I From(const T value)
         {
-            if constexpr (std::is_same_v<T, i08>) return _mm512_set1_epi8 (value);
-            if constexpr (std::is_same_v<T, i16>) return _mm512_set1_epi16(value);
-            if constexpr (std::is_same_v<T, i32>) return _mm512_set1_epi32(value);
+            if (std::is_same_v<T, i08>) return _mm512_set1_epi8 (value);
+            if (std::is_same_v<T, i16>) return _mm512_set1_epi16(value);
+            if (std::is_same_v<T, i32>) return _mm512_set1_epi32(value);
 
             __builtin_unreachable();
         }
@@ -53,7 +53,7 @@ namespace MantaRay
         [[clang::always_inline]]
         static Vec512I Min(const Vec512I& zmm0, const Vec512I& zmm1)
         {
-            if constexpr (std::is_same_v<T, i32>) return _mm512_min_epi32(zmm0, zmm1);
+            if (std::is_same_v<T, i32>) return _mm512_min_epi32(zmm0, zmm1);
 
             // zmm0 = [a00, a01, a02, a03, ..., a28, a29, a30, a31] -- Assuming T is i16
             // zmm1 = [b00, b01, b02, b03, ..., b28, b29, b30, b31] -- Assuming T is i16
@@ -97,7 +97,7 @@ namespace MantaRay
         [[clang::always_inline]]
         static Vec512I Max(const Vec512I& zmm0, const Vec512I& zmm1)
         {
-            if constexpr (std::is_same_v<T, i32>) return _mm512_max_epi32(zmm0, zmm1);
+            if (std::is_same_v<T, i32>) return _mm512_max_epi32(zmm0, zmm1);
 
             // zmm0 = [a00, a01, a02, a03, ..., a28, a29, a30, a31] -- Assuming T is i16
             // zmm1 = [b00, b01, b02, b03, ..., b28, b29, b30, b31] -- Assuming T is i16
@@ -141,7 +141,7 @@ namespace MantaRay
         [[clang::always_inline]]
         static Vec512I Add(const Vec512I& zmm0, const Vec512I& zmm1)
         {
-            if constexpr (std::is_same_v<T, i32>) return _mm512_add_epi32(zmm0, zmm1);
+            if (std::is_same_v<T, i32>) return _mm512_add_epi32(zmm0, zmm1);
 
             // zmm0 = [a00, a01, a02, a03, ..., a28, a29, a30, a31] -- Assuming T is i16
             // zmm1 = [b00, b01, b02, b03, ..., b28, b29, b30, b31] -- Assuming T is i16
@@ -189,7 +189,7 @@ namespace MantaRay
         [[clang::always_inline]]
         static Vec512I Sub(const Vec512I& zmm0, const Vec512I& zmm1)
         {
-            if constexpr (std::is_same_v<T, i32>) return _mm512_sub_epi32(zmm0, zmm1);
+            if (std::is_same_v<T, i32>) return _mm512_sub_epi32(zmm0, zmm1);
 
             // zmm0 = [a00, a01, a02, a03, ..., a28, a29, a30, a31] -- Assuming T is i16
             // zmm1 = [b00, b01, b02, b03, ..., b28, b29, b30, b31] -- Assuming T is i16
