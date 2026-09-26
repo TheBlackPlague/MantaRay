@@ -33,6 +33,10 @@ void BM_AccumulatorStack_Starshard(BM::State& state)
 {
     for (auto _ : state) {
         StarshardAccumulatorStack++;
+
+        BM::DoNotOptimize(&*StarshardAccumulatorStack);
+        BM::ClobberMemory();
+
         StarshardAccumulatorStack--;
     }
 }
@@ -41,48 +45,84 @@ void BM_AccumulatorStack_Aurora(BM::State& state)
 {
     for (auto _ : state) {
         AuroraAccumulatorStack++;
+
+        BM::DoNotOptimize(&*AuroraAccumulatorStack);
+        BM::ClobberMemory();
+
         AuroraAccumulatorStack--;
     }
 }
 
 void BM_Refresh_Starshard(BM::State& state)
 {
-    for (auto _ : state) StarshardNN.Refresh(*StarshardAccumulatorStack);
+    for (auto _ : state) {
+        StarshardNN.Refresh(*StarshardAccumulatorStack);
+
+        BM::ClobberMemory();
+    }
 }
 
 void BM_Refresh_Aurora(BM::State& state)
 {
-    for (auto _ : state) AuroraNN.Refresh(*AuroraAccumulatorStack);
+    for (auto _ : state) {
+        AuroraNN.Refresh(*AuroraAccumulatorStack);
+
+        BM::ClobberMemory();
+    }
 }
 
 void BM_Insert_Starshard(BM::State& state)
 {
-    for (auto _ : state) StarshardNN.Insert(0, 0, 8, *StarshardAccumulatorStack);
+    for (auto _ : state) {
+        StarshardNN.Insert(0, 0, 8, *StarshardAccumulatorStack);
+
+        BM::ClobberMemory();
+    }
 }
 
 void BM_Insert_Aurora(BM::State& state)
 {
-    for (auto _ : state) AuroraNN.Insert(0, 0, 8, *AuroraAccumulatorStack);
+    for (auto _ : state) {
+        AuroraNN.Insert(0, 0, 8, *AuroraAccumulatorStack);
+
+        BM::ClobberMemory();
+    }
 }
 
 void BM_Remove_Starshard(BM::State& state)
 {
-    for (auto _ : state) StarshardNN.Remove(0, 0, 8, *StarshardAccumulatorStack);
+    for (auto _ : state) {
+        StarshardNN.Remove(0, 0, 8, *StarshardAccumulatorStack);
+
+        BM::ClobberMemory();
+    }
 }
 
 void BM_Remove_Aurora(BM::State& state)
 {
-    for (auto _ : state) AuroraNN.Remove(0, 0, 8, *AuroraAccumulatorStack);
+    for (auto _ : state) {
+        AuroraNN.Remove(0, 0, 8, *AuroraAccumulatorStack);
+
+        BM::ClobberMemory();
+    }
 }
 
 void BM_Move_Starshard(BM::State& state)
 {
-    for (auto _ : state) StarshardNN.Move(0, 0, 8, 24, *StarshardAccumulatorStack);
+    for (auto _ : state) {
+        StarshardNN.Move(0, 0, 8, 24, *StarshardAccumulatorStack);
+
+        BM::ClobberMemory();
+    }
 }
 
 void BM_Move_Aurora(BM::State& state)
 {
-    for (auto _ : state) AuroraNN.Move(0, 0, 8, 24, *AuroraAccumulatorStack);
+    for (auto _ : state) {
+        AuroraNN.Move(0, 0, 8, 24, *AuroraAccumulatorStack);
+
+        BM::ClobberMemory();
+    }
 }
 
 void BM_Evaluate_Starshard(BM::State& state)
