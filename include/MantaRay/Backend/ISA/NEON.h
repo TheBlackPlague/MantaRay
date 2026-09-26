@@ -26,6 +26,8 @@ namespace MantaRay::Backend::ISA
 
         constexpr static s00 Bytes = 16;
 
+        constexpr static s00 DotAccumulators = 4;
+
         [[clang::always_inline]]
         static Vector Load(const T* values)
         { return std::bit_cast<Vector>(vld1q_u8(reinterpret_cast<const u08*>(values))); }
@@ -147,6 +149,15 @@ namespace MantaRay::Backend::ISA
             const auto b = std::bit_cast<V16_8>(right);
 
             return vpaddq_s32(vmull_s16(vget_low_s16(a), vget_low_s16(b)), vmull_high_s16(a, b));
+        }
+
+        [[clang::always_inline]]
+        static Vector AccumulateDot(const Vector sum, const Vector left, const Vector right)
+        {
+            const auto a = std::bit_cast<V16_8>(left );
+            const auto b = std::bit_cast<V16_8>(right);
+
+            return vmlal_high_s16(vmlal_s16(sum, vget_low_s16(a), vget_low_s16(b)), a, b);
         }
 
         [[clang::always_inline]]

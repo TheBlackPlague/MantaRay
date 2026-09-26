@@ -54,6 +54,12 @@ namespace MantaRay::Backend::Native
     template<typename T>
     constexpr inline s00 NativeLanes = Policy<T>::Bytes / sizeof(T);
 
+    template<typename T>
+    constexpr inline s00 DotAccumulators = [] {
+        if constexpr (requires { Policy<T>::DotAccumulators; }) return Policy<T>::DotAccumulators;
+        else return s00 { 1 };
+    }();
+
     template<typename T, s00 Lanes = NativeLanes<T>>
     struct Register
     {
@@ -318,6 +324,25 @@ namespace MantaRay::Backend::Native
 
             return result;
         }
+    }
+
+    template<s00 Lanes>
+    [[clang::always_inline]]
+    Register<i32, Lanes / 2> AccumulateDot(
+        const Register<i32, Lanes / 2>   sum,
+        const Register<i16, Lanes    >  left,
+        const Register<i16, Lanes    > right
+    )
+    {
+        static_assert(Lanes % 2 == 0);
+
+        using Instructions = Register<i16, Lanes>::Instructions;
+
+        if constexpr (Register<i16, Lanes>::IsNative && requires {
+            Instructions::AccumulateDot(sum.Value, left.Value, right.Value);
+        }) return { Instructions::AccumulateDot(sum.Value, left.Value, right.Value) };
+
+        else return Add(sum, MultiplyAddPairs(left, right));
     }
 
     template<typename T, s00 Lanes>

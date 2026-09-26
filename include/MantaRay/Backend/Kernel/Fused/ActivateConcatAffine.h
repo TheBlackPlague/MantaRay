@@ -55,18 +55,62 @@ namespace MantaRay::Backend::Kernel
                     columns = std::assume_aligned<Alignment>(columns);
                 }
 
-                for (s00 input = 0; input < N; input += Lanes) {
-                    const auto values = Act::ApplyVector(Native::Load<F, Lanes>( firstValues + input));
-                    const auto column = Native::Load<W, Lanes>(columns + input);
+                if constexpr (Native::DotAccumulators<F> > 1) {
+                    constexpr s00 Count = Native::DotAccumulators<F>;
 
-                    sums = Native::Add(sums, Native::MultiplyAddPairs(values, column));
-                }
+                    static_assert(Count % 2 == 0);
 
-                for (s00 input = 0; input < N; input += Lanes) {
-                    const auto values = Act::ApplyVector(Native::Load<F, Lanes>(secondValues + input));
-                    const auto column = Native::Load<W, Lanes>(columns + N + input);
+                    constexpr s00 Step = Lanes * (Count / 2);
 
-                    sums = Native::Add(sums, Native::MultiplyAddPairs(values, column));
+                    std::array<Native::Register<S, Lanes / 2>, Count> partial;
+
+                    for (auto& sum : partial) sum = Native::Broadcast<S, Lanes / 2>(0);
+
+                    s00 input = 0;
+                    for (; input + Step <= N; input += Step) {
+                        #pragma unroll
+                        for (s00 part = 0; part < Count / 2; part++) {
+                            const s00 index = input + part * Lanes;
+
+                            const auto a = Act::ApplyVector(Native::Load<F, Lanes>( firstValues + index));
+                            const auto b = Act::ApplyVector(Native::Load<F, Lanes>(secondValues + index));
+
+                            partial[2 * part    ] = Native::AccumulateDot(
+                                partial[2 * part    ],
+                                a,
+                                Native::Load<W, Lanes>(columns +     index)
+                            );
+                            partial[2 * part + 1] = Native::AccumulateDot(
+                                partial[2 * part + 1],
+                                b,
+                                Native::Load<W, Lanes>(columns + N + index)
+                            );
+                        }
+                    }
+
+                    for (; input < N; input += Lanes) {
+                        const auto a = Act::ApplyVector(Native::Load<F, Lanes>( firstValues + input));
+                        const auto b = Act::ApplyVector(Native::Load<F, Lanes>(secondValues + input));
+
+                        partial[0] = Native::AccumulateDot(partial[0], a, Native::Load<W, Lanes>(columns +     input));
+                        partial[1] = Native::AccumulateDot(partial[1], b, Native::Load<W, Lanes>(columns + N + input));
+                    }
+
+                    for (const auto sum : partial) sums = Native::Add(sums, sum);
+                } else {
+                    for (s00 input = 0; input < N; input += Lanes) {
+                        const auto values = Act::ApplyVector(Native::Load<F, Lanes>( firstValues + input));
+                        const auto column = Native::Load<W, Lanes>(columns + input);
+
+                        sums = Native::AccumulateDot(sums, values, column);
+                    }
+
+                    for (s00 input = 0; input < N; input += Lanes) {
+                        const auto values = Act::ApplyVector(Native::Load<F, Lanes>(secondValues + input));
+                        const auto column = Native::Load<W, Lanes>(columns + N + input);
+
+                        sums = Native::AccumulateDot(sums, values, column);
+                    }
                 }
 
                 result[output] = WrapAdd(Native::Sum(sums), bias[output]);
