@@ -1,0 +1,382 @@
+//
+// Copyright (c) 2025-2026 Shaheryar Sohail
+// SPDX-License-Identifier: MIT
+//
+
+#ifndef MANTARAY_IO_FORMAT_H
+#define MANTARAY_IO_FORMAT_H
+
+#include <array>
+#include <bit>
+#include <concepts>
+#include <cstddef>
+#include <ios>
+#include <limits>
+#include <memory>
+#include <span>
+#include <type_traits>
+
+#include "../Backend/Storage/NetworkStorage.h"
+
+namespace MantaRay::IO
+{
+
+    namespace Detail
+    {
+
+        struct FingerprintState
+        {
+
+            u64 Value = 14695981039346656037ULL;
+
+            constexpr void Add(u64 value)
+            {
+                for (u32 i = 0; i < 8; ++i) {
+                    Value = (Value ^ (value & 255)) * 1099511628211ULL;
+                    value >>= 8;
+                }
+            }
+
+        };
+
+    }
+
+    template<typename T>
+    struct Fingerprint;
+
+    template<>
+    struct Fingerprint<Identity>
+    {
+
+        constexpr static void Append(Detail::FingerprintState& hash) { hash.Add(1); }
+
+    };
+
+    template<i32 Minimum, i32 Maximum>
+    struct Fingerprint<ClippedReLU<Minimum, Maximum>>
+    {
+
+        constexpr static void Append(Detail::FingerprintState& hash)
+        {
+            hash.Add(2);
+            hash.Add(Minimum);
+            hash.Add(Maximum);
+        }
+
+    };
+
+    template<i32 Minimum, i32 Maximum>
+    struct Fingerprint<SquaredClippedReLU<Minimum, Maximum>>
+    {
+
+        constexpr static void Append(Detail::FingerprintState& hash)
+        {
+            hash.Add(3);
+            hash.Add(Minimum);
+            hash.Add(Maximum);
+        }
+
+    };
+
+    template<>
+    struct Fingerprint<Affine>
+    {
+
+        constexpr static void Append(Detail::FingerprintState& hash) { hash.Add(4); }
+
+    };
+
+    template<s00 Input, s00 Output, typename Activation, typename Transform>
+    struct Fingerprint<Layer<Input, Output, Activation, Transform>>
+    {
+
+        constexpr static void Append(Detail::FingerprintState& hash)
+        {
+            hash.Add(5);
+
+            hash.Add( Input);
+            hash.Add(Output);
+
+            Fingerprint<Activation>::Append(hash);
+            Fingerprint<Transform >::Append(hash);
+        }
+
+    };
+
+    template<typename T>
+    struct Fingerprint<Accumulate<T>>
+    {
+
+        constexpr static void Append(Detail::FingerprintState& hash)
+        {
+            hash.Add(6);
+            Fingerprint<T>::Append(hash);
+        }
+
+    };
+
+    template<typename T>
+    struct Fingerprint<Mirror<T>>
+    {
+
+        constexpr static void Append(Detail::FingerprintState& hash)
+        {
+            hash.Add(7);
+            Fingerprint<T>::Append(hash);
+        }
+
+    };
+
+    template<>
+    struct Fingerprint<Concat>
+    {
+
+        constexpr static void Append(Detail::FingerprintState& hash) { hash.Add(8); }
+
+    };
+
+    template<typename... T>
+    struct Fingerprint<Parallel<T...>>
+    {
+
+        constexpr static void Append(Detail::FingerprintState& hash)
+        {
+            hash.Add(9);
+            hash.Add(sizeof...(T));
+            (Fingerprint<T>::Append(hash), ...);
+        }
+
+    };
+
+    template<typename T>
+    struct Fingerprint<Residual<T>>
+    {
+
+        constexpr static void Append(Detail::FingerprintState& hash)
+        {
+            hash.Add(10);
+            Fingerprint<T>::Append(hash);
+        }
+
+    };
+
+    template<typename... T>
+    struct Fingerprint<Sequence<T...>>
+    {
+
+        constexpr static void Append(Detail::FingerprintState& hash)
+        {
+            hash.Add(11);
+            hash.Add(sizeof...(T));
+            (Fingerprint<T>::Append(hash), ...);
+        }
+
+    };
+
+    template<i32 A, i32 B, i32 Scale, typename Feature, typename Weight, typename Sum>
+    struct Fingerprint<Quantization<A, B, Scale, Feature, Weight, Sum>>
+    {
+
+        constexpr static void Append(Detail::FingerprintState& hash)
+        {
+            hash.Add(12);
+            hash.Add(A);
+            hash.Add(B);
+            hash.Add(Scale);
+
+            hash.Add(sizeof(Feature));
+            hash.Add(sizeof(Weight));
+            hash.Add(sizeof(Sum));
+        }
+
+    };
+
+    template<typename Q, typename... T>
+    struct Fingerprint<Network<Q, T...>>
+    {
+
+        constexpr static void Append(Detail::FingerprintState& hash)
+        {
+            hash.Add(13);
+            Fingerprint<Q>::Append(hash);
+            hash.Add(sizeof...(T));
+            (Fingerprint<T>::Append(hash), ...);
+        }
+
+    };
+
+    template<typename Architecture>
+    consteval u64 ArchitectureFingerprint()
+    {
+        Detail::FingerprintState hash;
+
+        Fingerprint<Architecture>::Append(hash);
+
+        return hash.Value;
+    }
+
+    namespace Detail
+    {
+
+        template<typename Stream>
+        bool ReadBytes(Stream& stream, const std::span<std::byte> destination)
+        {
+            if constexpr (requires { { stream.ReadBytes(destination) } -> std::same_as<bool>; }) {
+                return stream.ReadBytes(destination);
+            } else {
+                if (destination.size() > static_cast<s00>(std::numeric_limits<std::streamsize>::max()))
+                    return false;
+
+                stream.read(
+                    reinterpret_cast<     char*     >(destination.data()),
+                         static_cast<std::streamsize>(destination.size())
+                );
+
+                return static_cast<bool>(stream);
+            }
+        }
+
+        template<typename Stream>
+        bool WriteBytes(Stream& stream, const std::span<const std::byte> source)
+        {
+            if constexpr (requires { { stream.WriteBytes(source) } -> std::same_as<bool>; }) {
+                return stream.WriteBytes(source);
+            } else {
+                if (source.size() > static_cast<s00>(std::numeric_limits<std::streamsize>::max()))
+                    return false;
+
+                stream.write(
+                    reinterpret_cast<  const char*  >(source.data()),
+                         static_cast<std::streamsize>(source.size())
+                );
+
+                return static_cast<bool>(stream);
+            }
+        }
+
+        template<typename Stream>
+        bool Flush(Stream& stream)
+        {
+            if        constexpr (requires { { stream.Flush() } -> std::same_as<bool>; }) {
+                return stream.Flush();
+            } else if constexpr (requires {   stream.flush();                         }) {
+                stream.flush();
+                return static_cast<bool>(stream);
+            } else return true;
+        }
+
+        template<typename T>
+        struct PackedBytes
+        {
+
+            static_assert(std::is_integral_v<T>);
+
+            constexpr static s00 Value = sizeof(T);
+
+        };
+
+        template<typename T, s00 N>
+        struct PackedBytes<std::array<T, N>>
+        {
+
+            constexpr static s00 Value = N * PackedBytes<T>::Value;
+
+            static_assert(sizeof(std::array<T, N>) == Value, "Parameter arrays must be tightly packed.");
+
+        };
+
+        template<typename T>
+        void SwapBytes(T& value)
+        {
+            if constexpr (std::is_integral_v<T>) value = std::byteswap(value);
+
+            else for (auto& element : value) SwapBytes(element);
+        }
+
+        template<typename Stream, typename T>
+        bool ReadTensor(Stream& stream, T& destination)
+        {
+            static_assert(sizeof(T) == PackedBytes<T>::Value);
+
+            if (!ReadBytes(stream, std::as_writable_bytes(std::span(&destination, 1)))) return false;
+
+            static_assert(
+                std::endian::native == std::endian::little ||
+                std::endian::native == std::endian::big     ,
+                "Mixed-endian targets are unsupported."
+            );
+
+            if (std::endian::native == std::endian::big) SwapBytes(destination);
+
+            return true;
+        }
+
+        template<typename Stream, typename T>
+        bool WriteTensor(Stream& stream, const T& source)
+        {
+            static_assert(sizeof(T) == PackedBytes<T>::Value);
+
+            static_assert(
+                std::endian::native == std::endian::little ||
+                std::endian::native == std::endian::big     ,
+                "Mixed-endian targets are unsupported."
+            );
+
+            if (std::endian::native == std::endian::little)
+                return WriteBytes(stream, std::as_bytes(std::span(&source, 1)));
+
+            auto swapped = std::make_unique<T>(source);
+            SwapBytes(*swapped);
+
+            return WriteBytes(stream, std::as_bytes(std::span(swapped.get(), 1)));
+        }
+
+        template<typename Storage>
+        u64 ParameterBytes(const Storage& storage)
+        {
+            u64 count = 0;
+
+            storage.VisitParameters([&]<typename T0>(const T0& _) {
+                count += PackedBytes<std::remove_cvref_t<T0>>::Value;
+            });
+
+            return count;
+        }
+
+        constexpr inline std::array Magic = {
+            std::byte { 'M' }, std::byte { 'A' }, std::byte { 'N' }, std::byte { 'T' },
+            std::byte { 'A' }, std::byte { 'R' }, std::byte { 'A' }, std::byte { 'Y' }
+        };
+
+        template<typename _>
+        struct LegacyV2 : std::false_type {};
+
+        template<
+            typename Q,
+            s00 Input,
+            s00 Hidden,
+            typename Activation,
+            s00 DenseInput,
+            s00 Output,
+            typename DenseActivation
+        >
+        struct LegacyV2<
+            Network<
+                Q,
+                Mirror<
+                    Accumulate<
+                        Layer<Input, Hidden, Activation>
+                    >
+                >,
+                Concat,
+                Layer<DenseInput, Output, DenseActivation>
+            >
+        > : std::bool_constant<std::is_same_v<typename Q::FeatureType, i16> &&
+                               std::is_same_v<typename Q::WeightType , i16> &&
+                               std::is_same_v<typename Q::SumType    , i32> && DenseInput == 2 * Hidden> {};
+
+    }
+
+}
+
+#endif

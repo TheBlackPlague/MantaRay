@@ -1,0 +1,95 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  BUILD_TYPE: Release
+  CMAKE_TEST_LAUNCHER: ''
+
+jobs:
+  test:
+    name: ${{ matrix.os }} / scalar=${{ matrix.scalar }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+        scalar: [ 'OFF', 'ON' ]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build
+          wget -q https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 22
+          echo "CXX=clang++-22" >> "$GITHUB_ENV"
+
+      - name: Install Windows dependencies
+        if: runner.os == 'Windows'
+        run: |
+          choco install ninja -y --no-progress
+          choco install llvm --version 22.1.8 --force -y --no-progress
+          "C:/Program Files/LLVM/bin" >> $env:GITHUB_PATH
+          "CXX=clang++" >> $env:GITHUB_ENV
+
+      - name: Install macOS dependencies
+        if: runner.os == 'macOS'
+        run: |
+          brew update
+          brew install llvm@22 ninja
+          echo "CXX=$(brew --prefix llvm@22)/bin/clang++" >> "$GITHUB_ENV"
+
+      - name: Install Intel SDE
+        if: runner.os != 'macOS'
+        uses: petarpetrovt/setup-sde@31aa4a8e85e109bef00f1d838613fcc6ec421271 # v5.0
+        with:
+          environmentVariableName: SDE_PATH
+          sdeVersion: '10.8.0'
+
+      - name: Configure x86 test launcher
+        if: runner.os != 'macOS'
+        shell: bash
+        run: |
+          # Execute every ISA target, including AVX-512, regardless of the runner CPU.
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            sde="$(cygpath -m "$SDE_PATH")/sde64.exe"
+          else
+            sudo sysctl -w kernel.yama.ptrace_scope=0
+            sde="$SDE_PATH/sde64"
+          fi
+          echo "CMAKE_TEST_LAUNCHER=$sde;-future;--" >> "$GITHUB_ENV"
+
+      - name: Configure CMake
+        run: >-
+          cmake -S . -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+          -DBUILD_TESTS=ON
+          -DBUILD_BENCHMARKS=OFF
+          -DMANTARAY_FORCE_SCALAR=${{ matrix.scalar }}
+          -DCMAKE_TEST_LAUNCHER="${{ env.CMAKE_TEST_LAUNCHER }}"
+
+      - name: Build tests
+        run: cmake --build build --config ${{ env.BUILD_TYPE }} --parallel 2
+
+      - name: Run all tests
+        run: >-
+          ctest --test-dir build
+          --build-config ${{ env.BUILD_TYPE }}
+          --output-on-failure
+          --no-tests=error
+          --timeout 600
