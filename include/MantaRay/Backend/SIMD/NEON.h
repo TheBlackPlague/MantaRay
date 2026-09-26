@@ -39,9 +39,9 @@ namespace MantaRay
         {
             static_assert(sizeof(array) >= sizeof(Vector));
 
-            if (std::is_same_v<T, i08>) return std::bit_cast<Vector>(vld1q_s8 (array.data() + index));
-            if (std::is_same_v<T, i16>) return std::bit_cast<Vector>(vld1q_s16(array.data() + index));
-            if (std::is_same_v<T, i32>) return                       vld1q_s32(array.data() + index) ;
+            if constexpr (std::is_same_v<T, i08>) return std::bit_cast<Vector>(vld1q_s8 (array.data() + index));
+            if constexpr (std::is_same_v<T, i16>) return std::bit_cast<Vector>(vld1q_s16(array.data() + index));
+            if constexpr (std::is_same_v<T, i32>) return                       vld1q_s32(array.data() + index) ;
 
             __builtin_unreachable();
         }
@@ -52,9 +52,9 @@ namespace MantaRay
         {
             static_assert(sizeof(array) >= sizeof(Vector));
 
-            if (std::is_same_v<T, i08>) vst1q_s8 (array.data() + index, std::bit_cast<int8x16_t>(value));
-            if (std::is_same_v<T, i16>) vst1q_s16(array.data() + index, std::bit_cast<int16x8_t>(value));
-            if (std::is_same_v<T, i32>) vst1q_s32(array.data() + index,                          value );
+            if constexpr (std::is_same_v<T, i08>) vst1q_s8 (array.data() + index, std::bit_cast<int8x16_t>(value));
+            if constexpr (std::is_same_v<T, i16>) vst1q_s16(array.data() + index, std::bit_cast<int16x8_t>(value));
+            if constexpr (std::is_same_v<T, i32>) vst1q_s32(array.data() + index,                          value );
         }
 
         [[clang::always_inline]]
