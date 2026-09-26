@@ -67,11 +67,12 @@ jobs:
         run: |
           # Execute every ISA target, including AVX-512, regardless of the runner CPU.
           if [[ "$RUNNER_OS" == "Windows" ]]; then
-            sde="$(cygpath -m "$SDE_PATH")/sde64.exe"
+            sde="$(cygpath -m "$SDE_PATH")/sde.exe"
           else
             sudo sysctl -w kernel.yama.ptrace_scope=0
             sde="$SDE_PATH/sde64"
           fi
+          test -f "$sde"
           echo "CMAKE_TEST_LAUNCHER=$sde;-future;--" >> "$GITHUB_ENV"
 
       - name: Configure CMake
