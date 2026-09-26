@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-#ifndef MANTARAY_CONTAINER_H
-#define MANTARAY_CONTAINER_H
+#ifndef MANTARAY_COMMON_CONTAINER_H
+#define MANTARAY_COMMON_CONTAINER_H
 
 #include <array>
 
@@ -13,17 +13,30 @@
 namespace MantaRay
 {
 
-    template<QuantizedInteger T, s00 N, s00... Ns>
-    struct IArray { using Internal = std::array<typename IArray<T, Ns...>::Internal, N>; };
-
-    template<QuantizedInteger T, s00 N>
-    struct IArray<T, N> { using Internal = std::array<T, N>; };
-
     template<QuantizedInteger T, s00 N>
     using Array = std::array<T, N>;
 
-    template<QuantizedInteger T, s00 N, s00... Ns>
-    using NArray = IArray<T, N, Ns...>::Internal;
+    namespace Detail
+    {
+
+        template<typename T, s00... Dimensions>
+        struct Tensor;
+
+        template<typename T>
+        struct Tensor<T> { using Type = T; };
+
+        template<typename T, s00 Head, s00... Tail>
+        struct Tensor<T, Head, Tail...>
+        {
+
+            using Type = std::array<typename Tensor<T, Tail...>::Type, Head>;
+
+        };
+
+    }
+
+    template<QuantizedInteger T, s00... Dimensions>
+    using NArray = Detail::Tensor<T, Dimensions...>::Type;
 
 }
 

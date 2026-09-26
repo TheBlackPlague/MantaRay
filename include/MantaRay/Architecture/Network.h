@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-#ifndef MANTARAY_NETWORK_H
-#define MANTARAY_NETWORK_H
+#ifndef MANTARAY_ARCHITECTURE_NETWORK_H
+#define MANTARAY_ARCHITECTURE_NETWORK_H
 
 #include <tuple>
 

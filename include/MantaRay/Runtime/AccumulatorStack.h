@@ -9,7 +9,7 @@
 #include <array>
 #include <cassert>
 
-#include "../Backend/Storage/Accumulator.h"
+#include "State.h"
 
 namespace MantaRay::Runtime
 {
@@ -18,9 +18,9 @@ namespace MantaRay::Runtime
     class AccumulatorStack
     {
 
-        static_assert(Capacity > 0);
+        static_assert(Capacity != 0);
 
-        using Accumulator = Backend::Accumulator<Architecture>;
+        using Accumulator = State<Architecture>;
 
         std::array<Accumulator, Capacity> States {};
 
@@ -32,25 +32,25 @@ namespace MantaRay::Runtime
         [[clang::always_inline]]
         void Push()
         {
-            assert(Index + 1 < Capacity);
+            assert(Index < Capacity - 1);
 
             States[Index + 1] = States[Index];
-            Index++;
+
+            ++Index;
         }
 
         [[clang::always_inline]]
         void Pop()
         {
-            assert(Index > 0);
+            assert(Index != 0);
 
-            Index--;
+            --Index;
         }
 
         [[clang::always_inline]]
         void operator ++(int) { Push(); }
-
         [[clang::always_inline]]
-        void operator --(int) { Pop(); }
+        void operator --(int) {  Pop(); }
 
               Accumulator& operator *()       noexcept { return States[Index]; }
         const Accumulator& operator *() const noexcept { return States[Index]; }

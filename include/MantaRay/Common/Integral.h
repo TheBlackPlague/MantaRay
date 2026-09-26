@@ -3,11 +3,13 @@
 // SPDX-License-Identifier: MIT
 //
 
-#ifndef MANTARAY_INTEGRAL_H
-#define MANTARAY_INTEGRAL_H
+#ifndef MANTARAY_COMMON_INTEGRAL_H
+#define MANTARAY_COMMON_INTEGRAL_H
 
+#include <bit>
 #include <cstddef>
 #include <cstdint>
+#include <type_traits>
 
 namespace MantaRay
 {
@@ -15,42 +17,39 @@ namespace MantaRay
     using s00 = std::size_t;
 
     using u64 = std::uint64_t;
-    using i64 =  std::int64_t;
+    using i64 = std:: int64_t;
 
     using u32 = std::uint32_t;
-    using i32 =  std::int32_t;
+    using i32 = std:: int32_t;
 
     using u16 = std::uint16_t;
-    using i16 =  std::int16_t;
+    using i16 = std:: int16_t;
 
     using u08 = std::uint8_t;
-    using i08 =  std::int8_t;
+    using i08 = std:: int8_t;
 
     template<typename T>
-    [[clang::always_inline]]
-    constexpr T WrapAdd(const T lhs, const T rhs)
+    constexpr T WrapAdd(const T left, const T right)
     {
-        T result;
-        __builtin_add_overflow(lhs, rhs, &result);
-        return result;
+        using U = std::make_unsigned_t<T>;
+
+        return std::bit_cast<T>(static_cast<U>(static_cast<u64>(static_cast<U>(left)) + static_cast<U>(right)));
     }
 
     template<typename T>
-    [[clang::always_inline]]
-    constexpr T WrapSub(const T lhs, const T rhs)
+    constexpr T WrapSub(const T left, const T right)
     {
-        T result;
-        __builtin_sub_overflow(lhs, rhs, &result);
-        return result;
+        using U = std::make_unsigned_t<T>;
+
+        return std::bit_cast<T>(static_cast<U>(static_cast<u64>(static_cast<U>(left)) - static_cast<U>(right)));
     }
 
     template<typename T>
-    [[clang::always_inline]]
-    constexpr T WrapMul(const T lhs, const T rhs)
+    constexpr T WrapMul(const T left, const T right)
     {
-        T result;
-        __builtin_mul_overflow(lhs, rhs, &result);
-        return result;
+        using U = std::make_unsigned_t<T>;
+
+        return std::bit_cast<T>(static_cast<U>(static_cast<u64>(static_cast<U>(left)) * static_cast<U>(right)));
     }
 
 }

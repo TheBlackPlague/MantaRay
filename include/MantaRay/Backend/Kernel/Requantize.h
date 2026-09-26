@@ -19,13 +19,12 @@ namespace MantaRay::Backend::Kernel
     {
         using F = Q::FeatureType;
 
-        return static_cast<F>(
-            std::clamp(
-                static_cast<i64>(value) / Q::QB,
-                static_cast<i64>(std::numeric_limits<F>::min()),
-                static_cast<i64>(std::numeric_limits<F>::max())
-            )
-        );
+        const i64 scaled = static_cast<i64>(value) / Q::QB;
+
+        constexpr i64 Minimum = std::numeric_limits<F>::min();
+        constexpr i64 Maximum = std::numeric_limits<F>::max();
+
+        return static_cast<F>(std::clamp(scaled, Minimum, Maximum));
     }
 
     template<typename Q>
@@ -33,7 +32,10 @@ namespace MantaRay::Backend::Kernel
     {
         using S = Q::SumType;
 
-        return WrapMul(value, static_cast<S>(Q::OutputScale)) / static_cast<S>(static_cast<i64>(Q::QA) * Q::QB);
+        const S scaled = WrapMul(value, static_cast<S>(Q::OutputScale));
+        constexpr S Divisor = static_cast<S>(i64{Q::QA} * Q::QB);
+
+        return scaled / Divisor;
     }
 
 }

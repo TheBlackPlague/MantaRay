@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-#ifndef MANTARAY_ALIGNMENT_H
-#define MANTARAY_ALIGNMENT_H
+#ifndef MANTARAY_COMMON_ALIGNMENT_H
+#define MANTARAY_COMMON_ALIGNMENT_H
 
 #include "Integral.h"
 

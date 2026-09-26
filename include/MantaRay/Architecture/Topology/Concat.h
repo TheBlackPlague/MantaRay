@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-#ifndef MANTARAY_CONCAT_H
-#define MANTARAY_CONCAT_H
+#ifndef MANTARAY_ARCHITECTURE_TOPOLOGY_CONCAT_H
+#define MANTARAY_ARCHITECTURE_TOPOLOGY_CONCAT_H
 
 namespace MantaRay
 {

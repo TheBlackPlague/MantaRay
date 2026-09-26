@@ -3,15 +3,18 @@
 // SPDX-License-Identifier: MIT
 //
 
-#ifndef MANTARAY_BACKEND_ACCUMULATOR_H
-#define MANTARAY_BACKEND_ACCUMULATOR_H
+#ifndef MANTARAY_BACKEND_STORAGE_ACCUMULATOR_H
+#define MANTARAY_BACKEND_STORAGE_ACCUMULATOR_H
 
 #include <array>
 #include <cassert>
 #include <cstring>
+#include <memory>
 #include <utility>
 
 #include "../Traits.h"
+#include "../../Common/Alignment.h"
+#include "../../Common/Container.h"
 #include "../Kernel/ArrayCopy.h"
 
 namespace MantaRay::Backend
@@ -21,30 +24,37 @@ namespace MantaRay::Backend
     struct Accumulator
     {
 
-        using Traits = ArchitectureTraits<Architecture>;
-
-        static_assert(Traits::HasAccumulator, "This architecture has no incremental feature transformer.");
-
+        using Traits      = ArchitectureTraits<Architecture>;
         using FeatureType = Traits::Quantization::FeatureType;
-        using Layer       = Traits::AccumulatorLayer         ;
+        using Layer       = Traits::AccumulatorLayer;
 
-        constexpr static s00 HiddenSize = Layer::OutputSize;
+        static_assert(Traits::HasAccumulator);
 
+        constexpr static s00 HiddenSize       = Layer::OutputSize;
         constexpr static s00 PerspectiveCount = Traits::PerspectiveCount;
 
-        using Row = std::array<FeatureType, HiddenSize>;
+        using Row = Array<FeatureType, HiddenSize>;
 
         ALIGN std::array<Row, PerspectiveCount> Values;
 
         Accumulator() { Zero(); }
 
         [[clang::always_inline]]
-        Accumulator(const Accumulator& other) { Kernel::Copy(other.Values, Values); }
+        Accumulator(const Accumulator& source)
+        {
+            Kernel::Copy(
+                *std::assume_aligned<Alignment>(&source.Values),
+                *std::assume_aligned<Alignment>(&Values)
+            );
+        }
 
         [[clang::always_inline]]
-        Accumulator& operator=(const Accumulator& other)
+        Accumulator& operator =(const Accumulator& source)
         {
-            Kernel::Copy(other.Values, Values);
+            Kernel::Copy(
+                *std::assume_aligned<Alignment>(&source.Values),
+                *std::assume_aligned<Alignment>(&Values)
+            );
 
             return *this;
         }
@@ -52,25 +62,29 @@ namespace MantaRay::Backend
         void Zero() { std::memset(Values.data(), 0, sizeof(Values)); }
 
         [[clang::always_inline]]
-        void Bias(const Row& bias)
+        void Bias(const Row& value)
         {
-            [&]<s00... Sides>(std::index_sequence<Sides...>) {
-                (Kernel::Copy(bias, Values[Sides]), ...);
+            [&]<s00... Side>(std::index_sequence<Side...>) {
+                (Kernel::Copy(value, (*this)[Side]), ...);
             }(std::make_index_sequence<PerspectiveCount> {});
         }
 
-        Row& operator [](const s00 perspective)
+        Row& operator [](const s00 side)
         {
-            assert(perspective < PerspectiveCount);
+            assert(side < PerspectiveCount);
 
-            return Values[perspective];
+            if (sizeof(Row) % Alignment == 0) return *std::assume_aligned<Alignment>(&Values[side]);
+
+            return Values[side];
         }
 
-        const Row& operator [](const s00 perspective) const
+        const Row& operator [](const s00 side) const
         {
-            assert(perspective < PerspectiveCount);
+            assert(side < PerspectiveCount);
 
-            return Values[perspective];
+            if (sizeof(Row) % Alignment == 0) return *std::assume_aligned<Alignment>(&Values[side]);
+
+            return Values[side];
         }
 
     };

@@ -3,24 +3,24 @@
 // SPDX-License-Identifier: MIT
 //
 
-#ifndef MANTARAY_BACKEND_NETWORKSTORAGE_H
-#define MANTARAY_BACKEND_NETWORKSTORAGE_H
+#ifndef MANTARAY_BACKEND_STORAGE_NETWORKSTORAGE_H
+#define MANTARAY_BACKEND_STORAGE_NETWORKSTORAGE_H
 
 #include "LayerStorage.h"
 
 namespace MantaRay::Backend
 {
 
-    template<typename A>
+    template<typename Architecture>
     struct NetworkStorage;
 
-    template<typename Q, typename... N>
-    struct NetworkStorage<Network<Q, N...>> : Storage<Q, Sequence<N...>>
+    template<typename Q, typename... Nodes>
+    struct NetworkStorage<Network<Q, Nodes...>> : Storage<Q, Sequence<Nodes...>>
     {
 
-        using Architecture = Network<Q, N...>;
+        using Architecture = Network<Q, Nodes...>;
 
-        static_assert(ValidArchitecture<Architecture>, "Invalid network architecture or quantization policy.");
+        static_assert(ValidArchitecture<Architecture>);
 
     };
 

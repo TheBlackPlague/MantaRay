@@ -15,27 +15,20 @@ namespace MantaRay::IO
     [[nodiscard]]
     bool Write(Stream& stream, const Backend::NetworkStorage<Architecture>& source)
     {
-        constexpr u32 version = 4;
+        constexpr u32 version = 4, reserved = 0;
+        constexpr u64 signature = ArchitectureFingerprint<Architecture>();
 
-        constexpr u32 reserved = 0;
+        const u64 length = Detail::ParameterBytes(source);
 
-        constexpr u64 fingerprint = ArchitectureFingerprint<Architecture>();
+        bool success = Detail::WriteBytes (stream, Detail::Magic) &&
+                       Detail::WriteTensor(stream,       version) &&
+                       Detail::WriteTensor(stream,      reserved) &&
+                       Detail::WriteTensor(stream,     signature) &&
+                       Detail::WriteTensor(stream,        length)  ;
 
-        const u64 bytes = Detail::ParameterBytes(source);
-        if (!Detail::WriteBytes (stream, Detail::Magic) ||
-            !Detail::WriteTensor(stream, version      ) ||
-            !Detail::WriteTensor(stream, reserved     ) ||
-            !Detail::WriteTensor(stream, fingerprint  ) ||
-            !Detail::WriteTensor(stream, bytes        )  )
-            return false;
+        source.VisitParameters([&](const auto& tensor) { success = success && Detail::WriteTensor(stream, tensor); });
 
-        bool valid = true;
-
-        source.VisitParameters([&](const auto& parameter) {
-            if (valid) valid = Detail::WriteTensor(stream, parameter);
-        });
-
-        return valid && Detail::Flush(stream);
+        return success && Detail::Flush(stream);
     }
 
 }

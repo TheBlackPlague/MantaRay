@@ -6,7 +6,6 @@
 #ifndef MANTARAY_IO_BINARYFILESTREAM_H
 #define MANTARAY_IO_BINARYFILESTREAM_H
 
-#include <cstddef>
 #include <filesystem>
 #include <fstream>
 #include <limits>
@@ -21,65 +20,65 @@ namespace MantaRay
     class BinaryFileStream
     {
 
-        std::fstream Stream;
+        std::fstream File;
+
+        bool Fits(const s00 count)
+        {
+            if (count <= static_cast<s00>(std::numeric_limits<std::streamsize>::max())) return true;
+
+            File.setstate(std::ios::failbit);
+
+            return false;
+        }
 
         public:
         explicit BinaryFileStream(const std::filesystem::path& path) :
-            Stream(path, std::ios::binary | (Read ? std::ios::in : std::ios::out | std::ios::trunc)) {}
+            File(path, std::ios::binary | (Read ? std::ios::in : std::ios::out | std::ios::trunc)) {}
 
         [[nodiscard]]
-        bool ReadBytes(const std::span<std::byte> destination) requires Read
+        bool ReadBytes(const std::span<std::byte> bytes) requires Read
         {
-            if (destination.size() > static_cast<s00>(std::numeric_limits<std::streamsize>::max())) {
-                Stream.setstate(std::ios::failbit);
-                return false;
-            }
+            if (!Fits(bytes.size())) return false;
 
-            if (!destination.empty()) Stream.read(
-                reinterpret_cast<      char*    >(destination.data()),
-                     static_cast<std::streamsize>(destination.size())
+            if (!bytes.empty()) File.read(
+                reinterpret_cast<      char*    >(bytes.data()),
+                     static_cast<std::streamsize>(bytes.size())
             );
 
             return Good();
         }
 
         [[nodiscard]]
-        bool ReadBytes(void* destination, const s00 size) requires Read
-        {
-            return ReadBytes({ static_cast<std::byte*>(destination), size });
-        }
+        bool ReadBytes(void* destination, const s00 count) requires Read
+        { return ReadBytes(std::span(static_cast<std::byte*>(destination), count)); }
 
         [[nodiscard]]
-        bool WriteBytes(const std::span<const std::byte> source) requires (!Read)
+        bool WriteBytes(const std::span<const std::byte> bytes) requires (!Read)
         {
-            if (source.size() > static_cast<s00>(std::numeric_limits<std::streamsize>::max())) {
-                Stream.setstate(std::ios::failbit);
-                return false;
-            }
+            if (!Fits(bytes.size())) return false;
 
-            if (!source.empty()) Stream.write(
-                reinterpret_cast<  const char*  >(source.data()),
-                     static_cast<std::streamsize>(source.size())
+            if (!bytes.empty()) File.write(
+                reinterpret_cast<  const char*  >(bytes.data()),
+                     static_cast<std::streamsize>(bytes.size())
             );
 
             return Good();
         }
 
         [[nodiscard]]
-        bool WriteBytes(const void* source, const s00 size) requires (!Read)
-        {
-            return WriteBytes({ static_cast<const std::byte*>(source), size });
-        }
+        bool WriteBytes(const void* source, const s00 count) requires (!Read)
+        { return WriteBytes(std::span(static_cast<const std::byte*>(source), count)); }
 
         [[nodiscard]]
         bool Flush() requires (!Read)
         {
-            Stream.flush();
+            File.flush();
+
             return Good();
         }
 
         [[nodiscard]]
-        bool Good() const { return static_cast<bool>(Stream); }
+        bool Good() const { return static_cast<bool>(File); }
 
     };
 

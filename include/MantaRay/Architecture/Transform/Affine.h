@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-#ifndef MANTARAY_AFFINE_H
-#define MANTARAY_AFFINE_H
+#ifndef MANTARAY_ARCHITECTURE_TRANSFORM_AFFINE_H
+#define MANTARAY_ARCHITECTURE_TRANSFORM_AFFINE_H
 
 namespace MantaRay
 {

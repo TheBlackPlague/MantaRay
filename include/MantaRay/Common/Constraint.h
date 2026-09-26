@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: MIT
 //
 
-#ifndef MANTARAY_CONSTRAINT_H
-#define MANTARAY_CONSTRAINT_H
+#ifndef MANTARAY_COMMON_CONSTRAINT_H
+#define MANTARAY_COMMON_CONSTRAINT_H
 
-#include <type_traits>
+#include <concepts>
 
 #include "Integral.h"
 
@@ -14,7 +14,7 @@ namespace MantaRay
 {
 
     template<typename T>
-    concept QuantizedInteger = std::is_same_v<T, i08> || std::is_same_v<T, i16> || std::is_same_v<T, i32>;
+    concept QuantizedInteger = std::same_as<T, i08> || std::same_as<T, i16> || std::same_as<T, i32>;
 
 }
 

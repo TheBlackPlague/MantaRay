@@ -3,12 +3,11 @@
 // SPDX-License-Identifier: MIT
 //
 
-#ifndef MANTARAY_LAYER_H
-#define MANTARAY_LAYER_H
+#ifndef MANTARAY_ARCHITECTURE_LAYER_H
+#define MANTARAY_ARCHITECTURE_LAYER_H
 
 #include "Activation/Identity.h"
 #include "Transform/Affine.h"
-
 #include "../Common/Integral.h"
 
 namespace MantaRay
@@ -22,7 +21,7 @@ namespace MantaRay
         constexpr static s00 OutputSize = O;
 
         using Activation = A;
-        using Transform = T;
+        using  Transform = T;
 
     };
 

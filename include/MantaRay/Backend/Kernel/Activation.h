@@ -3,13 +3,15 @@
 // SPDX-License-Identifier: MIT
 //
 
-#ifndef MANTARAY_BACKEND_ACTIVATION_H
-#define MANTARAY_BACKEND_ACTIVATION_H
+#ifndef MANTARAY_BACKEND_KERNEL_ACTIVATION_H
+#define MANTARAY_BACKEND_KERNEL_ACTIVATION_H
 
 #include <algorithm>
 #include <limits>
+#include <type_traits>
 
-#include "../Processor.h"
+#include "../Native.h"
+#include "../Pass/Range.h"
 #include "../../Architecture/Activation/ClippedReLU.h"
 #include "../../Architecture/Activation/Identity.h"
 #include "../../Architecture/Activation/SquaredClippedReLU.h"
@@ -28,11 +30,15 @@ namespace MantaRay::Backend
 
         constexpr static bool SIMDCompatible = true;
 
-        constexpr static F Apply   (const F x) { return x; }
-        constexpr static S ApplySum(const S x) { return x; }
+        constexpr static F Apply   (const F value) { return value; }
+        constexpr static S ApplySum(const S value) { return value; }
 
+        template<s00 Lanes>
         [[clang::always_inline]]
-        static SIMDVEC ApplyVector(const SIMDVEC x) requires HasSIMD { return x; }
+        static Native::Register<F, Lanes> ApplyVector(const Native::Register<F, Lanes> value)
+        {
+            return value;
+        }
 
     };
 
@@ -46,36 +52,27 @@ namespace MantaRay::Backend
         constexpr static bool SIMDCompatible = true;
 
         template<typename T, i64 Scale>
-        constexpr static T Clamp(const T x)
+        constexpr static T Clamp(const T value)
         {
-            static_assert(
-                static_cast<i64>(Minimum) * Scale >= std::numeric_limits<T>::min() &&
-                static_cast<i64>(Maximum) * Scale <= std::numeric_limits<T>::max(),
-                "Activation bounds must fit the quantized domain."
-            );
+            constexpr i64 Lower = i64 { Minimum } * Scale;
+            constexpr i64 Upper = i64 { Maximum } * Scale;
 
-            return std::clamp(
-                x,
-                static_cast<T>(static_cast<i64>(Minimum) * Scale),
-                static_cast<T>(static_cast<i64>(Maximum) * Scale)
-            );
+            static_assert(Lower >= std::numeric_limits<T>::min() && Upper <= std::numeric_limits<T>::max());
+
+            return std::clamp(value, static_cast<T>(Lower), static_cast<T>(Upper));
         }
 
-        constexpr static F Apply   (const F x) { return Clamp<F,                           Q::QA>(x); }
-        constexpr static S ApplySum(const S x) { return Clamp<S, static_cast<i64>(Q::QA) * Q::QB>(x); }
+        constexpr static F Apply   (const F value) { return Clamp<F,                 Q::QA>(value); }
+        constexpr static S ApplySum(const S value) { return Clamp<S, i64 { Q::QA } * Q::QB>(value); }
 
+        template<s00 Lanes>
         [[clang::always_inline]]
-        static SIMDVEC ApplyVector(const SIMDVEC x) requires HasSIMD
+        static Native::Register<F, Lanes> ApplyVector(const Native::Register<F, Lanes> value)
         {
-            static_assert(
-                static_cast<i64>(Minimum) * Q::QA >= std::numeric_limits<F>::min() &&
-                static_cast<i64>(Maximum) * Q::QA <= std::numeric_limits<F>::max()
-            );
+            const auto lower = Native::Broadcast<F, Lanes>(static_cast<F>(i64 { Minimum } * Q::QA));
+            const auto upper = Native::Broadcast<F, Lanes>(static_cast<F>(i64 { Maximum } * Q::QA));
 
-            const auto lower = SIMD<F>::From(static_cast<F>(static_cast<i64>(Minimum) * Q::QA));
-            const auto upper = SIMD<F>::From(static_cast<F>(static_cast<i64>(Maximum) * Q::QA));
-
-            return SIMD<F>::Min(upper, SIMD<F>::Max(lower, x));
+            return Native::Min(Native::Max(value, lower), upper);
         }
 
     };
@@ -89,18 +86,36 @@ namespace MantaRay::Backend
 
         using Clip = Activation<ClippedReLU<Minimum, Maximum>, Q>;
 
-        constexpr static bool SIMDCompatible = false;
+        using Proof = Pass::SquareProof<i64 { Minimum } * Q::QA, i64 { Maximum } * Q::QA, Q::QA>;
+
+        constexpr static bool SIMDCompatible = std::is_same_v<F, i16> && Proof::Valid;
 
         template<typename T, i64 Scale>
-        constexpr static T Square(const T x)
+        constexpr static T Square(const T value)
         {
-            const i64 result = static_cast<i64>(x) * static_cast<i64>(x) / Scale;
+            const i64 normalized = i64 { value } * value / Scale;
 
-            return static_cast<T>(std::min(result, static_cast<i64>(std::numeric_limits<T>::max())));
+            const i64 maximum = std::numeric_limits<T>::max();
+
+            return static_cast<T>(std::min(normalized, maximum));
         }
 
-        constexpr static F Apply   (const F x) { return Square<F,                           Q::QA>(Clip::Apply   (x)); }
-        constexpr static S ApplySum(const S x) { return Square<S, static_cast<i64>(Q::QA) * Q::QB>(Clip::ApplySum(x)); }
+        constexpr static F Apply   (const F value) { return Square<F,                 Q::QA>(Clip::Apply   (value)); }
+        constexpr static S ApplySum(const S value) { return Square<S, i64 { Q::QA } * Q::QB>(Clip::ApplySum(value)); }
+
+        template<s00 Lanes>
+        [[clang::always_inline]]
+        static Native::Register<F, Lanes> ApplyVector(const Native::Register<F, Lanes> value) requires SIMDCompatible
+        {
+            const auto clipped = Clip::ApplyVector(value);
+            const auto squared = Native::MulLo(clipped, clipped);
+
+            if (Q::QA == 1) return squared;
+
+            const auto multiplier = Native::Broadcast<F, Lanes>(static_cast<F>(Proof::Multiplier));
+
+            return Native::ShiftRight<Proof::Shift>(Native::MulHighUnsigned(squared, multiplier));
+        }
 
     };
 

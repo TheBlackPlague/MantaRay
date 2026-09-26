@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.21)
 
-project(MantaRay VERSION 4.0.0 LANGUAGES CXX)
+project(MantaRay VERSION 5.0.0 LANGUAGES CXX)
 
 # === OPTIONS ===
 option(BUILD_TESTS      "Build kernel tests"    ${PROJECT_IS_TOP_LEVEL})

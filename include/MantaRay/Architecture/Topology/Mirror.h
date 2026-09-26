@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-#ifndef MANTARAY_MIRROR_H
-#define MANTARAY_MIRROR_H
+#ifndef MANTARAY_ARCHITECTURE_TOPOLOGY_MIRROR_H
+#define MANTARAY_ARCHITECTURE_TOPOLOGY_MIRROR_H
 
 namespace MantaRay
 {

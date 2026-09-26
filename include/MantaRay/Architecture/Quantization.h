@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: MIT
 //
 
-#ifndef MANTARAY_QUANTIZATION_H
-#define MANTARAY_QUANTIZATION_H
+#ifndef MANTARAY_ARCHITECTURE_QUANTIZATION_H
+#define MANTARAY_ARCHITECTURE_QUANTIZATION_H
 
 #include "../Common/Constraint.h"
 
@@ -22,9 +22,8 @@ namespace MantaRay
     struct Quantization
     {
 
-        constexpr static i32 QA = A;
-        constexpr static i32 QB = B;
-
+        constexpr static i32          QA =     A;
+        constexpr static i32          QB =     B;
         constexpr static i32 OutputScale = Scale;
 
         using FeatureType = Feature;
