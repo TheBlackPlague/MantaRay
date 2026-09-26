@@ -17,6 +17,8 @@ namespace MantaRay::Backend::ISA
     struct AVX512F : AVX2<T>
     {
 
+        constexpr static s00 Bytes = 64;
+
         using Vector = __m512i;
         using Half   = __m256i;
 
