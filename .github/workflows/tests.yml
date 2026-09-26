@@ -67,7 +67,10 @@ jobs:
         run: |
           # Execute every ISA target, including AVX-512, regardless of the runner CPU.
           if [[ "$RUNNER_OS" == "Windows" ]]; then
-            sde="$(cygpath -m "$SDE_PATH")/sde.exe"
+            # SDE 10.8 cannot load its runtime beneath single-letter directory names.
+            sde_root="$(cygpath -u "$SYSTEMDRIVE/IntelSDE")"
+            mv "$(cygpath -u "$SDE_PATH")" "$sde_root"
+            sde="$(cygpath -m "$sde_root")/sde.exe"
           else
             sudo sysctl -w kernel.yama.ptrace_scope=0
             sde="$SDE_PATH/sde64"
