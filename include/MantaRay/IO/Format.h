@@ -14,6 +14,8 @@
 #include <memory>
 #include <span>
 
+#include "../Backend/Storage/NetworkStorage.h"
+
 namespace MantaRay::IO
 {
 
