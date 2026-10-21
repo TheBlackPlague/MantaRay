@@ -21,20 +21,20 @@ using namespace MantaRay;
 template<typename T, s00 N, s00 Subs, s00 Adds>
 void CheckUpdate()
 {
-    const Array<T, N> source = Ramp<T, N, 30>();
+    const Guarded<T, N> source = Ramp<T, N, 30>();
 
-    const std::array<Array<T, N>, 2> removed { Generate<T, N, 4>(), Ramp<T, N, 7>() };
-    const std::array<Array<T, N>, 2> added   { Ramp<T, N, 11>(), Generate<T, N, 13>() };
+    const std::array<Guarded<T, N>, 2> removed { Generate<T, N, 4>(), Ramp<T, N, 7>() };
+    const std::array<Guarded<T, N>, 2> added   { Ramp<T, N, 11>(), Generate<T, N, 13>() };
 
-    std::array<const T*, Subs> subtract;
-    std::array<const T*, Adds> add     ;
+    std::array<const std::array<T, N>*, Subs> subtract;
+    std::array<const std::array<T, N>*, Adds> add     ;
 
-    for (s00 i = 0; i < Subs; i++) subtract[i] = removed[i].data();
-    for (s00 i = 0; i < Adds; i++) add     [i] = added  [i].data();
+    for (s00 i = 0; i < Subs; i++) subtract[i] = &removed[i].Values;
+    for (s00 i = 0; i < Adds; i++) add     [i] = &added  [i].Values;
 
-    Array<T, N> destination;
+    Guarded<T, N> destination;
 
-    Backend::Kernel::Update<Backend::Native, N, Subs, Adds>(source.data(), destination.data(), subtract, add);
+    Backend::Kernel::Update<Backend::Native, N, Subs, Adds>(source.Values, destination.Values, subtract, add);
 
     for (s00 i = 0; i < N; i++) {
         T expected = source[i];
@@ -72,21 +72,21 @@ void CheckUpdateWraps()
     constexpr T Max = std::numeric_limits<T>::max();
     constexpr T Min = std::numeric_limits<T>::min();
 
-    Array<T, N> source;
-    Array<T, N> row   ;
+    Guarded<T, N> source;
+    Guarded<T, N> row   ;
 
     for (s00 i = 0; i < N; i++) {
         source[i] = i % 2 == 0 ? Max : Min;
         row   [i] = 1;
     }
 
-    Array<T, N> destination;
+    Guarded<T, N> destination;
 
-    Backend::Kernel::Update<Backend::Native, N, 0, 1>(source.data(), destination.data(), {}, { row.data() });
+    Backend::Kernel::Update<Backend::Native, N, 0, 1>(source.Values, destination.Values, {}, { &row.Values });
 
     for (s00 i = 0; i < N; i++) ASSERT_EQ(destination[i], i % 2 == 0 ? Min : static_cast<T>(Min + 1));
 
-    Backend::Kernel::Update<Backend::Native, N, 1, 0>(destination.data(), destination.data(), { row.data() }, {});
+    Backend::Kernel::Update<Backend::Native, N, 1, 0>(destination.Values, destination.Values, { &row.Values }, {});
 
     for (s00 i = 0; i < N; i++) ASSERT_EQ(destination[i], source[i]);
 }

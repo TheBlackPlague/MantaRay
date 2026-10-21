@@ -7,11 +7,12 @@
 #define MANTARAY_BACKEND_ISA_SCALAR_H
 
 #include <algorithm>
+#include <array>
 #include <bit>
 #include <cstring>
 #include <memory>
 
-#include "../../Common/Integral.h"
+#include "../../Common.h"
 
 namespace MantaRay::Backend::ISA
 {
@@ -62,19 +63,21 @@ namespace MantaRay::Backend::ISA
         constexpr static s00  DotChains =  4;
         constexpr static bool VNNI      = false;
 
+        template<typename T, s00 N>
         [[clang::always_inline]]
-        static Vector Load(const void* address)
+        static Vector Load(const std::array<T, N>& array, const s00 index)
         {
             Vector value;
 
-            std::memcpy(&value, std::assume_aligned<Bytes>(static_cast<const u08*>(address)), Bytes);
+            std::memcpy(&value, std::assume_aligned<Bytes>(reinterpret_cast<const u08*>(&array[index])), Bytes);
 
             return value;
         }
 
+        template<typename T, s00 N>
         [[clang::always_inline]]
-        static void Store(void* address, const Vector value)
-        { std::memcpy(std::assume_aligned<Bytes>(static_cast<u08*>(address)), &value, Bytes); }
+        static void Store(std::array<T, N>& array, const s00 index, const Vector value)
+        { std::memcpy(std::assume_aligned<Bytes>(reinterpret_cast<u08*>(&array[index])), &value, Bytes); }
 
         [[clang::always_inline]]
         static Vector Zero() { return Vector {}; }
@@ -200,12 +203,13 @@ namespace MantaRay::Backend::ISA
             return std::bit_cast<Vector>(result);
         }
 
+        template<s00 N>
         [[clang::always_inline]]
-        static VectorF LoadF(const f32* address)
+        static VectorF LoadF(const std::array<f32, N>& array, const s00 index)
         {
             VectorF value;
 
-            std::memcpy(&value, std::assume_aligned<Bytes>(address), Bytes);
+            std::memcpy(&value, std::assume_aligned<Bytes>(&array[index]), Bytes);
 
             return value;
         }

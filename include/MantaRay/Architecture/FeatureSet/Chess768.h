@@ -7,7 +7,7 @@
 #define MANTARAY_ARCHITECTURE_FEATURESET_CHESS768_H
 
 #include "../FeatureSet.h"
-#include "../../Common/Integral.h"
+#include "../../Common.h"
 
 namespace MantaRay
 {

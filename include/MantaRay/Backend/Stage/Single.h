@@ -6,20 +6,15 @@
 #ifndef MANTARAY_BACKEND_STAGE_SINGLE_H
 #define MANTARAY_BACKEND_STAGE_SINGLE_H
 
-#include <array>
 #include <cassert>
 #include <span>
 #include <string_view>
 #include <type_traits>
 
 #include "Format.h"
+#include "../../Common.h"
 #include "../../Architecture/Signal.h"
 #include "../../Architecture/Topology/Concat.h"
-#include "../../Common/Alignment.h"
-#include "../../Common/Integral.h"
-#include "../../Common/Interval.h"
-#include "../../Common/List.h"
-#include "../../Common/Message.h"
 #include "../../IO/Loader.h"
 #include "../Kernel/Dense.h"
 
@@ -59,8 +54,8 @@ namespace MantaRay::Backend::Stage
             struct Parameters
             {
 
-                alignas(Alignment) std::array<typename W::Type, Out * In> Weights;
-                alignas(Alignment) std::array<typename B::Type, Out     > Biases ;
+                alignas(Alignment) Array<typename W::Type, Out, In> Weights;
+                alignas(Alignment) Array<typename B::Type, Out    > Biases ;
 
             };
 
@@ -74,7 +69,7 @@ namespace MantaRay::Backend::Stage
 
                 for (s00 o = 0; o < Out; o++) {
                     for (s00 i = 0; i < In; i++)
-                        parameters.Weights[o * In + i] = weights[BulletIndex<W>(In, Out, i, o)];
+                        parameters.Weights[o][i] = weights[BulletIndex<W>(In, Out, i, o)];
 
                     parameters.Biases[o] = biases[o];
                 }
@@ -119,9 +114,9 @@ namespace MantaRay::Backend::Stage
         using Parameters = Layout::Parameters;
 
         using Element = Element<Target>;
+        using Buffer  = Array<Element, Out.Perspectives, Out.Size>;
 
         constexpr static bool Final        = IsOutput<L>;
-        constexpr static s00  Elements     = Out.Size * Out.Perspectives;
         constexpr static u08  Perspectives = Out.Perspectives;
 
         constexpr static SinglePlan Plan { .Input = Source, .Output = Target };
@@ -130,11 +125,11 @@ namespace MantaRay::Backend::Stage
 
         [[clang::always_inline]]
         static void Run(
-            const Parameters& parameters,
-            const Input*      stm       ,
-            const Input*      ntm       ,
-            const s00         bucket    ,
-                  Element*    output
+            const Parameters&            parameters,
+            const Array<Input, In.Size>& stm       ,
+            const Array<Input, In.Size>& ntm       ,
+            const s00                    bucket    ,
+                  Buffer&                output
         ) requires (!Final)
         {
             #pragma clang fp contract(off)
@@ -142,51 +137,53 @@ namespace MantaRay::Backend::Stage
             if constexpr (Elementwise<L>) {
                 for (s00 p = 0; p < In.Perspectives; p++)
                 for (s00 j = 0; j < In.Size        ; j++)
-                    output[p * In.Size + j] = Write<Target>(Activate((p ? ntm : stm)[j]));
+                    output[p][j] = Write<Target>(Activate((p ? ntm : stm)[j]));
             } else if constexpr (IsPairwise<L>) {
                 constexpr s00 Half = In.Size / 2;
 
                 for (s00 p = 0; p < 2   ; p++)
                 for (s00 j = 0; j < Half; j++) {
-                    const Input* source = p ? ntm : stm;
+                    const Array<Input, In.Size>& source = p ? ntm : stm;
 
                     const i64 a = L::Activation::Apply(Read<Source>(source[       j]), In.Scale);
                     const i64 b = L::Activation::Apply(Read<Source>(source[Half + j]), In.Scale);
 
-                    output[p * Half + j] = Write<Target>(a * b >> L::Shift);
+                    output[p][j] = Write<Target>(a * b >> L::Shift);
                 }
             } else if constexpr (std::is_same_v<L, Concat>) {
                 for (s00 p = 0; p < 2      ; p++)
                 for (s00 j = 0; j < In.Size; j++)
-                    output[p * In.Size + j] = Write<Target>(Read<Source>((p ? ntm : stm)[j]));
+                    output[0][p * In.Size + j] = Write<Target>(Read<Source>((p ? ntm : stm)[j]));
             } else if constexpr (IsSelect<L>) {
                 assert(bucket < L::Buckets::Count);
 
-                for (s00 j = 0; j < Out.Size; j++) output[j] = Write<Target>(Read<Source>(stm[bucket * Out.Size + j]));
+                for (s00 j = 0; j < Out.Size; j++)
+                    output[0][j] = Write<Target>(Read<Source>(stm[bucket * Out.Size + j]));
             } else if constexpr (IsAffine<L>) {
                 constexpr f32 Factor = L::DequantizeFactor(In);
 
                 for (s00 o = 0; o < L::OutputSize; o++) {
-                    const auto* weights = parameters.Weights.data() + o * L::InputSize;
+                    const auto& weights = parameters.Weights[o];
 
                     if constexpr (L::IsFloat) {
-                        output[o] = Kernel::DenseDotF<ISA, L::InputSize>(stm, weights) + parameters.Biases[o];
+                        output[0][o] = Kernel::DenseDotF<ISA, L::InputSize>(stm, weights) + parameters.Biases[o];
                     } else {
                         i64 sum = 0;
 
                         for (s00 i = 0; i < L::InputSize; i++) sum += Read<Source>(stm[i]) * i64 { weights[i] };
 
                         if constexpr (L::IsDequantize)
-                            output[o] = static_cast<f32>(sum) * Factor + parameters.Biases[o];
+                            output[0][o] = static_cast<f32>(sum) * Factor + parameters.Biases[o];
                         else
-                            output[o] = Write<Target>(L::Schedule::Apply(sum) + i64 { parameters.Biases[o] });
+                            output[0][o] = Write<Target>(L::Schedule::Apply(sum) + i64 { parameters.Biases[o] });
                     }
                 }
             } else static_assert(false, "Single has no reference implementation for this layer");
         }
 
         [[clang::always_inline]]
-        static i32 Run(const Parameters&, const Input* stm, const Input*, const s00) requires (Final)
+        static i32 Run(const Parameters&, const Array<Input, In.Size>& stm, const Array<Input, In.Size>&, const s00)
+        requires (Final)
         {
             if constexpr (In.Domain == Domain::Float) return L::ApplyFloat(stm[0]);
             else                                      return L::template Apply<In>(Read<Source>(stm[0]));

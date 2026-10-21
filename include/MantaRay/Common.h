@@ -3,17 +3,82 @@
 // SPDX-License-Identifier: MIT
 //
 
-#ifndef MANTARAY_COMMON_INTERVAL_H
-#define MANTARAY_COMMON_INTERVAL_H
+#ifndef MANTARAY_COMMON_H
+#define MANTARAY_COMMON_H
 
 #include <algorithm>
+#include <array>
+#include <bit>
 #include <concepts>
+#include <cstddef>
+#include <cstdint>
 #include <limits>
-
-#include "Integral.h"
+#include <string_view>
+#include <type_traits>
 
 namespace MantaRay
 {
+
+    using s00 = std::size_t;
+
+    using u64 = std::uint64_t;
+    using i64 = std:: int64_t;
+
+    using u32 = std::uint32_t;
+    using i32 = std:: int32_t;
+
+    using u16 = std::uint16_t;
+    using i16 = std:: int16_t;
+
+    using u08 = std::uint8_t;
+    using i08 = std:: int8_t;
+
+    using f32 = float;
+
+    static_assert(sizeof(f32) == 4);
+
+    template<typename T>
+    constexpr T WrapAdd(const T left, const T right)
+    {
+        using U = std::make_unsigned_t<T>;
+
+        return std::bit_cast<T>(static_cast<U>(static_cast<u64>(static_cast<U>(left)) + static_cast<U>(right)));
+    }
+
+    template<typename T>
+    constexpr T WrapSub(const T left, const T right)
+    {
+        using U = std::make_unsigned_t<T>;
+
+        return std::bit_cast<T>(static_cast<U>(static_cast<u64>(static_cast<U>(left)) - static_cast<U>(right)));
+    }
+
+    template<typename T>
+    constexpr T WrapMul(const T left, const T right)
+    {
+        using U = std::make_unsigned_t<T>;
+
+        return std::bit_cast<T>(static_cast<U>(static_cast<u64>(static_cast<U>(left)) * static_cast<U>(right)));
+    }
+
+    constexpr inline s00 Alignment = 64;
+
+    template<u08>
+    struct Absent {};
+
+    namespace Detail
+    {
+
+        template<typename T, s00 N, s00... Ns>
+        struct Nest { using Type = std::array<typename Nest<T, Ns...>::Type, N>; };
+
+        template<typename T, s00 N>
+        struct Nest<T, N> { using Type = std::array<T, N>; };
+
+    }
+
+    template<typename T, s00... Ns>
+    using Array = Detail::Nest<T, Ns...>::Type;
 
     struct Interval
     {
@@ -177,6 +242,90 @@ namespace MantaRay
         return Detail::Reduce(scale.Numerator, Detail::i128 { scale.Denominator } << shift);
     }
 
+    template<typename... T>
+    struct List
+    {
+
+        constexpr static s00 Size = sizeof...(T);
+
+    };
+
+    template<s00 I, typename... T>
+    using At = __type_pack_element<I, T...>;
+
+    namespace Detail
+    {
+
+        template<s00 I, typename... T>
+        consteval auto Pick(List<T...>)
+        {
+            if constexpr (I < sizeof...(T)) return std::type_identity<At<I, T...>> {};
+            else                            return std::type_identity<void       > {};
+        }
+
+    }
+
+    template<typename L, s00 I>
+    using ItemAt = decltype(Detail::Pick<I>(L {}))::type;
+
+    class Message
+    {
+
+        constexpr static s00 Capacity = 256;
+
+        Array<char, Capacity> Buffer {};
+
+        s00 Length = 0;
+
+        constexpr void Append(const char character)
+        {
+            if (Length < Capacity - 1) Buffer[Length++] = character;
+        }
+
+        public:
+        constexpr Message& operator <<(const std::string_view text)
+        {
+            for (const char character : text) Append(character);
+
+            return *this;
+        }
+
+        constexpr Message& operator <<(const i64 value)
+        {
+            if (value < 0) Append('-');
+
+            u64 rest = value < 0 ? 0 - static_cast<u64>(value) : static_cast<u64>(value);
+
+            Array<char, 20> digits {};
+
+            s00 count = 0;
+
+            do {
+                digits[count++] = static_cast<char>('0' + rest % 10);
+
+                rest /= 10;
+            } while (rest != 0);
+
+            while (count != 0) Append(digits[--count]);
+
+            return *this;
+        }
+
+        constexpr const char* data() const { return Buffer.data(); }
+
+        constexpr s00 size() const { return Length; }
+
+    };
+
 }
 
-#endif //MANTARAY_COMMON_INTERVAL_H
+#if defined(_MSC_VER)
+#define NO_UNIQUE_ADDRESS [[msvc::no_unique_address]]
+#else
+#define NO_UNIQUE_ADDRESS [[no_unique_address]]
+#endif
+
+#define PRAGMA(x) _Pragma(#x)
+#define UNROLL(x) PRAGMA(clang loop unroll(x))
+
+#endif //MANTARAY_COMMON_H

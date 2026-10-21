@@ -10,12 +10,9 @@
 #include <type_traits>
 
 #include "Format.h"
+#include "../../Common.h"
 #include "../../Architecture/Signal.h"
 #include "../../Architecture/Topology/Concat.h"
-#include "../../Common/Integral.h"
-#include "../../Common/Interval.h"
-#include "../../Common/List.h"
-#include "../../Common/Message.h"
 #include "../../IO/Loader.h"
 #include "../Kernel/Pairwise.h"
 
@@ -40,9 +37,9 @@ namespace MantaRay::Backend::Stage
 
             if constexpr (!IsPairwise<P> || !std::is_same_v<LayerAt<A, I + 1>, Concat>)
                 return {};
-            else if constexpr (!Rectifier<typename P::Activation>::Known || Rectifier<typename P::Activation>::Squared)
-                return {};
             else {
+                if (!Rectifier<typename P::Activation>::Known || Rectifier<typename P::Activation>::Squared) return {};
+
                 constexpr Signal Input  = A::Signals[I];
                 constexpr Format Output = FormatOf<A, I + 2>();
 
@@ -99,9 +96,9 @@ namespace MantaRay::Backend::Stage
 
         using Tensors = List<>;
         using Element = Stage::Element<Output>;
+        using Buffer  = Array<Element, 1, H>;
 
         constexpr static bool Final        = false;
-        constexpr static s00  Elements     = H;
         constexpr static u08  Perspectives = 1;
 
         constexpr static Kernel::PairwiseKernel Plan = Detail::ChoosePairwise<A, ISA, I>().Kernel;
@@ -114,9 +111,15 @@ namespace MantaRay::Backend::Stage
         constexpr static std::string_view Describe() { return { Text.data(), Text.size() }; }
 
         [[clang::always_inline]]
-        static void Run(const Parameters&, const i16* stm, const i16* ntm, const s00, Element* output)
+        static void Run(
+            const Parameters&          ,
+            const Array<i16, H>& stm   ,
+            const Array<i16, H>& ntm   ,
+            const s00                  ,
+                  Buffer&        output
+        )
         {
-            Kernel::Pairwise<ISA, Plan, H>(stm, ntm, output);
+            Kernel::Pairwise<ISA, Plan, H>(stm, ntm, output[0]);
         }
 
     };

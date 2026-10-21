@@ -9,8 +9,9 @@
 #if defined(__ARM_NEON) && defined(__aarch64__)
 
 #include <arm_neon.h>
+#include <array>
 
-#include "../../Common/Integral.h"
+#include "../../Common.h"
 
 namespace MantaRay::Backend::ISA
 {
@@ -34,11 +35,15 @@ namespace MantaRay::Backend::ISA
 
         constexpr static bool VNNI = false;
 
+        template<typename T, s00 N>
         [[clang::always_inline]]
-        static Vector Load(const void* address) { return vld1q_s16(static_cast<const i16*>(address)); }
+        static Vector Load(const std::array<T, N>& array, const s00 index)
+        { return vld1q_s16(reinterpret_cast<const i16*>(&array[index])); }
 
+        template<typename T, s00 N>
         [[clang::always_inline]]
-        static void Store(void* address, const Vector value) { vst1q_s16(static_cast<i16*>(address), value); }
+        static void Store(std::array<T, N>& array, const s00 index, const Vector value)
+        { vst1q_s16(reinterpret_cast<i16*>(&array[index]), value); }
 
         [[clang::always_inline]]
         static Vector Zero() { return vdupq_n_s16(0); }
@@ -118,8 +123,9 @@ namespace MantaRay::Backend::ISA
             return AsI16(vpadalq_s16(AsI32(sum), pairs));
         }
 
+        template<s00 N>
         [[clang::always_inline]]
-        static VectorF LoadF(const f32* address) { return vld1q_f32(address); }
+        static VectorF LoadF(const std::array<f32, N>& array, const s00 index) { return vld1q_f32(&array[index]); }
 
         [[clang::always_inline]]
         static VectorF ZeroF() { return vdupq_n_f32(0.0F); }

@@ -6,15 +6,12 @@
 #ifndef MANTARAY_BACKEND_LOWERING_H
 #define MANTARAY_BACKEND_LOWERING_H
 
-#include <array>
 #include <string_view>
 #include <type_traits>
 #include <utility>
 
+#include "../Common.h"
 #include "../Architecture/Signal.h"
-#include "../Common/Alignment.h"
-#include "../Common/Integral.h"
-#include "../Common/List.h"
 #include "../IO/Loader.h"
 #include "Kernel/Update.h"
 #include "Stage/DenseAffine.h"
@@ -77,9 +74,9 @@ namespace MantaRay::Backend
         }
 
         template<s00 N, typename... S>
-        consteval std::array<char, N> Join(List<S...>)
+        consteval Array<char, N> Join(List<S...>)
         {
-            std::array<char, N> text {};
+            Array<char, N> text {};
 
             s00 length = 0;
 
@@ -97,22 +94,19 @@ namespace MantaRay::Backend
         template<typename S>
         constexpr inline auto Description = Join<Length(S {})>(S {});
 
-        template<typename P, s00 I, typename T>
+        template<typename P, s00 I, typename V>
         [[clang::always_inline]]
-        i32 Run(const typename P::Parameters& parameters, const T* stm, const T* ntm, const s00 bucket)
+        i32 Run(const typename P::Parameters& parameters, const V& stm, const V& ntm, const s00 bucket)
         {
             using S = P::template StageAt<I>;
 
             if constexpr (S::Final) return S::Run(parameters.template Get<I>(), stm, ntm, bucket);
             else {
-                alignas(Alignment) std::array<typename S::Element, S::Elements> output;
+                alignas(Alignment) typename S::Buffer output;
 
-                S::Run(parameters.template Get<I>(), stm, ntm, bucket, output.data());
+                S::Run(parameters.template Get<I>(), stm, ntm, bucket, output);
 
-                const typename S::Element* values = output.data();
-                const typename S::Element* second = S::Perspectives == 2 ? values + S::Elements / 2 : nullptr;
-
-                return Run<P, I + 1>(parameters, values, second, bucket);
+                return Run<P, I + 1>(parameters, output[0], output[S::Perspectives - 1], bucket);
             }
         }
 
@@ -138,6 +132,8 @@ namespace MantaRay::Backend
         using Stages = decltype(Detail::Lower<A, ISA, 0>(List<> {}));
 
         using Accumulator = std::conditional_t<AccumulatorBytes(A::Signals[0].Range) == 2, i16, i32>;
+
+        constexpr static s00 H = A::Transformer::OutputSize;
 
         template<s00 I>
         using StageAt = ItemAt<Stages, I>;
@@ -171,10 +167,10 @@ namespace MantaRay::Backend
 
         [[clang::always_inline]]
         static i32 Forward(
-            const Parameters&  parameters,
-            const Accumulator* stm       ,
-            const Accumulator* ntm       ,
-            const s00          bucket
+            const Parameters&            parameters,
+            const Array<Accumulator, H>& stm       ,
+            const Array<Accumulator, H>& ntm       ,
+            const s00                    bucket
         )
         {
             return Detail::Run<Program, 0>(parameters, stm, ntm, bucket);
@@ -183,9 +179,9 @@ namespace MantaRay::Backend
         template<s00 Subs, s00 Adds>
         [[clang::always_inline]]
         static i32 ForwardFused(
-            const Parameters&                                  parameters,
-            const Kernel::Transition<Accumulator, Subs, Adds>& transition,
-            const s00                                          bucket
+            const Parameters&                                     parameters,
+            const Kernel::Transition<Accumulator, H, Subs, Adds>& transition,
+            const s00                                             bucket
         ) requires (Fusable)
         {
             return StageAt<0>::template RunFused<Subs, Adds>(parameters.template Get<0>(), transition, bucket);

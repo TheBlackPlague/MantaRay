@@ -6,18 +6,15 @@
 #ifndef MANTARAY_RUNTIME_FINNYTABLE_H
 #define MANTARAY_RUNTIME_FINNYTABLE_H
 
-#include <array>
 #include <bit>
 #include <cassert>
-#include <memory>
 #include <span>
 
 #include "Network.h"
+#include "../Common.h"
 #include "../Architecture/FeatureSet.h"
 #include "../Backend/Target.h"
 #include "../Backend/Kernel/Update.h"
-#include "../Common/Alignment.h"
-#include "../Common/Integral.h"
 
 namespace MantaRay
 {
@@ -35,22 +32,20 @@ namespace MantaRay
         struct Entry
         {
 
-            alignas(Alignment) std::array<T, H> Values;
+            alignas(Alignment) Array<T, H> Values;
 
-            std::array<u64, 12> Pieces;
+            Array<u64, 12> Pieces;
 
         };
 
-        std::array<std::array<Entry, F::KeyCount>, 2> Entries {};
+        Array<Entry, 2, F::KeyCount> Entries {};
 
         public:
         void Clear(const N& network) noexcept
         {
-            for (std::array<Entry, F::KeyCount>& entries : Entries)
-            for (Entry&                          entry   : entries) {
-                T* values = std::assume_aligned<Alignment>(entry.Values.data());
-
-                Backend::Kernel::Copy<ISA, H>(network.FeatureBias(), values);
+            for (Array<Entry, F::KeyCount>& entries : Entries)
+            for (Entry&                     entry   : entries) {
+                Backend::Kernel::Copy<ISA, H>(network.FeatureBias(), entry.Values);
 
                 entry.Pieces = {};
             }
@@ -62,17 +57,15 @@ namespace MantaRay
             const u08          perspective,
             const u08          key        ,
             const PieceBoards& boards     ,
-                  T*           destination
+                  Array<T, H>& destination
         ) noexcept
         {
             assert(perspective < 2 && key < F::KeyCount);
 
             Entry& entry = Entries[perspective][key];
 
-            T* values = std::assume_aligned<Alignment>(entry.Values.data());
-
-            std::array<const T*, F::MaxActive> subtract;
-            std::array<const T*, F::MaxActive> add     ;
+            Array<const Array<T, H>*, F::MaxActive> subtract;
+            Array<const Array<T, H>*, F::MaxActive> add     ;
 
             s00 subs = 0;
             s00 adds = 0;
@@ -82,7 +75,7 @@ namespace MantaRay
                 const auto row = [&](const u64 board) {
                     const auto square = static_cast<u08>(std::countr_zero(board));
 
-                    return network.FeatureRow(F::Index(perspective, key, PieceCode(piece, color, square)));
+                    return &network.FeatureRow(F::Index(perspective, key, PieceCode(piece, color, square)));
                 };
 
                 const u64 cached  = entry.Pieces[color * 6 + piece];
@@ -114,9 +107,9 @@ namespace MantaRay
             }
 
             Backend::Kernel::Refresh<ISA, H>(
-                values,
+                entry.Values,
                 destination,
-                values,
+                entry.Values,
                 std::span(subtract).first(subs),
                 std::span(add     ).first(adds)
             );

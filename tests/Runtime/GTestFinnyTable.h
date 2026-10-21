@@ -6,7 +6,6 @@
 #ifndef MANTARAY_RUNTIME_GTESTFINNYTABLE_H
 #define MANTARAY_RUNTIME_GTESTFINNYTABLE_H
 
-#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <memory>
@@ -16,7 +15,7 @@
 
 #include <gtest/gtest.h>
 
-#include <MantaRay/Common/Alignment.h>
+#include <MantaRay/Common.h>
 #include <MantaRay/Runtime/AccumulatorStack.h>
 #include <MantaRay/Runtime/FinnyTable.h>
 #include <MantaRay/Runtime/Network.h>
@@ -35,15 +34,13 @@ namespace FinnyTableTest
     template<typename A, UpdatePolicy Policy>
     void ExpectFresh(Stack<A, Policy>& stack, const Network<A>& network, const std::vector<u16>& pieces)
     {
-        constexpr s00 H = Network<A>::HiddenSize;
-
         const auto fresh = std::make_unique<Stack<A, Policy>>(network);
 
         ResetFromPieces(stack , pieces);
         ResetFromPieces(*fresh, pieces);
 
         for (u08 perspective = 0; perspective < 2; perspective++) {
-            const std::span<const typename Network<A>::Accumulator> values(fresh->Values(perspective), H);
+            const std::span<const typename Network<A>::Accumulator> values(fresh->Values(perspective));
 
             ASSERT_TRUE(SameValues(stack, values, perspective));
         }
@@ -172,12 +169,10 @@ TEST(FinnyTable, EntryEqualsFreshRefresh)
     table->Clear(*network);
 
     const auto fresh = [&](const u08 perspective, const u08 key, const std::vector<u16>& pieces) {
-        std::array<T, H> values;
-
-        std::copy_n(network->FeatureBias(), H, values.begin());
+        std::array<T, H> values = network->FeatureBias();
 
         for (const u16 code : pieces) {
-            const T* row = network->FeatureRow(F::Index(perspective, key, code));
+            const std::array<T, H>& row = network->FeatureRow(F::Index(perspective, key, code));
 
             for (s00 i = 0; i < H; i++) values[i] = WrapAdd(values[i], row[i]);
         }
@@ -198,7 +193,7 @@ TEST(FinnyTable, EntryEqualsFreshRefresh)
         for (s00 pass = 0; pass < 2; pass++) {
             destination.fill(T { 0x5A5A });
 
-            table->Refresh(*network, perspective, key, view, destination.data());
+            table->Refresh(*network, perspective, key, view, destination);
 
             refreshes++;
 

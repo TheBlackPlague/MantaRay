@@ -420,7 +420,7 @@ TEST(Lowering, ProgramShape)
     static_assert(Dot::Plan.Low == 0 && Dot::Plan.High == 255);
 
     static_assert(alignof(Flare::Parameters) == Alignment && alignof(Multi::Parameters) == Alignment);
-    static_assert(std::is_same_v<decltype(Dot::Parameters::Weights), std::array<i16, 1536>>);
+    static_assert(std::is_same_v<decltype(Dot::Parameters::Weights), Array<i16, 1, 2, 768>>);
     static_assert(std::is_same_v<decltype(std::declval<Flare::Parameters&>().Get<0>()), Dot::Parameters&>);
 
 #if defined(__AVX512BW__) && defined(__AVX512VNNI__)
@@ -428,7 +428,7 @@ TEST(Lowering, ProgramShape)
 
     static_assert(Packus::Plan.Mode == Backend::Kernel::DotMode::PackusDot);
     static_assert(Packus::Plan.Accumulators == 2 && !Packus::Plan.WideReduce);
-    static_assert(std::is_same_v<decltype(Packus::Parameters::Weights), std::array<i08, 1536>>);
+    static_assert(std::is_same_v<decltype(Packus::Parameters::Weights), Array<i08, 1, 2, 768>>);
 #endif
 }
 

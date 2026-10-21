@@ -293,8 +293,6 @@ namespace BucketedTest
     {
         using A = Examples::KingBucketed;
 
-        constexpr s00 H = Network<A>::HiddenSize;
-
         std::mt19937_64 random(0x554E414646454354);
 
         const auto network = RandomNetwork<A>(random);
@@ -318,7 +316,7 @@ namespace BucketedTest
 
             ResetFromPieces(*fresh, pieces);
 
-            return SameValues(*stack, std::span(fresh->Values(perspective), H), perspective);
+            return SameValues(*stack, std::span(fresh->Values(perspective)), perspective);
         };
 
         push(KingMove(0, 4, 11));

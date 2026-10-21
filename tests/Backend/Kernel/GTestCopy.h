@@ -18,10 +18,10 @@ using namespace MantaRay;
 template<typename T, s00 N>
 void CheckCopy()
 {
-    const Array<T, N> a = Ramp<T, N, 30>();
-          Array<T, N> b ;
+    const Guarded<T, N> a = Ramp<T, N, 30>();
+          Guarded<T, N> b ;
 
-    Backend::Kernel::Copy<Backend::Native, N>(a.data(), b.data());
+    Backend::Kernel::Copy<Backend::Native, N>(a.Values, b.Values);
 
     for (s00 i = 0; i < N; i++) EXPECT_EQ(a[i], b[i]);
 

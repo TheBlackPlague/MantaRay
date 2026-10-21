@@ -66,7 +66,7 @@ namespace DotTest
             P::template StageAt<0>::Pack(weights, Biases, Parameters->template Get<0>());
         }
 
-        i32 Expected(const i16* stm, const i16* ntm, const s00 bucket) const
+        i32 Expected(const std::array<i16, H>& stm, const std::array<i16, H>& ntm, const s00 bucket) const
         {
             const auto activate = [](const i16 value) -> i64 {
                 const i64 x = std::clamp<i64>(value, 0, 255);
@@ -86,13 +86,13 @@ namespace DotTest
             return static_cast<i32>(value * 400 / 16320);
         }
 
-        i32 Actual(const i16* stm, const i16* ntm, const s00 bucket) const
+        i32 Actual(const std::array<i16, H>& stm, const std::array<i16, H>& ntm, const s00 bucket) const
         {
             return P::Forward(*Parameters, stm, ntm, bucket);
         }
 
         template<s00 Subs, s00 Adds>
-        i32 Fused(const Backend::Kernel::Transition<i16, Subs, Adds>& transition, const s00 bucket) const
+        i32 Fused(const Backend::Kernel::Transition<i16, H, Subs, Adds>& transition, const s00 bucket) const
         {
             return P::template ForwardFused<Subs, Adds>(*Parameters, transition, bucket);
         }
@@ -114,8 +114,8 @@ namespace DotTest
 
         fixture.Pack();
 
-        Array<i16, H> first ;
-        Array<i16, H> second;
+        Guarded<i16, H> first ;
+        Guarded<i16, H> second;
 
         for (s00 j = 0; j < H; j++) {
             first [j] = static_cast<i16>(      static_cast<i32>(j % 400) - 50);
@@ -123,11 +123,11 @@ namespace DotTest
         }
 
         for (s00 bucket = 0; bucket < fixture.Buckets; bucket++) {
-            const i32 forward  = fixture.Expected(first .data(), second.data(), bucket);
-            const i32 backward = fixture.Expected(second.data(), first .data(), bucket);
+            const i32 forward  = fixture.Expected(first .Values, second.Values, bucket);
+            const i32 backward = fixture.Expected(second.Values, first .Values, bucket);
 
-            EXPECT_EQ(fixture.Actual(first .data(), second.data(), bucket), forward ) << "bucket " << bucket;
-            EXPECT_EQ(fixture.Actual(second.data(), first .data(), bucket), backward) << "bucket " << bucket;
+            EXPECT_EQ(fixture.Actual(first .Values, second.Values, bucket), forward ) << "bucket " << bucket;
+            EXPECT_EQ(fixture.Actual(second.Values, first .Values, bucket), backward) << "bucket " << bucket;
         }
     }
 
@@ -140,8 +140,8 @@ namespace DotTest
 
         F fixture;
 
-        Array<i16, H> first ;
-        Array<i16, H> second;
+        Guarded<i16, H> first ;
+        Guarded<i16, H> second;
 
         for (s00 mode = 0; mode < 4; mode++) {
             const auto weight = [&](const s00 o, const s00 i) {
@@ -164,9 +164,9 @@ namespace DotTest
             }
 
             for (s00 bucket = 0; bucket < F::Buckets; bucket++) {
-                const i32 expected = fixture.Expected(first.data(), second.data(), bucket);
+                const i32 expected = fixture.Expected(first.Values, second.Values, bucket);
 
-                EXPECT_EQ(fixture.Actual(first.data(), second.data(), bucket), expected) << mode << " / " << bucket;
+                EXPECT_EQ(fixture.Actual(first.Values, second.Values, bucket), expected) << mode << " / " << bucket;
             }
         }
     }
@@ -176,16 +176,15 @@ namespace DotTest
     {
         constexpr s00 H = Fixture<A>::H;
 
-        std::array<Array<i16, H>, 2> children;
-        std::array<Array<i16, H>, 2> parents ;
-        std::array<Array<i16, H>, 2> outputs ;
+        std::array<Guarded<i16, H>, 2> children;
+        Guarded<i16, 2, H>             parents ;
+        Guarded<i16, 2, H>             outputs ;
 
-        std::array<std::array<Array<i16, H>, 2>, 2> removed;
-        std::array<std::array<Array<i16, H>, 2>, 2> added  ;
+        std::array<std::array<Guarded<i16, H>, 2>, 2> removed;
+        std::array<std::array<Guarded<i16, H>, 2>, 2> added  ;
 
-        Backend::Kernel::Transition<i16, Subs, Adds> transition;
-
-        transition.SideToMove = stm;
+        std::array<std::array<const std::array<i16, H>*, Subs>, 2> subtract;
+        std::array<std::array<const std::array<i16, H>*, Adds>, 2> add     ;
 
         for (u08 perspective = 0; perspective < 2; perspective++) {
             for (s00 j = 0; j < H; j++) {
@@ -197,35 +196,40 @@ namespace DotTest
                 }
             }
 
-            parents[perspective] = children[perspective];
+            parents[perspective] = children[perspective].Values;
 
             for (s00 k = 0; k < Subs; k++) {
                 for (s00 j = 0; j < H; j++)
                     parents[perspective][j] = static_cast<i16>(parents[perspective][j] + removed[perspective][k][j]);
 
-                transition.Subtract[perspective][k] = removed[perspective][k].data();
+                subtract[perspective][k] = &removed[perspective][k].Values;
             }
 
             for (s00 k = 0; k < Adds; k++) {
                 for (s00 j = 0; j < H; j++)
                     parents[perspective][j] = static_cast<i16>(parents[perspective][j] - added[perspective][k][j]);
 
-                transition.Add[perspective][k] = added[perspective][k].data();
+                add[perspective][k] = &added[perspective][k].Values;
             }
-
-            transition.Sources     [perspective] = parents[perspective].data();
-            transition.Destinations[perspective] = outputs[perspective].data();
         }
 
-        const i32 expected = fixture.Expected(children[stm].data(), children[stm ^ 1].data(), bucket);
+        const Backend::Kernel::Transition<i16, H, Subs, Adds> transition {
+            .Sources      = parents.Values,
+            .Destinations = outputs.Values,
+            .Subtract     = subtract      ,
+            .Add          = add           ,
+            .SideToMove   = stm
+        };
+
+        const i32 expected = fixture.Expected(children[stm].Values, children[stm ^ 1].Values, bucket);
         const i32 actual   = fixture.template Fused<Subs, Adds>(transition, bucket);
 
         EXPECT_EQ(actual, expected) << Subs << " / " << Adds;
 
-        for (u08 perspective = 0; perspective < 2; perspective++) {
-            EXPECT_EQ(outputs[perspective].Values, children[perspective].Values) << Subs << " / " << Adds;
-            EXPECT_TRUE(outputs[perspective].Intact());
-        }
+        for (u08 perspective = 0; perspective < 2; perspective++)
+            EXPECT_EQ(outputs[perspective], children[perspective].Values) << Subs << " / " << Adds;
+
+        EXPECT_TRUE(outputs.Intact());
     }
 
     template<typename A>

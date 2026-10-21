@@ -7,21 +7,18 @@
 #define MANTARAY_RUNTIME_ACCUMULATORSTACK_H
 
 #include <algorithm>
-#include <array>
 #include <bit>
 #include <cassert>
-#include <memory>
 #include <span>
 #include <type_traits>
 
 #include "Delta.h"
 #include "FinnyTable.h"
 #include "Network.h"
+#include "../Common.h"
 #include "../Architecture/FeatureSet.h"
 #include "../Backend/Target.h"
 #include "../Backend/Kernel/Update.h"
-#include "../Common/Alignment.h"
-#include "../Common/Integral.h"
 
 namespace MantaRay
 {
@@ -44,15 +41,15 @@ namespace MantaRay
 
         static_assert(Capacity > 0, "the stack needs room for the root");
 
-        using KeyArray   = std::conditional_t<Bucketed, std::array<std::array<u08, 2>, Capacity>, Absent<0>>;
-        using CountArray = std::conditional_t<Counted , std::array<u08, Capacity>                , Absent<1>>;
-        using Table      = std::conditional_t<Bucketed, FinnyTable<A, ISA>                       , Absent<2>>;
-        using Stamp      = std::conditional_t<Bucketed, u64                                      , Absent<3>>;
+        using KeyArray   = std::conditional_t<Bucketed, Array<u08, Capacity, 2>, Absent<0>>;
+        using CountArray = std::conditional_t<Counted , Array<u08, Capacity   >, Absent<1>>;
+        using Table      = std::conditional_t<Bucketed, FinnyTable<A, ISA>     , Absent<2>>;
+        using Stamp      = std::conditional_t<Bucketed, u64                    , Absent<3>>;
 
-        alignas(Alignment) std::array<std::array<std::array<T, H>, 2>, Capacity> Accumulators {};
+        alignas(Alignment) Array<T, Capacity, 2, H> Accumulators {};
 
-        std::array<Delta, Capacity> Deltas {};
-        std::array<u08  , Capacity> Flags  {};
+        Array<Delta, Capacity> Deltas {};
+        Array<u08  , Capacity> Flags  {};
 
         NO_UNIQUE_ADDRESS KeyArray   Keys            {};
         NO_UNIQUE_ADDRESS CountArray PieceCounts     {};
@@ -64,21 +61,22 @@ namespace MantaRay
         s00 Top = 0;
 
         [[clang::always_inline]]
-              T* At(const s00 ply, const u08 perspective)       noexcept
-        { return std::assume_aligned<Alignment>(Accumulators[ply][perspective].data()); }
+              Array<T, H>& At(const s00 ply, const u08 perspective)       noexcept
+        { return Accumulators[ply][perspective]; }
         [[clang::always_inline]]
-        const T* At(const s00 ply, const u08 perspective) const noexcept
-        { return std::assume_aligned<Alignment>(Accumulators[ply][perspective].data()); }
+        const Array<T, H>& At(const s00 ply, const u08 perspective) const noexcept
+        { return Accumulators[ply][perspective]; }
 
         [[clang::always_inline]]
         u08 Key(const s00 ply, const u08 perspective) const noexcept
         {
             if constexpr (Bucketed) return Keys[ply][perspective];
-            else                    return 0;
+
+            return 0;
         }
 
         [[clang::always_inline]]
-        const T* Row(const u08 perspective, const u08 key, const u16 code) const noexcept
+        const Array<T, H>& Row(const u08 perspective, const u08 key, const u16 code) const noexcept
         { return Model->FeatureRow(F::Index(perspective, key, code)); }
 
         template<s00 Subs, s00 Adds, u08 Perspectives>
@@ -88,25 +86,27 @@ namespace MantaRay
             constexpr auto Selected = [](const u08 perspective) { return (Perspectives >> perspective & 1) != 0; };
 
             if constexpr (Subs + Adds == 0) {
-                #pragma clang loop unroll(full)
+                UNROLL(full)
                 for (u08 perspective = 0; perspective < 2; perspective++)
                     if (Selected(perspective))
                         Backend::Kernel::Copy<ISA, H>(At(ply - 1, perspective), At(ply, perspective));
             } else {
-                std::array<std::array<const T*, Subs>, 2> subtract;
-                std::array<std::array<const T*, Adds>, 2> add     ;
+                Array<const Array<T, H>*, 2, Subs> subtract;
+                Array<const Array<T, H>*, 2, Adds> add     ;
 
-                #pragma clang loop unroll(full)
+                UNROLL(full)
                 for (u08 perspective = 0; perspective < 2; perspective++) {
                     if (!Selected(perspective)) continue;
 
                     const u08 key = Key(ply, perspective);
 
-                    for (s00 i = 0; i < Subs; i++) subtract[perspective][i] = Row(perspective, key, delta.Removed(i));
-                    for (s00 i = 0; i < Adds; i++) add     [perspective][i] = Row(perspective, key, delta.Inserted  (i));
+                    for (s00 i = 0; i < Subs; i++)
+                        subtract[perspective][i] = &Row(perspective, key, delta.Removed(i));
+                    for (s00 i = 0; i < Adds; i++)
+                        add     [perspective][i] = &Row(perspective, key, delta.Inserted  (i));
                 }
 
-                #pragma clang loop unroll(full)
+                UNROLL(full)
                 for (u08 perspective = 0; perspective < 2; perspective++)
                     if (Selected(perspective))
                         Backend::Kernel::Update<ISA, H, Subs, Adds>(
@@ -163,7 +163,7 @@ namespace MantaRay
             if constexpr (Bucketed) {
                 Keys[ply] = Keys[ply - 1];
 
-                #pragma clang loop unroll(full)
+                UNROLL(full)
                 for (s00 i = 0; i < 2; i++) {
                     if (i == delta.InsertedCount()) break;
 
@@ -179,7 +179,8 @@ namespace MantaRay
         bool Ready(const s00 ply) const noexcept
         {
             if constexpr (Bucketed) return Flags[ply - 1] == Computed && Keys[ply] == Keys[ply - 1];
-            else                    return Flags[ply - 1] == Computed;
+
+            return Flags[ply - 1] == Computed;
         }
 
         [[clang::always_inline]]
@@ -210,7 +211,7 @@ namespace MantaRay
         {
             const s00 top = Top;
 
-            std::array<s00, 2> base;
+            Array<s00, 2> base;
 
             for (u08 perspective = 0; perspective < 2; perspective++) {
                 s00 ply = top;
@@ -259,7 +260,8 @@ namespace MantaRay
         s00 Bucket() const noexcept
         {
             if constexpr (Counted) return N::Bucket(PieceCounts[Top]);
-            else                   return 0;
+
+            return 0;
         }
 
         [[clang::always_inline]]
@@ -276,22 +278,26 @@ namespace MantaRay
         {
             assert(ply == Top && stm < 2);
 
-            Backend::Kernel::Transition<T, Subs, Adds> transition;
+            Array<const Array<T, H>*, 2, Subs> subtract;
+            Array<const Array<T, H>*, 2, Adds> add     ;
 
-            #pragma clang loop unroll(full)
+            UNROLL(full)
             for (u08 perspective = 0; perspective < 2; perspective++) {
                 const u08 key = Key(ply, perspective);
 
-                transition.Sources     [perspective] = At(ply - 1, perspective);
-                transition.Destinations[perspective] = At(ply    , perspective);
-
                 for (s00 i = 0; i < Subs; i++)
-                    transition.Subtract[perspective][i] = Row(perspective, key, delta.Removed(i));
+                    subtract[perspective][i] = &Row(perspective, key, delta.Removed(i));
                 for (s00 i = 0; i < Adds; i++)
-                    transition.Add     [perspective][i] = Row(perspective, key, delta.Inserted  (i));
+                    add     [perspective][i] = &Row(perspective, key, delta.Inserted  (i));
             }
 
-            transition.SideToMove = stm;
+            const Backend::Kernel::Transition<T, H, Subs, Adds> transition {
+                .Sources      = Accumulators[ply - 1],
+                .Destinations = Accumulators[ply    ],
+                .Subtract     = subtract             ,
+                .Add          = add                  ,
+                .SideToMove   = stm
+            };
 
             const s00 bucket = Bucket();
 
@@ -360,7 +366,7 @@ namespace MantaRay
                     Keys[0][perspective] = key;
                 }
             } else {
-                std::array<u16, F::MaxActive> codes;
+                Array<u16, F::MaxActive> codes;
 
                 s00 count = 0;
 
@@ -374,14 +380,13 @@ namespace MantaRay
                 }
 
                 for (u08 perspective = 0; perspective < 2; perspective++) {
-                    std::array<const T*, F::MaxActive> rows;
+                    Array<const Array<T, H>*, F::MaxActive> rows;
 
-                    for (s00 i = 0; i < count; i++) rows[i] = Row(perspective, 0, codes[i]);
+                    for (s00 i = 0; i < count; i++) rows[i] = &Row(perspective, 0, codes[i]);
 
                     Backend::Kernel::Refresh<ISA, H>(
                         Model->FeatureBias(),
                         At(0, perspective),
-                        nullptr,
                         {},
                         std::span(rows).first(count)
                     );
@@ -410,7 +415,7 @@ namespace MantaRay
 
             Track(top, delta);
 
-            if constexpr (Lazy) {
+            if (Lazy) {
                 Deltas[top] = delta;
                 Flags [top] = 0;
             } else if constexpr (Bucketed) {
@@ -434,7 +439,7 @@ namespace MantaRay
         [[clang::always_inline]]
         void Materialize() noexcept requires (!Bucketed)
         {
-            if constexpr (Lazy) {
+            if (Lazy) {
                 const s00 top = Top;
 
                 if (Flags[top] == Computed) return;
@@ -457,7 +462,7 @@ namespace MantaRay
 
                 if (Flags[top] == Computed) return;
 
-                if constexpr (Lazy) {
+                if (Lazy) {
                     if (Ready(top)) {
                         Advance(top, Deltas[top]);
 
@@ -471,11 +476,10 @@ namespace MantaRay
         i32 Evaluate(const u08 stm) noexcept requires (!Bucketed)
         {
             if constexpr (Fused) return EvaluateFused(stm, [this] { CatchUp(); });
-            else {
-                Materialize();
 
-                return Forward(stm);
-            }
+            Materialize();
+
+            return Forward(stm);
         }
 
         template<typename PieceBoards>
@@ -483,8 +487,9 @@ namespace MantaRay
         i32 Evaluate(const u08 stm, const PieceBoards& boards) noexcept
         {
             if constexpr (!Bucketed) return Evaluate(stm);
-            else if constexpr (Fused) return EvaluateFused(stm, [&] { CatchUp(boards); });
             else {
+                if constexpr (Fused) return EvaluateFused(stm, [&] { CatchUp(boards); });
+
                 Materialize(boards);
 
                 return Forward(stm);
@@ -504,7 +509,7 @@ namespace MantaRay
         s00 Depth() const noexcept { return Top; }
 
         [[nodiscard]]
-        const Accumulator* Values(const u08 perspective) const noexcept
+        const Array<Accumulator, H>& Values(const u08 perspective) const noexcept
         {
             assert(perspective < 2 && (!(Lazy || Bucketed) || Flags[Top] >> perspective & 1));
 

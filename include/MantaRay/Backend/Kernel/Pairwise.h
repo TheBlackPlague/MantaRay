@@ -6,13 +6,14 @@
 #ifndef MANTARAY_BACKEND_KERNEL_PAIRWISE_H
 #define MANTARAY_BACKEND_KERNEL_PAIRWISE_H
 
+#include <array>
 #include <bit>
 #include <limits>
 #include <type_traits>
 
 #include "Dot.h"
 #include "../../Architecture/Signal.h"
-#include "../../Common/Integral.h"
+#include "../../Common.h"
 
 namespace MantaRay::Backend::Kernel
 {
@@ -47,46 +48,47 @@ namespace MantaRay::Backend::Kernel
             const auto product = Plan.Shift == 0 ? ISA::MulLoI16(a, b)
                                                  : ISA::MulHiI16(ISA::MulLoI16(a, ISA::BroadcastI16(Scale)), b);
 
-            if constexpr (Plan.Offset == 0) return product;
-            else                            return ISA::AddI16(product, ISA::BroadcastI16(Bias));
+            if (Plan.Offset == 0) return product;
+
+            return ISA::AddI16(product, ISA::BroadcastI16(Bias));
         }
 
         template<typename ISA, PairwiseKernel Plan, s00 H>
         [[clang::always_inline]]
-        ISA::Vector ProductAt(const i16* stm, const i16* ntm, const s00 position)
+        ISA::Vector ProductAt(const std::array<i16, H>& stm, const std::array<i16, H>& ntm, const s00 position)
         {
             constexpr s00 Half = H / 2;
 
-            const i16* source = position < Half ? stm      : ntm            ;
-            const s00  offset = position < Half ? position : position - Half;
+            const Array<i16, H>& source = position < Half ? stm      : ntm            ;
+            const s00            offset = position < Half ? position : position - Half;
 
-            return Product<ISA, Plan>(ISA::Load(source + offset), ISA::Load(source + Half + offset));
+            return Product<ISA, Plan>(ISA::Load(source, offset), ISA::Load(source, Half + offset));
         }
 
     }
 
     template<typename ISA, PairwiseKernel Plan, s00 H, typename T>
     [[clang::always_inline]]
-    void Pairwise(const i16* stm, const i16* ntm, T* output)
+    void Pairwise(const std::array<i16, H>& stm, const std::array<i16, H>& ntm, std::array<T, H>& output)
     {
         constexpr s00 Lanes = ISA::Bytes / sizeof(i16);
 
         static_assert(std::is_same_v<T, i16> || std::is_same_v<T, u08>, "pairwise products are stored as i16 or u8");
         static_assert(H / 2 % Lanes == 0 && VectorBytes % ISA::Bytes == 0, "pairwise halves must fill whole vectors");
 
-        if constexpr (std::is_same_v<T, i16>) {
-            #pragma clang loop unroll(full)
+        if (std::is_same_v<T, i16>) {
+            UNROLL(full)
             for (s00 i = 0; i < H; i += Lanes)
-                ISA::Store(output + i, Detail::ProductAt<ISA, Plan, H>(stm, ntm, i));
+                ISA::Store(output, i, Detail::ProductAt<ISA, Plan, H>(stm, ntm, i));
         } else {
             static_assert(H % (2 * Lanes) == 0, "packed pairwise products must fill whole vectors");
 
-            #pragma clang loop unroll(full)
+            UNROLL(full)
             for (s00 i = 0; i < H; i += 2 * Lanes) {
                 const auto low  = Detail::ProductAt<ISA, Plan, H>(stm, ntm, i        );
                 const auto high = Detail::ProductAt<ISA, Plan, H>(stm, ntm, i + Lanes);
 
-                ISA::Store(output + i, ISA::PackUnsignedI16(low, high));
+                ISA::Store(output, i, ISA::PackUnsignedI16(low, high));
             }
         }
     }

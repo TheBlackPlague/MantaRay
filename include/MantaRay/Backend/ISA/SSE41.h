@@ -11,7 +11,7 @@
 #include <immintrin.h>
 
 #include "SSE2.h"
-#include "../../Common/Integral.h"
+#include "../../Common.h"
 
 namespace MantaRay::Backend::ISA
 {

@@ -6,16 +6,14 @@
 #ifndef MANTARAY_BACKEND_KERNEL_REDUCE_H
 #define MANTARAY_BACKEND_KERNEL_REDUCE_H
 
-#include <array>
-
-#include "../../Common/Integral.h"
+#include "../../Common.h"
 
 namespace MantaRay::Backend::Kernel
 {
 
     template<typename ISA, s00 K>
     [[clang::always_inline]]
-    i32 ReduceI32(std::array<typename ISA::Vector, K> sums)
+    i32 ReduceI32(Array<typename ISA::Vector, K> sums)
     {
         for (s00 width = K; width > 1        ; width = (width + 1) / 2)
         for (s00 i     = 0; i     < width / 2;                     i++)
@@ -26,7 +24,7 @@ namespace MantaRay::Backend::Kernel
 
     template<typename ISA, s00 K>
     [[clang::always_inline]]
-    i64 ReduceI64(const std::array<typename ISA::Vector, K>& sums)
+    i64 ReduceI64(const Array<typename ISA::Vector, K>& sums)
     {
         i64 sum = 0;
 
@@ -37,7 +35,7 @@ namespace MantaRay::Backend::Kernel
 
     template<typename ISA, s00 N>
     [[clang::always_inline]]
-    f32 ReduceF(std::array<typename ISA::VectorF, N> partials)
+    f32 ReduceF(Array<typename ISA::VectorF, N> partials)
     {
         #pragma clang fp contract(off)
 

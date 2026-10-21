@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "../Facts.h"
+#include "../../Common.h"
 #include "../../Architecture/Output.h"
 #include "../../Architecture/OutputBuckets.h"
 #include "../../Architecture/Signal.h"
@@ -23,9 +24,6 @@
 #include "../../Architecture/Topology/Pairwise.h"
 #include "../../Architecture/Topology/Select.h"
 #include "../../Architecture/Transform/Affine.h"
-#include "../../Common/Integral.h"
-#include "../../Common/Interval.h"
-#include "../../Common/List.h"
 #include "../../IO/Loader.h"
 
 namespace MantaRay::Backend::Stage
@@ -124,7 +122,8 @@ namespace MantaRay::Backend::Stage
     consteval std::string_view ShortName()
     {
         if constexpr (Rectifier<L>::Known) return Rectifier<L>::Name;
-        else                               return L::Name;
+
+        return L::Name;
     }
 
     enum class Encoding : u08 { I16, ZeroPoint, U08, I32, I64, F32 };
@@ -142,7 +141,7 @@ namespace MantaRay::Backend::Stage
 
     constexpr std::string_view EncodingName(const Encoding encoding)
     {
-        constexpr std::string_view Names[] { "I16", "ZeroPoint", "U8", "I32", "I64", "Float" };
+        constexpr Array<std::string_view, 6> Names { "I16", "ZeroPoint", "U8", "I32", "I64", "Float" };
 
         return Names[static_cast<s00>(encoding)];
     }
@@ -186,8 +185,9 @@ namespace MantaRay::Backend::Stage
     [[clang::always_inline]]
     constexpr Element<F> Write(const V value)
     {
-        if constexpr (F.Encoding == Encoding::F32) return value;
-        else                                       return static_cast<Element<F>>(value - F.Offset);
+        if (F.Encoding == Encoding::F32) return value;
+
+        return static_cast<Element<F>>(value - F.Offset);
     }
 
     template<typename W>

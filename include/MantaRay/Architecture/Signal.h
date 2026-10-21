@@ -9,9 +9,7 @@
 #include <concepts>
 #include <string_view>
 
-#include "../Common/Integral.h"
-#include "../Common/Interval.h"
-#include "../Common/Message.h"
+#include "../Common.h"
 
 namespace MantaRay
 {
@@ -48,7 +46,7 @@ namespace MantaRay
 
     constexpr inline s00 VectorBytes = 64;
 
-    constexpr Diagnostic Fail(const Message& text) { return { false, text }; }
+    constexpr Diagnostic Fail(const Message& text) { return { .Ok = false, .Text = text }; }
 
     constexpr Message& operator <<(Message& message, const Scale scale)
     {

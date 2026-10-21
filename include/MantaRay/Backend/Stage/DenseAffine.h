@@ -7,7 +7,6 @@
 #define MANTARAY_BACKEND_STAGE_DENSEAFFINE_H
 
 #include <algorithm>
-#include <array>
 #include <cassert>
 #include <span>
 #include <string_view>
@@ -16,15 +15,11 @@
 #include "Format.h"
 #include "PairwiseConcat.h"
 #include "../Facts.h"
+#include "../../Common.h"
+#include "../../Architecture/Signal.h"
+#include "../../IO/Loader.h"
 #include "../Kernel/Dense.h"
 #include "../Kernel/Pack.h"
-#include "../../Architecture/Signal.h"
-#include "../../Common/Alignment.h"
-#include "../../Common/Integral.h"
-#include "../../Common/Interval.h"
-#include "../../Common/List.h"
-#include "../../Common/Message.h"
-#include "../../IO/Loader.h"
 
 namespace MantaRay::Backend::Stage
 {
@@ -61,39 +56,40 @@ namespace MantaRay::Backend::Stage
             else {
                 constexpr Format Input = FormatOf<A, I>();
 
-                if constexpr (D::IsFloat) return { .Valid = true, .Input = Input };
-                else if constexpr (Input.Encoding != Encoding::I16       &&
-                                   Input.Encoding != Encoding::ZeroPoint &&
-                                   Input.Encoding != Encoding::U08       ) return {};
-                else {
-                    const Interval range   = A::Signals[I].Range;
-                    const Interval x       = { .Min = range.Min - Input.Offset, .Max = range.Max - Input.Offset };
-                    const Interval weights = D::WeightSpec::Bounds;
+                if (D::IsFloat) return { .Valid = true, .Input = Input };
 
-                    if (Input.Encoding == Encoding::U08 ? !MaddubsExact(x, weights) : !MaddExact(x, weights)) return {};
+                if (Input.Encoding != Encoding::I16       &&
+                    Input.Encoding != Encoding::ZeroPoint &&
+                    Input.Encoding != Encoding::U08       ) return {};
 
-                    constexpr s00 Width = sizeof(Element<Input>);
+                const Interval range   = A::Signals[I].Range;
+                const Interval x       = { .Min = range.Min - Input.Offset, .Max = range.Max - Input.Offset };
+                const Interval weights = D::WeightSpec::Bounds;
 
-                    if (D::InputSize * Width % VectorBytes != 0) return {};
+                if (Input.Encoding == Encoding::U08 ? !MaddubsExact(x, weights) : !MaddExact(x, weights)) return {};
 
-                    const Interval product = x * weights;
-                    const s00      vectors = D::InputSize * Width / ISA::Bytes;
-                    const DotPlan  plan    = PlanDot<ISA>(product, D::InputSize);
-                    const s00      chains  = std::min(plan.Accumulators, vectors);
-                    const s00      partial = sizeof(i32) / Width * ((vectors + chains - 1) / chains);
+                constexpr s00 Width = sizeof(Element<Input>);
 
-                    if (plan.WideReduce && !Fits<i32>(Repeat(product, partial))) return {};
+                if (D::InputSize * Width % VectorBytes != 0) return {};
 
-                    return { .Valid = true, .Input = Input, .Accumulators = chains, .WideReduce = plan.WideReduce };
-                }
+                const Interval product = x * weights;
+                const s00      vectors = D::InputSize * Width / ISA::Bytes;
+                const DotPlan  plan    = PlanDot<ISA>(product, D::InputSize);
+                const s00      chains  = std::min(plan.Accumulators, vectors);
+                const s00      partial = sizeof(i32) / Width * ((vectors + chains - 1) / chains);
+
+                if (plan.WideReduce && !Fits<i32>(Repeat(product, partial))) return {};
+
+                return { .Valid = true, .Input = Input, .Accumulators = chains, .WideReduce = plan.WideReduce };
             }
         }
 
         template<typename A, typename ISA, s00 I>
         consteval bool PackedInput()
         {
-            if constexpr (I < 2) return false;
-            else return FormatOf<A, I>().Encoding == Encoding::U08 && PairwiseConcatLength<A, ISA, I - 2>() == 2;
+            if (I < 2) return false;
+
+            return FormatOf<A, I>().Encoding == Encoding::U08 && PairwiseConcatLength<A, ISA, I - 2>() == 2;
         }
 
     }
@@ -143,7 +139,12 @@ namespace MantaRay::Backend::Stage
         constexpr static f32 Factor = D::DequantizeFactor(A::Signals[I]);
 
         [[clang::always_inline]]
-        static auto Evaluate(const Input* input, const Weight* weights, const Bias bias, const i64 offset)
+        static auto Evaluate(
+            const Array<Input , Inputs>& input  ,
+            const Array<Weight, Inputs>& weights,
+            const Bias                   bias   ,
+            const i64                    offset
+        )
         {
             #pragma clang fp contract(off)
 
@@ -162,8 +163,11 @@ namespace MantaRay::Backend::Stage
         static V Activate(const V value)
         {
             if constexpr (!Activates) return value;
-            else if constexpr (Real ) return Activation::ApplyFloat(value);
-            else                      return Activation::Apply(value, A::Signals[Activated].Scale);
+            else {
+                if (Real) return Activation::ApplyFloat(value);
+
+                return Activation::Apply(value, A::Signals[Activated].Scale);
+            }
         }
 
         consteval static Message Describing()
@@ -175,7 +179,7 @@ namespace MantaRay::Backend::Stage
             if (D::IsDequantize) text << ",Dequantize";
             if (Selects        ) text << ",Select=" << static_cast<i64>(Buckets);
 
-            if constexpr (Activates) text << "," << ShortName<Activation>();
+            if (Activates) text << "," << ShortName<Activation>();
 
             if (Exits            ) text << ",Output";
             if (Choice.WideReduce) text << ",i64"   ;
@@ -190,9 +194,9 @@ namespace MantaRay::Backend::Stage
 
         using Tensors = List<W, B>;
         using Element = Stage::Element<Target>;
+        using Buffer  = Array<Element, 1, A::Signals[I + N].Size>;
 
         constexpr static bool Final        = Exits;
-        constexpr static s00  Elements     = A::Signals[I + N].Size;
         constexpr static u08  Perspectives = 1;
 
         constexpr static DensePlan Plan = Choice;
@@ -200,10 +204,10 @@ namespace MantaRay::Backend::Stage
         struct Parameters
         {
 
-            alignas(Alignment) std::array<Weight, Outputs * Inputs> Weights;
-            alignas(Alignment) std::array<Bias  , Outputs         > Biases ;
+            alignas(Alignment) Array<Weight, Outputs, Inputs> Weights;
+            alignas(Alignment) Array<Bias  , Outputs        > Biases ;
 
-            NO_UNIQUE_ADDRESS std::conditional_t<Shifted, std::array<i64, Outputs>, Absent<0>> Offsets;
+            NO_UNIQUE_ADDRESS std::conditional_t<Shifted, Array<i64, Outputs>, Absent<0>> Offsets;
 
         };
 
@@ -222,9 +226,9 @@ namespace MantaRay::Backend::Stage
                     const s00  input = Kernel::LogicalIndex<ISA, Packed>(i);
                     const auto value = weights[BulletIndex<W>(Inputs, Outputs, input, o)];
 
-                    parameters.Weights[o * Inputs + i] = static_cast<Weight>(value);
+                    parameters.Weights[o][i] = static_cast<Weight>(value);
 
-                    if constexpr (!D::IsFloat) total += value;
+                    if (!D::IsFloat) total += value;
                 }
 
                 parameters.Biases[o] = static_cast<Bias>(biases[o]);
@@ -243,11 +247,11 @@ namespace MantaRay::Backend::Stage
 
         [[clang::always_inline]]
         static void Run(
-            const Parameters& parameters,
-            const Input*      input     ,
-            const Input*                ,
-            const s00         bucket    ,
-                  Element*    output
+            const Parameters&           parameters,
+            const Array<Input, Inputs>& input     ,
+            const Array<Input, Inputs>&           ,
+            const s00                   bucket    ,
+                  Buffer&               output
         ) requires (!Final)
         {
             assert(bucket < Buckets || Buckets == 1);
@@ -261,15 +265,19 @@ namespace MantaRay::Backend::Stage
 
                 if constexpr (Shifted) offset = parameters.Offsets[row];
 
-                const Weight* weights = parameters.Weights.data() + row * Inputs;
+                const Array<Weight, Inputs>& weights = parameters.Weights[row];
 
-                output[m] = Write<Target>(Activate(Evaluate(input, weights, parameters.Biases[row], offset)));
+                output[0][m] = Write<Target>(Activate(Evaluate(input, weights, parameters.Biases[row], offset)));
             }
         }
 
         [[clang::always_inline]]
-        static i32 Run(const Parameters& parameters, const Input* input, const Input*, const s00 bucket)
-        requires (Final)
+        static i32 Run(
+            const Parameters&           parameters,
+            const Array<Input, Inputs>& input     ,
+            const Array<Input, Inputs>&           ,
+            const s00                   bucket
+        ) requires (Final)
         {
             assert(bucket < Buckets || Buckets == 1);
 
@@ -279,7 +287,7 @@ namespace MantaRay::Backend::Stage
 
             if constexpr (Shifted) offset = parameters.Offsets[row];
 
-            const Weight* weights = parameters.Weights.data() + row * Inputs;
+            const Array<Weight, Inputs>& weights = parameters.Weights[row];
 
             const auto value = Activate(Evaluate(input, weights, parameters.Biases[row], offset));
 

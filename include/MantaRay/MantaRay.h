@@ -6,6 +6,7 @@
 #ifndef MANTARAY_MANTARAY_H
 #define MANTARAY_MANTARAY_H
 
+#include "Common.h"
 #include "Architecture/Architecture.h"
 #include "Architecture/FeatureSet.h"
 #include "Architecture/FeatureTransformer.h"
@@ -39,11 +40,6 @@
 #include "Backend/Stage/PairwiseConcat.h"
 #include "Backend/Stage/PerspectiveDot.h"
 #include "Backend/Stage/Single.h"
-#include "Common/Alignment.h"
-#include "Common/Integral.h"
-#include "Common/Interval.h"
-#include "Common/List.h"
-#include "Common/Message.h"
 #include "IO/Loader.h"
 #include "Runtime/AccumulatorStack.h"
 #include "Runtime/Delta.h"

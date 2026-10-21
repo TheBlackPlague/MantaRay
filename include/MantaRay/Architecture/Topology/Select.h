@@ -10,7 +10,7 @@
 
 #include "../OutputBuckets.h"
 #include "../Signal.h"
-#include "../../Common/Message.h"
+#include "../../Common.h"
 
 namespace MantaRay
 {

@@ -10,8 +10,7 @@
 #include <limits>
 #include <type_traits>
 
-#include "../Common/Integral.h"
-#include "../Common/Interval.h"
+#include "../Common.h"
 
 namespace MantaRay
 {
@@ -55,8 +54,8 @@ namespace MantaRay
 
                 ([&] {
                     if constexpr (IsClip<Options>) bounds = {
-                        RoundHalfAway(std::clamp(Options::Minimum * Q, Low, High)),
-                        RoundHalfAway(std::clamp(Options::Maximum * Q, Low, High))
+                        .Min = RoundHalfAway(std::clamp(Options::Minimum * Q, Low, High)),
+                        .Max = RoundHalfAway(std::clamp(Options::Maximum * Q, Low, High))
                     };
                 }(), ...);
 

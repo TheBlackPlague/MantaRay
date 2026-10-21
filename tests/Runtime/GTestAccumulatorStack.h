@@ -182,9 +182,9 @@ void CheckVectorAlignment()
         stacks.emplace_back(*network);
 
         for (const S& stack : stacks) {
-            EXPECT_EQ(reinterpret_cast<std::uintptr_t>(&stack         ) % Alignment, std::uintptr_t { 0 });
-            EXPECT_EQ(reinterpret_cast<std::uintptr_t>(stack.Values(0)) % Alignment, std::uintptr_t { 0 });
-            EXPECT_EQ(reinterpret_cast<std::uintptr_t>(stack.Values(1)) % Alignment, std::uintptr_t { 0 });
+            EXPECT_EQ(reinterpret_cast<std::uintptr_t>(&stack                ) % Alignment, std::uintptr_t { 0 });
+            EXPECT_EQ(reinterpret_cast<std::uintptr_t>(stack.Values(0).data()) % Alignment, std::uintptr_t { 0 });
+            EXPECT_EQ(reinterpret_cast<std::uintptr_t>(stack.Values(1).data()) % Alignment, std::uintptr_t { 0 });
         }
     }
 
@@ -202,7 +202,7 @@ void CheckVectorAlignment()
         stack.Push(delta);
 
         EXPECT_TRUE(oracle.Check(stack, child, 1));
-        EXPECT_EQ(reinterpret_cast<std::uintptr_t>(stack.Values(0)) % Alignment, std::uintptr_t { 0 });
+        EXPECT_EQ(reinterpret_cast<std::uintptr_t>(stack.Values(0).data()) % Alignment, std::uintptr_t { 0 });
     }
 }
 

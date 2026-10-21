@@ -14,8 +14,7 @@
 #include <string_view>
 #include <type_traits>
 
-#include "../Common/Integral.h"
-#include "../Common/Interval.h"
+#include "../Common.h"
 
 namespace MantaRay
 {
@@ -113,7 +112,7 @@ namespace MantaRay::IO
 
         if (!reader.Read(values)) return { LoadStatus::SizeMismatch, tensor, 0 };
 
-        if constexpr (std::is_integral_v<typename Spec::Type>) {
+        if (std::is_integral_v<typename Spec::Type>) {
             for (s00 i = 0; i < values.size(); i++)
                 if (values[i] < Spec::Bounds.Min || values[i] > Spec::Bounds.Max)
                     return { LoadStatus::BoundViolation, tensor, i };

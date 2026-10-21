@@ -8,8 +8,8 @@
 
 #include <cassert>
 
+#include "../Common.h"
 #include "../Architecture/FeatureSet.h"
-#include "../Common/Integral.h"
 
 namespace MantaRay
 {

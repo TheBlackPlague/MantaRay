@@ -19,6 +19,8 @@ execute_process(
         ERROR_VARIABLE  Output
 )
 
+string(REPLACE "\"}, {\"" "" Output "${Output}")
+
 string(FIND "${Output}" "${EXPECTED}" Position)
 
 if(Result EQUAL 0)

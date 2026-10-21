@@ -7,7 +7,6 @@
 #define MANTARAY_BACKEND_STAGE_PERSPECTIVEDOT_H
 
 #include <algorithm>
-#include <array>
 #include <cassert>
 #include <span>
 #include <string_view>
@@ -15,13 +14,9 @@
 
 #include "Format.h"
 #include "../Facts.h"
+#include "../../Common.h"
 #include "../../Architecture/Signal.h"
 #include "../../Architecture/Topology/Concat.h"
-#include "../../Common/Alignment.h"
-#include "../../Common/Integral.h"
-#include "../../Common/Interval.h"
-#include "../../Common/List.h"
-#include "../../Common/Message.h"
 #include "../../IO/Loader.h"
 #include "../Kernel/Dot.h"
 #include "../Kernel/Pack.h"
@@ -55,9 +50,9 @@ namespace MantaRay::Backend::Stage
                 return {};
             else if constexpr (!IsAffine<D>)
                 return {};
-            else if constexpr (D::IsFloat || D::IsDequantize)
-                return {};
             else {
+                if (D::IsFloat || D::IsDequantize) return {};
+
                 constexpr Signal Input = A::Signals[I];
 
                 if (Input.Perspectives != 2 || FormatOf<A, I>().Encoding != Encoding::I16) return {};
@@ -113,7 +108,7 @@ namespace MantaRay::Backend::Stage
 
         consteval std::string_view ModeName(const Kernel::DotMode mode)
         {
-            constexpr std::string_view Names[] { "Linear", "Lizard", "SquareFirst", "Widened", "PackusDot" };
+            constexpr Array<std::string_view, 5> Names { "Linear", "Lizard", "SquareFirst", "Widened", "PackusDot" };
 
             return Names[static_cast<s00>(mode)];
         }
@@ -183,8 +178,8 @@ namespace MantaRay::Backend::Stage
         struct Parameters
         {
 
-            alignas(Alignment) std::array<Weight, Buckets * Inputs> Weights;
-            alignas(Alignment) std::array<i32   , Buckets         > Biases ;
+            alignas(Alignment) Array<Weight, Buckets, 2, H> Weights;
+            alignas(Alignment) Array<i32   , Buckets      > Biases ;
 
         };
 
@@ -201,7 +196,7 @@ namespace MantaRay::Backend::Stage
                     const s00  input = Kernel::LogicalIndex<ISA, Packed>(i);
                     const auto value = weights[BulletIndex<W>(Inputs, Buckets, input, o)];
 
-                    parameters.Weights[o * Inputs + i] = static_cast<Weight>(value);
+                    parameters.Weights[o][i / H][i % H] = static_cast<Weight>(value);
                 }
 
                 parameters.Biases[o] = static_cast<i32>(biases[o]);
@@ -217,13 +212,18 @@ namespace MantaRay::Backend::Stage
         constexpr static std::string_view Describe() { return { Text.data(), Text.size() }; }
 
         [[clang::always_inline]]
-        static i32 Run(const Parameters& parameters, const i16* stm, const i16* ntm, const s00 bucket)
+        static i32 Run(
+            const Parameters&    parameters,
+            const Array<i16, H>& stm       ,
+            const Array<i16, H>& ntm       ,
+            const s00            bucket
+        )
         {
             assert(bucket < Buckets || Buckets == 1);
 
             const s00 row = Buckets == 1 ? 0 : bucket;
 
-            const i64 sum = Kernel::PerspectiveDot<ISA, Plan, H>(stm, ntm, parameters.Weights.data() + row * Inputs);
+            const i64 sum = Kernel::PerspectiveDot<ISA, Plan, H>(stm, ntm, parameters.Weights[row]);
 
             return Finish(sum, parameters.Biases[row]);
         }
@@ -231,16 +231,16 @@ namespace MantaRay::Backend::Stage
         template<s00 Subs, s00 Adds>
         [[clang::always_inline]]
         static i32 RunFused(
-            const Parameters&                          parameters,
-            const Kernel::Transition<i16, Subs, Adds>& transition,
-            const s00                                  bucket
+            const Parameters&                             parameters,
+            const Kernel::Transition<i16, H, Subs, Adds>& transition,
+            const s00                                     bucket
         )
         {
             assert(bucket < Buckets || Buckets == 1);
 
             const s00 row = Buckets == 1 ? 0 : bucket;
 
-            const i64 sum = Kernel::PerspectiveDot<ISA, Plan, H>(transition, parameters.Weights.data() + row * Inputs);
+            const i64 sum = Kernel::PerspectiveDot<ISA, Plan, H>(transition, parameters.Weights[row]);
 
             return Finish(sum, parameters.Biases[row]);
         }

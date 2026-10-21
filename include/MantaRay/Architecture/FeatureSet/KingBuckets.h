@@ -7,16 +7,15 @@
 #define MANTARAY_ARCHITECTURE_FEATURESET_KINGBUCKETS_H
 
 #include <algorithm>
-#include <array>
 
 #include "Chess768.h"
 #include "../FeatureSet.h"
-#include "../../Common/Integral.h"
+#include "../../Common.h"
 
 namespace MantaRay
 {
 
-    template<std::array<u08, 64> Layout>
+    template<Array<u08, 64> Layout>
     struct KingBuckets
     {
 
@@ -34,7 +33,7 @@ namespace MantaRay
 
     };
 
-    template<std::array<u08, 32> Layout>
+    template<Array<u08, 32> Layout>
     struct MirroredKingBuckets
     {
 

@@ -8,10 +8,12 @@
 
 #if defined(__AVX2__)
 
+#include <array>
+
 #include <immintrin.h>
 
 #include "SSE41.h"
-#include "../../Common/Integral.h"
+#include "../../Common.h"
 
 namespace MantaRay::Backend::ISA
 {
@@ -28,12 +30,15 @@ namespace MantaRay::Backend::ISA
 
         constexpr static bool VNNI = false;
 
+        template<typename T, s00 N>
         [[clang::always_inline]]
-        static Vector Load(const void* address) { return _mm256_load_si256(static_cast<const Vector*>(address)); }
+        static Vector Load(const std::array<T, N>& array, const s00 index)
+        { return _mm256_load_si256(reinterpret_cast<const Vector*>(&array[index])); }
 
+        template<typename T, s00 N>
         [[clang::always_inline]]
-        static void Store(void* address, const Vector value)
-        { _mm256_store_si256(static_cast<Vector*>(address), value); }
+        static void Store(std::array<T, N>& array, const s00 index, const Vector value)
+        { _mm256_store_si256(reinterpret_cast<Vector*>(&array[index]), value); }
 
         [[clang::always_inline]]
         static Vector Zero() { return _mm256_setzero_si256(); }
@@ -103,8 +108,9 @@ namespace MantaRay::Backend::ISA
             return _mm256_add_epi32(sum, _mm256_madd_epi16(_mm256_maddubs_epi16(u8, i8), _mm256_set1_epi16(1)));
         }
 
+        template<s00 N>
         [[clang::always_inline]]
-        static VectorF LoadF(const f32* address) { return _mm256_load_ps(address); }
+        static VectorF LoadF(const std::array<f32, N>& array, const s00 index) { return _mm256_load_ps(&array[index]); }
 
         [[clang::always_inline]]
         static VectorF ZeroF() { return _mm256_setzero_ps(); }

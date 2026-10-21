@@ -22,7 +22,7 @@
 #include <MantaRay/Architecture/FeatureSet.h>
 #include <MantaRay/Backend/Stage/Format.h>
 #include <MantaRay/Backend/Target.h>
-#include <MantaRay/Common/List.h>
+#include <MantaRay/Common.h>
 #include <MantaRay/IO/Loader.h>
 #include <MantaRay/Runtime/AccumulatorStack.h>
 #include <MantaRay/Runtime/Delta.h>
@@ -180,7 +180,7 @@ testing::AssertionResult SameValues(
     const u08                                      perspective
 )
 {
-    const typename S::Accumulator* values = stack.Values(perspective);
+    const auto& values = stack.Values(perspective);
 
     for (s00 i = 0; i < expected.size(); i++)
         if (values[i] != expected[i])
@@ -193,8 +193,6 @@ testing::AssertionResult SameValues(
 template<typename A>
 class Oracle
 {
-
-    constexpr static s00 H = Network<A>::HiddenSize;
 
     const Network<A>& Model;
 
@@ -224,7 +222,7 @@ class Oracle
         ResetFromPieces(*Fresh, pieces);
 
         for (u08 perspective = 0; perspective < 2; perspective++) {
-            const std::span<const typename S::Accumulator> values(Fresh->Values(perspective), H);
+            const std::span<const typename S::Accumulator> values(Fresh->Values(perspective));
 
             if (testing::AssertionResult result = SameValues(stack, values, perspective); !result) return result;
         }

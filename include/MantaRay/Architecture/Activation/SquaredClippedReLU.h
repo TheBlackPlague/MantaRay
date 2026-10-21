@@ -10,9 +10,7 @@
 
 #include "ClippedReLU.h"
 #include "../Signal.h"
-#include "../../Common/Integral.h"
-#include "../../Common/Interval.h"
-#include "../../Common/Message.h"
+#include "../../Common.h"
 
 namespace MantaRay
 {

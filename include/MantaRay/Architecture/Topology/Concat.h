@@ -9,7 +9,7 @@
 #include <string_view>
 
 #include "../Signal.h"
-#include "../../Common/Message.h"
+#include "../../Common.h"
 
 namespace MantaRay
 {

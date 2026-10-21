@@ -19,7 +19,7 @@
 
 #include <MantaRay/Backend/Target.h>
 #include <MantaRay/Backend/ISA/Scalar.h>
-#include <MantaRay/Common/Interval.h>
+#include <MantaRay/Common.h>
 #include <MantaRay/Runtime/AccumulatorStack.h>
 #include <MantaRay/Runtime/Delta.h>
 #include <MantaRay/Runtime/Network.h>
@@ -177,7 +177,7 @@ namespace DifferentialTest
                 ASSERT_EQ(actual  , expected                                    ) << "operation " << operation;
 
                 for (u08 perspective = 0; perspective < 2; perspective++) {
-                    const std::span<const typename Network<A>::Accumulator> values(native->Values(perspective), H);
+                    const std::span<const typename Network<A>::Accumulator> values(native->Values(perspective));
 
                     ASSERT_TRUE(SameValues(*reference, values, perspective)) << "operation " << operation;
                 }

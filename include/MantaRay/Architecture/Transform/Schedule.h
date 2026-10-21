@@ -8,8 +8,7 @@
 
 #include <concepts>
 
-#include "../../Common/Integral.h"
-#include "../../Common/Interval.h"
+#include "../../Common.h"
 
 namespace MantaRay
 {

@@ -11,9 +11,7 @@
 #include <string_view>
 
 #include "Signal.h"
-#include "../Common/Integral.h"
-#include "../Common/Interval.h"
-#include "../Common/Message.h"
+#include "../Common.h"
 
 namespace MantaRay
 {
@@ -30,7 +28,7 @@ namespace MantaRay
 
         consteval static Interval Product(const Signal& signal)
         {
-            return signal.Range * Interval { S * signal.Scale.Denominator, S * signal.Scale.Denominator };
+            return signal.Range * Interval { .Min = S * signal.Scale.Denominator, .Max = S * signal.Scale.Denominator };
         }
 
         consteval static Diagnostic Check(const Signal& signal)
@@ -58,7 +56,7 @@ namespace MantaRay
             Signal output {
                 .Size         = 1,
                 .Perspectives = 1,
-                .Range        = { std::numeric_limits<i32>::min(), std::numeric_limits<i32>::max() }
+                .Range        = { .Min = std::numeric_limits<i32>::min(), .Max = std::numeric_limits<i32>::max() }
             };
 
             if (signal.Domain == Domain::Integer) output.Range = Divide(Product(signal), signal.Scale.Numerator);
@@ -83,12 +81,13 @@ namespace MantaRay
             constexpr i64 Factor  = S * In.Scale.Denominator / Common;
             constexpr i64 Divisor = In.Scale.Numerator       / Common;
 
-            constexpr bool Narrow = Fits<i32>(In.Range * Interval { Factor , Factor  }) &&
-                                    Fits<i32>(           Interval { Factor , Factor  }) &&
-                                    Fits<i32>(           Interval { Divisor, Divisor });
+            constexpr bool Narrow = Fits<i32>(In.Range * Interval { .Min = Factor , .Max = Factor  }) &&
+                                    Fits<i32>(           Interval { .Min = Factor , .Max = Factor  }) &&
+                                    Fits<i32>(           Interval { .Min = Divisor, .Max = Divisor });
 
             if constexpr (Narrow) return static_cast<i32>(value) * i32 { Factor } / i32 { Divisor };
-            else                  return static_cast<i32>(value * Factor / Divisor);
+
+            return static_cast<i32>(value * Factor / Divisor);
         }
 
         constexpr static i32 ApplyFloat(const f32 value)

@@ -9,11 +9,12 @@
 #include <array>
 #include <limits>
 #include <type_traits>
+#include <utility>
 
 #include "Reduce.h"
 #include "Update.h"
 #include "../../Architecture/Signal.h"
-#include "../../Common/Integral.h"
+#include "../../Common.h"
 
 namespace MantaRay::Backend::Kernel
 {
@@ -41,8 +42,8 @@ namespace MantaRay::Backend::Kernel
         [[clang::always_inline]]
         ISA::Vector ClampI16(typename ISA::Vector value)
         {
-            if constexpr (Low  > std::numeric_limits<i16>::min()) value = ISA::MaxI16(value, ISA::BroadcastI16(Low ));
-            if constexpr (High < std::numeric_limits<i16>::max()) value = ISA::MinI16(value, ISA::BroadcastI16(High));
+            if (Low  > std::numeric_limits<i16>::min()) value = ISA::MaxI16(value, ISA::BroadcastI16(Low ));
+            if (High < std::numeric_limits<i16>::max()) value = ISA::MinI16(value, ISA::BroadcastI16(High));
 
             return value;
         }
@@ -57,13 +58,16 @@ namespace MantaRay::Backend::Kernel
         {
             const auto x = ClampI16<ISA, Plan.Low, Plan.High>(input);
 
-            if constexpr (Plan.Mode == DotMode::Linear)
+            if (Plan.Mode == DotMode::Linear)
                 return ISA::AddI32(sum, ISA::MaddI16(                       x, weight));
-            else if constexpr (Plan.Mode == DotMode::Lizard)
+
+            if (Plan.Mode == DotMode::Lizard)
                 return ISA::AddI32(sum, ISA::MaddI16(ISA::MulLoI16(x, weight),      x));
-            else if constexpr (Plan.Mode == DotMode::SquareFirst)
+
+            if (Plan.Mode == DotMode::SquareFirst)
                 return ISA::AddI32(sum, ISA::MaddI16(ISA::MulLoI16(x,      x), weight));
-            else {
+
+            if (Plan.Mode == DotMode::Widened) {
                 const auto even = ISA::BroadcastI32(1      );
                 const auto odd  = ISA::BroadcastI32(1 << 16);
 
@@ -72,36 +76,49 @@ namespace MantaRay::Backend::Kernel
 
                 return ISA::AddI32(sum, ISA::AddI32(low, high));
             }
+
+            std::unreachable();
         }
 
-        template<typename ISA>
-        [[clang::always_inline]]
-        ISA::Vector Fetch(const std::array<const i16*, 2>& rows, const s00 slot, const s00 offset)
+        template<s00 H>
+        struct Pair
         {
-            return ISA::Load(rows[slot] + offset);
+
+            const Array<i16, H>& First ;
+            const Array<i16, H>& Second;
+
+        };
+
+        template<typename ISA, s00 H>
+        [[clang::always_inline]]
+        ISA::Vector Fetch(const Pair<H>& rows, const s00 slot, const s00 offset)
+        {
+            return ISA::Load(slot == 0 ? rows.First : rows.Second, offset);
         }
 
-        template<typename ISA, s00 Subs, s00 Adds>
+        template<typename ISA, s00 H, s00 Subs, s00 Adds>
         [[clang::always_inline]]
-        ISA::Vector Fetch(const Transition<i16, Subs, Adds>& transition, const s00 slot, const s00 offset)
+        ISA::Vector Fetch(const Transition<i16, H, Subs, Adds>& transition, const s00 slot, const s00 offset)
         {
             return Advance<ISA>(transition, slot, offset);
         }
 
         template<s00 H, typename W>
         [[clang::always_inline]]
-        std::array<const W*, 2> Blocks(const std::array<const i16*, 2>&, const W* weights)
+        const Array<W, H>& Half(const Pair<H>&, const std::array<std::array<W, H>, 2>& weights, const s00 slot)
         {
-            return { weights, weights + H };
+            return weights[slot];
         }
 
         template<s00 H, typename W, s00 Subs, s00 Adds>
         [[clang::always_inline]]
-        std::array<const W*, 2> Blocks(const Transition<i16, Subs, Adds>& transition, const W* weights)
+        const Array<W, H>& Half(
+            const Transition<i16, H, Subs, Adds>&  transition,
+            const std::array<std::array<W, H>, 2>& weights   ,
+            const s00                              slot
+        )
         {
-            const s00 stm = transition.SideToMove;
-
-            return { weights + stm * H, weights + (stm ^ 1) * H };
+            return weights[slot ^ transition.SideToMove];
         }
 
         consteval s00 Block(const s00 vectors, const s00 chains, const s00 target)
@@ -114,7 +131,7 @@ namespace MantaRay::Backend::Kernel
 
         template<typename ISA, DotKernel Plan, s00 H, s00 Unroll, typename Input, typename W>
         [[clang::always_inline]]
-        i64 Dot(const Input input, const W* weights)
+        i64 Dot(const Input& input, const std::array<std::array<W, H>, 2>& weights)
         {
             constexpr bool Packed = Plan.Mode == DotMode::PackusDot;
 
@@ -129,24 +146,22 @@ namespace MantaRay::Backend::Kernel
             static_assert(H % Width == 0 && VectorBytes % ISA::Bytes == 0, "perspective rows must fill whole vectors");
             static_assert(K > 0, "a dot product needs an accumulator");
 
-            const std::array<const W*, 2> blocks = Blocks<H>(input, weights);
+            Array<typename ISA::Vector, K> sums;
 
-            std::array<typename ISA::Vector, K> sums;
-
-            #pragma clang loop unroll(full)
+            UNROLL(full)
             for (s00 k = 0; k < K; k++) sums[k] = ISA::Zero();
 
-            #pragma clang loop unroll(disable)
+            UNROLL(disable)
             for (s00 v = 0; v < Vectors; v += Step)
-            #pragma clang loop unroll(full)
+            UNROLL(full)
             for (s00 j = 0; j < Step; j++)
-            #pragma clang loop unroll(full)
+            UNROLL(full)
             for (s00 slot = 0; slot < 2; slot++) {
                 const s00  i      = (v + j) * Width;
                 const s00  k      = (2 * j + slot) % K;
-                const auto weight = ISA::Load(blocks[slot] + i);
+                const auto weight = ISA::Load(Half<H>(input, weights, slot), i);
 
-                if constexpr (Packed) {
+                if (Packed) {
                     const auto low  = Fetch<ISA>(input, slot, i        );
                     const auto high = Fetch<ISA>(input, slot, i + Lanes);
 
@@ -154,8 +169,9 @@ namespace MantaRay::Backend::Kernel
                 } else sums[k] = Accumulate<ISA, Plan>(sums[k], Fetch<ISA>(input, slot, i), weight);
             }
 
-            if constexpr (Plan.WideReduce) return ReduceI64<ISA, K>(sums);
-            else                           return ReduceI32<ISA, K>(sums);
+            if (Plan.WideReduce) return ReduceI64<ISA, K>(sums);
+
+            return ReduceI32<ISA, K>(sums);
         }
 
     }
@@ -164,14 +180,18 @@ namespace MantaRay::Backend::Kernel
 
     template<typename ISA, DotKernel Plan, s00 H, typename W>
     [[clang::always_inline]]
-    i64 PerspectiveDot(const i16* stm, const i16* ntm, const W* weights)
+    i64 PerspectiveDot(
+        const std::array<i16, H>&              stm    ,
+        const std::array<i16, H>&              ntm    ,
+        const std::array<std::array<W, H>, 2>& weights
+    )
     {
-        return Detail::Dot<ISA, Plan, H, 0>(std::array { stm, ntm }, weights);
+        return Detail::Dot<ISA, Plan, H, 0>(Detail::Pair<H> { stm, ntm }, weights);
     }
 
     template<typename ISA, DotKernel Plan, s00 H, s00 Subs, s00 Adds, typename W>
     [[clang::always_inline]]
-    i64 PerspectiveDot(const Transition<i16, Subs, Adds>& transition, const W* weights)
+    i64 PerspectiveDot(const Transition<i16, H, Subs, Adds>& transition, const std::array<std::array<W, H>, 2>& weights)
     {
         return Detail::Dot<ISA, Plan, H, FusedUnroll>(transition, weights);
     }

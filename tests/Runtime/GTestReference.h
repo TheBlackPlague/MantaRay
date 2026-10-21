@@ -24,7 +24,7 @@
 #include <MantaRay/Architecture/FeatureSet.h>
 #include <MantaRay/Architecture/FeatureSet/Chess768.h>
 #include <MantaRay/Architecture/FeatureSet/KingBuckets.h>
-#include <MantaRay/Common/List.h>
+#include <MantaRay/Common.h>
 #include <MantaRay/Runtime/AccumulatorStack.h>
 #include <MantaRay/Runtime/Network.h>
 

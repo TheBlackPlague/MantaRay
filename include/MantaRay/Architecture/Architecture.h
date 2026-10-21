@@ -6,14 +6,11 @@
 #ifndef MANTARAY_ARCHITECTURE_ARCHITECTURE_H
 #define MANTARAY_ARCHITECTURE_ARCHITECTURE_H
 
-#include <array>
 #include <concepts>
 #include <string_view>
 
 #include "Signal.h"
-#include "../Common/Integral.h"
-#include "../Common/List.h"
-#include "../Common/Message.h"
+#include "../Common.h"
 
 namespace MantaRay
 {
@@ -31,8 +28,8 @@ namespace MantaRay
         struct Analysis
         {
 
-            Diagnostic            Diagnostic {};
-            std::array<Signal, N> Signals    {};
+            Diagnostic       Diagnostic {};
+            Array<Signal, N> Signals    {};
 
         };
 
@@ -42,6 +39,42 @@ namespace MantaRay
 
             return Fail(Message {} << "layer " << index << " (" << name << "): " << text);
         }
+
+        constexpr inline s00 LineWidth = 36;
+
+        template<s00 L>
+        struct Lines
+        {
+
+            constexpr static s00 Count  = L == 0 ? 1 : (L + LineWidth - 1) / LineWidth;
+            constexpr static s00 Length = (L + Count - 1) / Count;
+
+            Array<char, Count, Length + 1> Text;
+
+        };
+
+        template<s00 L>
+        consteval Lines<L> Split(const Message& message)
+        {
+            constexpr s00 Length = Lines<L>::Length;
+
+            Lines<L> lines {};
+
+            for (s00 line = 0; line < Lines<L>::Count; line++) {
+                for (s00 i = 0; i < Length; i++) {
+                    const s00 index = line * Length + i;
+
+                    lines.Text[line][i] = index < L ? message.data()[index] : ' ';
+                }
+
+                lines.Text[line][Length] = '\0';
+            }
+
+            return lines;
+        }
+
+        template<auto>
+        constexpr inline bool Rejected = false;
 
     }
 
@@ -66,7 +99,7 @@ namespace MantaRay
 
             analysis.Signals[0] = FT::Forward();
 
-            if constexpr (LayerCount == 0)
+            if (LayerCount == 0)
                 analysis.Diagnostic = Detail::Locate(0, FT::Name, Fail(Message {} << "the last layer must be Output"));
 
             s00 index = 0;
@@ -100,12 +133,11 @@ namespace MantaRay
 
         constexpr static Detail::Analysis<LayerCount + 1> Result = Analyze();
 
-        #pragma clang diagnostic push
-        #pragma clang diagnostic ignored "-Wc++26-extensions"
-        static_assert(Result.Diagnostic.Ok, Result.Diagnostic.Text);
-        #pragma clang diagnostic pop
+        constexpr static auto Report = Detail::Split<Result.Diagnostic.Text.size()>(Result.Diagnostic.Text);
 
-        constexpr static std::array<Signal, LayerCount + 1> Signals = Result.Signals;
+        static_assert(Result.Diagnostic.Ok || Detail::Rejected<Report>, "the architecture is invalid");
+
+        constexpr static Array<Signal, LayerCount + 1> Signals = Result.Signals;
 
     };
 

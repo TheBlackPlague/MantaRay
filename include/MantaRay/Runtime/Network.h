@@ -7,7 +7,6 @@
 #define MANTARAY_RUNTIME_NETWORK_H
 
 #include <algorithm>
-#include <array>
 #include <atomic>
 #include <cassert>
 #include <cstddef>
@@ -24,9 +23,7 @@
 #include "../Backend/Target.h"
 #include "../Backend/Kernel/Update.h"
 #include "../Backend/Stage/Format.h"
-#include "../Common/Alignment.h"
-#include "../Common/Integral.h"
-#include "../Common/List.h"
+#include "../Common.h"
 #include "../IO/Loader.h"
 
 namespace MantaRay
@@ -106,8 +103,8 @@ namespace MantaRay
 
         static_assert(H * sizeof(T) % Alignment == 0, "feature rows must stay 64-byte aligned");
 
-        alignas(Alignment) std::array<T, F::InputSize * H> FeatureWeights {};
-        alignas(Alignment) std::array<T,                H> FeatureBiases  {};
+        alignas(Alignment) Array<T, F::InputSize, H> FeatureWeights {};
+        alignas(Alignment) Array<T,               H> FeatureBiases  {};
 
         Program::Parameters StageParameters {};
 
@@ -125,7 +122,7 @@ namespace MantaRay
             for (s00 j = 0; j < H           ; j++) {
                 const s00 index = Backend::Stage::BulletIndex<W>(F::InputSize, H, i, j);
 
-                FeatureWeights[i * H + j] = static_cast<T>(weights[index]);
+                FeatureWeights[i][j] = static_cast<T>(weights[index]);
             }
 
             for (s00 j = 0; j < H; j++) FeatureBiases[j] = static_cast<T>(biases[j]);
@@ -175,61 +172,59 @@ namespace MantaRay
             assert(pieces.size() <= F::MaxActive && stm < 2);
             assert(F::KeyCount == 1 || std::ranges::count_if(pieces, king) == 2);
 
-            std::array<u08, 2> kings {};
+            Array<u08, 2> kings {};
 
             for (const u16 code : pieces) if (king(code)) kings[ColorOf(code)] = SquareOf(code);
 
             const s00 count = std::min<s00>(pieces.size(), F::MaxActive);
 
-            alignas(Alignment) std::array<std::array<T, H>, 2> values;
+            alignas(Alignment) Array<T, 2, H> values;
 
             for (u08 perspective = 0; perspective < 2; perspective++) {
                 const u08 key = F::Key(perspective, kings[perspective]);
 
-                std::array<const T*, F::MaxActive> rows;
+                Array<const Array<T, H>*, F::MaxActive> rows;
 
-                for (s00 i = 0; i < count; i++) rows[i] = FeatureRow(F::Index(perspective, key, pieces[i]));
+                for (s00 i = 0; i < count; i++) rows[i] = &FeatureRow(F::Index(perspective, key, pieces[i]));
 
                 Backend::Kernel::Refresh<ISA, H>(
                     FeatureBias(),
-                    values[perspective].data(),
-                    nullptr,
+                    values[perspective],
                     {},
                     std::span(rows).first(count)
                 );
             }
 
-            return Forward(values[stm].data(), values[stm ^ 1].data(), Bucket(static_cast<u08>(count)));
+            return Forward(values[stm], values[stm ^ 1], Bucket(static_cast<u08>(count)));
         }
 
         [[nodiscard]]
         constexpr static s00 Bucket(const u08 pieces) noexcept
         {
-            if constexpr (Buckets::Count == 1) return 0;
-            else {
-                assert(pieces >= MinPieces);
-                assert(pieces <= MaxPieces);
+            if (Buckets::Count == 1) return 0;
 
-                return Buckets::Of(std::clamp(pieces, MinPieces, MaxPieces));
-            }
+            assert(pieces >= MinPieces);
+            assert(pieces <= MaxPieces);
+
+            return Buckets::Of(std::clamp(pieces, MinPieces, MaxPieces));
         }
 
         [[nodiscard]]
         [[clang::always_inline]]
-        const Accumulator* FeatureRow(const u32 index) const noexcept
+        const Array<Accumulator, H>& FeatureRow(const u32 index) const noexcept
         {
             assert(index < F::InputSize);
 
-            return std::assume_aligned<Alignment>(FeatureWeights.data() + s00 { index } * H);
+            return FeatureWeights[index];
         }
 
         [[nodiscard]]
         [[clang::always_inline]]
-        const Accumulator* FeatureBias() const noexcept { return std::assume_aligned<Alignment>(FeatureBiases.data()); }
+        const Array<Accumulator, H>& FeatureBias() const noexcept { return FeatureBiases; }
 
         [[nodiscard]]
         [[clang::always_inline]]
-        i32 Forward(const Accumulator* stm, const Accumulator* ntm, const s00 bucket) const noexcept
+        i32 Forward(const Array<Accumulator, H>& stm, const Array<Accumulator, H>& ntm, const s00 bucket) const noexcept
         {
             return Program::Forward(StageParameters, stm, ntm, bucket);
         }
@@ -238,8 +233,8 @@ namespace MantaRay
         [[nodiscard]]
         [[clang::always_inline]]
         i32 ForwardFused(
-            const Backend::Kernel::Transition<Accumulator, Subs, Adds>& transition,
-            const s00                                                   bucket
+            const Backend::Kernel::Transition<Accumulator, H, Subs, Adds>& transition,
+            const s00                                                      bucket
         ) const noexcept requires (Fusable)
         {
             return Program::template ForwardFused<Subs, Adds>(StageParameters, transition, bucket);

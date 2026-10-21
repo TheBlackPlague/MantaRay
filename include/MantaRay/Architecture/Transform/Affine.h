@@ -11,9 +11,7 @@
 
 #include "Schedule.h"
 #include "../Signal.h"
-#include "../../Common/Integral.h"
-#include "../../Common/Interval.h"
-#include "../../Common/Message.h"
+#include "../../Common.h"
 
 namespace MantaRay
 {
@@ -43,7 +41,10 @@ namespace MantaRay
 
         consteval static Interval SumRange(const Signal& signal) { return Repeat(signal.Range * W::Bounds, In); }
 
-        consteval static Scale SumScale(const Signal& signal) { return signal.Scale * Scale { W::Quantization, 1 }; }
+        consteval static Scale SumScale(const Signal& signal)
+        {
+            return signal.Scale * Scale { .Numerator = W::Quantization, .Denominator = 1 };
+        }
 
         consteval static f32 DequantizeFactor(const Signal& signal)
         {
@@ -117,8 +118,9 @@ namespace MantaRay
 
             if (Out == 0) return Fail(Message {} << "output size is zero");
 
-            if constexpr (IsFloat) return CheckFloat  (signal);
-            else                   return CheckInteger(signal);
+            if (IsFloat) return CheckFloat(signal);
+
+            return CheckInteger(signal);
         }
 
         consteval static Signal Forward(const Signal& signal)
