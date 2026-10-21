@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2025-2026 Shaheryar Sohail
+// Copyright (c) 2026 Shaheryar Sohail
 // SPDX-License-Identifier: MIT
 //
 
@@ -28,6 +28,10 @@ namespace MantaRay
     using u08 = std::uint8_t;
     using i08 = std:: int8_t;
 
+    using f32 = float;
+
+    static_assert(sizeof(f32) == 4);
+
     template<typename T>
     constexpr T WrapAdd(const T left, const T right)
     {
@@ -54,4 +58,4 @@ namespace MantaRay
 
 }
 
-#endif
+#endif //MANTARAY_COMMON_INTEGRAL_H

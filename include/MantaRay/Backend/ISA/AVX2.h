@@ -1,132 +1,124 @@
 //
-// Copyright (c) 2025-2026 Shaheryar Sohail
+// Copyright (c) 2026 Shaheryar Sohail
 // SPDX-License-Identifier: MIT
 //
 
 #ifndef MANTARAY_BACKEND_ISA_AVX2_H
 #define MANTARAY_BACKEND_ISA_AVX2_H
 
-#include "AVX.h"
-
 #if defined(__AVX2__)
+
+#include <immintrin.h>
+
+#include "SSE41.h"
+#include "../../Common/Integral.h"
 
 namespace MantaRay::Backend::ISA
 {
 
-    template<typename T>
-    struct AVX2 : AVX<T>
+    struct AVX2
     {
 
-        using Vector = __m256i;
+        using Vector  = __m256i;
+        using VectorF = __m256 ;
+
+        constexpr static s00 Bytes     = 32;
+        constexpr static s00 Registers = 16;
+        constexpr static s00 DotChains =  2;
+
+        constexpr static bool VNNI = false;
 
         [[clang::always_inline]]
-        static Vector Load(const T* values) { return _mm256_loadu_si256(reinterpret_cast<const Vector*>(values)); }
+        static Vector Load(const void* address) { return _mm256_load_si256(static_cast<const Vector*>(address)); }
 
         [[clang::always_inline]]
-        static void Store(T* values, const Vector value)
-        { _mm256_storeu_si256(reinterpret_cast<Vector*>(values), value); }
+        static void Store(void* address, const Vector value)
+        { _mm256_store_si256(static_cast<Vector*>(address), value); }
 
         [[clang::always_inline]]
-        static Vector Broadcast(const T value)
+        static Vector Zero() { return _mm256_setzero_si256(); }
+
+        [[clang::always_inline]]
+        static Vector BroadcastI16(const i16 value) { return _mm256_set1_epi16(value); }
+
+        [[clang::always_inline]]
+        static Vector BroadcastI32(const i32 value) { return _mm256_set1_epi32(value); }
+
+        [[clang::always_inline]]
+        static Vector AddI16(const Vector left, const Vector right) { return _mm256_add_epi16(left, right); }
+
+        [[clang::always_inline]]
+        static Vector SubI16(const Vector left, const Vector right) { return _mm256_sub_epi16(left, right); }
+
+        [[clang::always_inline]]
+        static Vector MinI16(const Vector left, const Vector right) { return _mm256_min_epi16(left, right); }
+
+        [[clang::always_inline]]
+        static Vector MaxI16(const Vector left, const Vector right) { return _mm256_max_epi16(left, right); }
+
+        [[clang::always_inline]]
+        static Vector MulLoI16(const Vector left, const Vector right) { return _mm256_mullo_epi16(left, right); }
+
+        [[clang::always_inline]]
+        static Vector MulHiI16(const Vector left, const Vector right) { return _mm256_mulhi_epi16(left, right); }
+
+        [[clang::always_inline]]
+        static Vector AddI32(const Vector left, const Vector right) { return _mm256_add_epi32(left, right); }
+
+        [[clang::always_inline]]
+        static Vector SubI32(const Vector left, const Vector right) { return _mm256_sub_epi32(left, right); }
+
+        [[clang::always_inline]]
+        static Vector MulLoI32(const Vector left, const Vector right) { return _mm256_mullo_epi32(left, right); }
+
+        [[clang::always_inline]]
+        static Vector MaddI16(const Vector left, const Vector right) { return _mm256_madd_epi16(left, right); }
+
+        [[clang::always_inline]]
+        static i32 ReduceI32(const Vector value)
         {
-            if (sizeof(T) == 1) return _mm256_set1_epi8 (value);
-            if (sizeof(T) == 2) return _mm256_set1_epi16(value);
-            if (sizeof(T) == 4) return _mm256_set1_epi32(value);
-
-            __builtin_unreachable();
+            return SSE41::ReduceI32(_mm_add_epi32(_mm256_castsi256_si128(value), _mm256_extracti128_si256(value, 1)));
         }
 
         [[clang::always_inline]]
-        static Vector Add(const Vector left, const Vector right)
+        static i64 ReduceI64(const Vector value)
         {
-            if (sizeof(T) == 1) return _mm256_add_epi8 (left, right);
-            if (sizeof(T) == 2) return _mm256_add_epi16(left, right);
-            if (sizeof(T) == 4) return _mm256_add_epi32(left, right);
+            const auto wide = _mm256_add_epi64(
+                _mm256_cvtepi32_epi64(_mm256_castsi256_si128  (value   )),
+                _mm256_cvtepi32_epi64(_mm256_extracti128_si256(value, 1))
+            );
 
-            __builtin_unreachable();
+            const auto half = _mm_add_epi64(_mm256_castsi256_si128(wide), _mm256_extracti128_si256(wide, 1));
+
+            return SSE41::ReducePairI64(half);
         }
 
         [[clang::always_inline]]
-        static Vector Sub(const Vector left, const Vector right)
-        {
-            if (sizeof(T) == 1) return _mm256_sub_epi8 (left, right);
-            if (sizeof(T) == 2) return _mm256_sub_epi16(left, right);
-            if (sizeof(T) == 4) return _mm256_sub_epi32(left, right);
+        static Vector PackUnsignedI16(const Vector left, const Vector right)
+        { return _mm256_packus_epi16(left, right); }
 
-            __builtin_unreachable();
+        [[clang::always_inline]]
+        static Vector DotU8I8(const Vector sum, const Vector u8, const Vector i8)
+        {
+            return _mm256_add_epi32(sum, _mm256_madd_epi16(_mm256_maddubs_epi16(u8, i8), _mm256_set1_epi16(1)));
         }
 
         [[clang::always_inline]]
-        static Vector Min(const Vector left, const Vector right)
+        static VectorF LoadF(const f32* address) { return _mm256_load_ps(address); }
+
+        [[clang::always_inline]]
+        static VectorF ZeroF() { return _mm256_setzero_ps(); }
+
+        [[clang::always_inline]]
+        static VectorF AddF(const VectorF left, const VectorF right) { return _mm256_add_ps(left, right); }
+
+        [[clang::always_inline]]
+        static VectorF MulF(const VectorF left, const VectorF right) { return _mm256_mul_ps(left, right); }
+
+        [[clang::always_inline]]
+        static f32 ReduceF(const VectorF value)
         {
-            if (sizeof(T) == 1) return _mm256_min_epi8 (left, right);
-            if (sizeof(T) == 2) return _mm256_min_epi16(left, right);
-            if (sizeof(T) == 4) return _mm256_min_epi32(left, right);
-
-            __builtin_unreachable();
-        }
-
-        [[clang::always_inline]]
-        static Vector Max(const Vector left, const Vector right)
-        {
-            if (sizeof(T) == 1) return _mm256_max_epi8 (left, right);
-            if (sizeof(T) == 2) return _mm256_max_epi16(left, right);
-            if (sizeof(T) == 4) return _mm256_max_epi32(left, right);
-
-            __builtin_unreachable();
-        }
-
-        [[clang::always_inline]]
-        static Vector MulLo(const Vector left, const Vector right)
-        {
-            if (sizeof(T) == 1) {
-                const auto mask = _mm256_set1_epi16(255);
-
-                const auto low = _mm256_and_si256(_mm256_mullo_epi16(left, right), mask);
-
-                const auto high = _mm256_slli_epi16(
-                    _mm256_mullo_epi16(
-                        _mm256_srli_epi16(left , 8),
-                        _mm256_srli_epi16(right, 8)
-                    ),
-                    8
-                );
-
-                return _mm256_or_si256(low, high);
-            }
-
-            if (sizeof(T) == 2) return _mm256_mullo_epi16(left, right);
-            if (sizeof(T) == 4) return _mm256_mullo_epi32(left, right);
-
-            __builtin_unreachable();
-        }
-
-        [[clang::always_inline]]
-        static Vector MulHighUnsigned(const Vector left, const Vector right) { return _mm256_mulhi_epu16(left, right); }
-
-        template<s00 Bits>
-        [[clang::always_inline]]
-        static Vector ShiftRight(const Vector value)
-        {
-            if (sizeof(T) == 1) {
-                return _mm256_and_si256(
-                    _mm256_srli_epi16(value, Bits),
-                    _mm256_set1_epi8(static_cast<char>(255U >> Bits))
-                );
-            }
-            if (sizeof(T) == 2) return _mm256_srli_epi16(value, Bits);
-            if (sizeof(T) == 4) return _mm256_srli_epi32(value, Bits);
-
-            __builtin_unreachable();
-        }
-
-        [[clang::always_inline]]
-        static Vector MultiplyAddPairs(const Vector left, const Vector right) { return _mm256_madd_epi16(left, right); }
-
-        [[clang::always_inline]]
-        static i32 Sum(const Vector value)
-        {
-            return SSE2<i32>::Sum(_mm_add_epi32(_mm256_castsi256_si128(value), _mm256_extracti128_si256(value, 1)));
+            return SSE41::ReduceF(_mm_add_ps(_mm256_castps256_ps128(value), _mm256_extractf128_ps(value, 1)));
         }
 
     };
@@ -135,4 +127,4 @@ namespace MantaRay::Backend::ISA
 
 #endif
 
-#endif
+#endif //MANTARAY_BACKEND_ISA_AVX2_H

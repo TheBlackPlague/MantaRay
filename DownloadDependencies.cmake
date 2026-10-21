@@ -9,6 +9,7 @@ function(AddGoogleTest)
     set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
     set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
     FetchContent_MakeAvailable(googletest)
+    target_compile_options(gtest PRIVATE -Wno-character-conversion)
 endfunction()
 
 function(AddGoogleBenchmark)

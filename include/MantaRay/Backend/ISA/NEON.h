@@ -1,167 +1,138 @@
 //
-// Copyright (c) 2025-2026 Shaheryar Sohail
+// Copyright (c) 2026 Shaheryar Sohail
 // SPDX-License-Identifier: MIT
 //
 
 #ifndef MANTARAY_BACKEND_ISA_NEON_H
 #define MANTARAY_BACKEND_ISA_NEON_H
 
-#include "ARM64.h"
+#if defined(__ARM_NEON) && defined(__aarch64__)
 
-#if defined(__ARM_NEON) || defined(__ARM_NEON__)
 #include <arm_neon.h>
+
+#include "../../Common/Integral.h"
 
 namespace MantaRay::Backend::ISA
 {
 
-    template<typename T>
-    struct NEON : ARM64<T>
+    class NEON
     {
 
-        using V8_16 = int8x16_t;
-        using V16_8 = int16x8_t;
-        using V32_4 = int32x4_t;
-
-        using Vector = V32_4;
-
-        constexpr static s00 Bytes = 16;
-
-        constexpr static s00 DotAccumulators = 4;
+        [[clang::always_inline]]
+        static int32x4_t AsI32(const int16x8_t value) { return vreinterpretq_s32_s16(value); }
 
         [[clang::always_inline]]
-        static Vector Load(const T* values)
-        { return std::bit_cast<Vector>(vld1q_u8(reinterpret_cast<const u08*>(values))); }
+        static int16x8_t AsI16(const int32x4_t value) { return vreinterpretq_s16_s32(value); }
+
+        public:
+        using Vector  = int16x8_t  ;
+        using VectorF = float32x4_t;
+
+        constexpr static s00 Bytes     = 16;
+        constexpr static s00 Registers = 32;
+        constexpr static s00 DotChains =  2;
+
+        constexpr static bool VNNI = false;
 
         [[clang::always_inline]]
-        static void Store(T* values, const Vector value)
-        { vst1q_u8(reinterpret_cast<u08*>(values), std::bit_cast<uint8x16_t>(value)); }
+        static Vector Load(const void* address) { return vld1q_s16(static_cast<const i16*>(address)); }
 
         [[clang::always_inline]]
-        static Vector Broadcast(const T value)
+        static void Store(void* address, const Vector value) { vst1q_s16(static_cast<i16*>(address), value); }
+
+        [[clang::always_inline]]
+        static Vector Zero() { return vdupq_n_s16(0); }
+
+        [[clang::always_inline]]
+        static Vector BroadcastI16(const i16 value) { return vdupq_n_s16(value); }
+
+        [[clang::always_inline]]
+        static Vector BroadcastI32(const i32 value) { return AsI16(vdupq_n_s32(value)); }
+
+        [[clang::always_inline]]
+        static Vector AddI16(const Vector left, const Vector right) { return vaddq_s16(left, right); }
+
+        [[clang::always_inline]]
+        static Vector SubI16(const Vector left, const Vector right) { return vsubq_s16(left, right); }
+
+        [[clang::always_inline]]
+        static Vector MinI16(const Vector left, const Vector right) { return vminq_s16(left, right); }
+
+        [[clang::always_inline]]
+        static Vector MaxI16(const Vector left, const Vector right) { return vmaxq_s16(left, right); }
+
+        [[clang::always_inline]]
+        static Vector MulLoI16(const Vector left, const Vector right) { return vmulq_s16(left, right); }
+
+        [[clang::always_inline]]
+        static Vector MulHiI16(const Vector left, const Vector right)
         {
-            if (sizeof(T) == 1) return std::bit_cast<Vector>(vdupq_n_s8 (value));
-            if (sizeof(T) == 2) return std::bit_cast<Vector>(vdupq_n_s16(value));
-            if (sizeof(T) == 4) return vdupq_n_s32(value);
+            const auto low  = vmull_s16     (vget_low_s16(left), vget_low_s16(right));
+            const auto high = vmull_high_s16(             left ,              right );
 
-            __builtin_unreachable();
+            return vuzp2q_s16(AsI16(low), AsI16(high));
         }
 
         [[clang::always_inline]]
-        static Vector Add(const Vector left, const Vector right)
-        {
-            if (sizeof(T) == 1)
-                return std::bit_cast<Vector>(vaddq_s8 (std::bit_cast<V8_16>(left), std::bit_cast<V8_16>(right)));
-            if (sizeof(T) == 2)
-                return std::bit_cast<Vector>(vaddq_s16(std::bit_cast<V16_8>(left), std::bit_cast<V16_8>(right)));
-            if (sizeof(T) == 4) return vaddq_s32(left, right);
+        static Vector AddI32(const Vector left, const Vector right)
+        { return AsI16(vaddq_s32(AsI32(left), AsI32(right))); }
 
-            __builtin_unreachable();
+        [[clang::always_inline]]
+        static Vector SubI32(const Vector left, const Vector right)
+        { return AsI16(vsubq_s32(AsI32(left), AsI32(right))); }
+
+        [[clang::always_inline]]
+        static Vector MulLoI32(const Vector left, const Vector right)
+        { return AsI16(vmulq_s32(AsI32(left), AsI32(right))); }
+
+        [[clang::always_inline]]
+        static Vector MaddI16(const Vector left, const Vector right)
+        {
+            const auto low  = vmull_s16     (vget_low_s16(left), vget_low_s16(right));
+            const auto high = vmull_high_s16(             left ,              right );
+
+            return AsI16(vpaddq_s32(low, high));
         }
 
         [[clang::always_inline]]
-        static Vector Sub(const Vector left, const Vector right)
-        {
-            if (sizeof(T) == 1)
-                return std::bit_cast<Vector>(vsubq_s8 (std::bit_cast<V8_16>(left), std::bit_cast<V8_16>(right)));
-            if (sizeof(T) == 2)
-                return std::bit_cast<Vector>(vsubq_s16(std::bit_cast<V16_8>(left), std::bit_cast<V16_8>(right)));
-            if (sizeof(T) == 4) return vsubq_s32(left, right);
+        static i32 ReduceI32(const Vector value) { return vaddvq_s32(AsI32(value)); }
 
-            __builtin_unreachable();
+        [[clang::always_inline]]
+        static i64 ReduceI64(const Vector value) { return vaddlvq_s32(AsI32(value)); }
+
+        [[clang::always_inline]]
+        static Vector PackUnsignedI16(const Vector left, const Vector right)
+        { return vreinterpretq_s16_u8(vqmovun_high_s16(vqmovun_s16(left), right)); }
+
+        [[clang::always_inline]]
+        static Vector DotU8I8(const Vector sum, const Vector u8, const Vector i8)
+        {
+            const auto a = vreinterpretq_u8_s16(u8);
+            const auto b = vreinterpretq_s8_s16(i8);
+
+            const auto low  = vmulq_s16(vreinterpretq_s16_u16(vmovl_u8(vget_low_u8(a))), vmovl_s8(vget_low_s8(b)));
+            const auto high = vmulq_s16(vreinterpretq_s16_u16(vmovl_high_u8(a)        ), vmovl_high_s8(b)        );
+
+            const auto pairs = vqaddq_s16(vuzp1q_s16(low, high), vuzp2q_s16(low, high));
+
+            return AsI16(vpadalq_s16(AsI32(sum), pairs));
         }
 
         [[clang::always_inline]]
-        static Vector Min(const Vector left, const Vector right)
-        {
-            if (sizeof(T) == 1)
-                return std::bit_cast<Vector>(vminq_s8 (std::bit_cast<V8_16>(left), std::bit_cast<V8_16>(right)));
-            if (sizeof(T) == 2)
-                return std::bit_cast<Vector>(vminq_s16(std::bit_cast<V16_8>(left), std::bit_cast<V16_8>(right)));
-            if (sizeof(T) == 4) return vminq_s32(left, right);
-
-            __builtin_unreachable();
-        }
+        static VectorF LoadF(const f32* address) { return vld1q_f32(address); }
 
         [[clang::always_inline]]
-        static Vector Max(const Vector left, const Vector right)
-        {
-            if (sizeof(T) == 1)
-                return std::bit_cast<Vector>(vmaxq_s8 (std::bit_cast<V8_16>(left), std::bit_cast<V8_16>(right)));
-            if (sizeof(T) == 2)
-                return std::bit_cast<Vector>(vmaxq_s16(std::bit_cast<V16_8>(left), std::bit_cast<V16_8>(right)));
-            if (sizeof(T) == 4) return vmaxq_s32(left, right);
-
-            __builtin_unreachable();
-        }
+        static VectorF ZeroF() { return vdupq_n_f32(0.0F); }
 
         [[clang::always_inline]]
-        static Vector MulLo(const Vector left, const Vector right)
-        {
-            if (sizeof(T) == 1)
-                return std::bit_cast<Vector>(vmulq_s8 (std::bit_cast<V8_16>(left), std::bit_cast<V8_16>(right)));
-            if (sizeof(T) == 2)
-                return std::bit_cast<Vector>(vmulq_s16(std::bit_cast<V16_8>(left), std::bit_cast<V16_8>(right)));
-            if (sizeof(T) == 4) return vmulq_s32(left, right);
-
-            __builtin_unreachable();
-        }
+        static VectorF AddF(const VectorF left, const VectorF right) { return vaddq_f32(left, right); }
 
         [[clang::always_inline]]
-        static Vector MulHighUnsigned(const Vector left, const Vector right)
-        {
-            const auto a = std::bit_cast<uint16x8_t>(left );
-            const auto b = std::bit_cast<uint16x8_t>(right);
-
-            return std::bit_cast<Vector>(vcombine_u16(
-                vshrn_n_u32(vmull_u16(vget_low_u16(a), vget_low_u16(b)), 16),
-                vshrn_n_u32(vmull_high_u16(a, b), 16)
-            ));
-        }
-
-        template<s00 Bits>
-        [[clang::always_inline]]
-        static Vector ShiftRight(const Vector value)
-        {
-            using VU8_16 = uint8x16_t;
-            using VU16_8 = uint16x8_t;
-            using VU32_4 = uint32x4_t;
-
-            if constexpr (Bits == 0) return value;
-            else {
-                if (sizeof(T) == 1) return std::bit_cast<Vector>(
-                    vshlq_u8 (std::bit_cast<VU8_16>(value), vdupq_n_s8 (-static_cast<i08>(Bits)))
-                );
-                if (sizeof(T) == 2) return std::bit_cast<Vector>(
-                    vshlq_u16(std::bit_cast<VU16_8>(value), vdupq_n_s16(-static_cast<i16>(Bits)))
-                );
-                if (sizeof(T) == 4) return std::bit_cast<Vector>(
-                    vshlq_u32(std::bit_cast<VU32_4>(value), vdupq_n_s32(-static_cast<i32>(Bits)))
-                );
-            }
-
-            __builtin_unreachable();
-        }
+        static VectorF MulF(const VectorF left, const VectorF right) { return vmulq_f32(left, right); }
 
         [[clang::always_inline]]
-        static Vector MultiplyAddPairs(const Vector left, const Vector right)
-        {
-            const auto a = std::bit_cast<V16_8>(left );
-            const auto b = std::bit_cast<V16_8>(right);
-
-            return vpaddq_s32(vmull_s16(vget_low_s16(a), vget_low_s16(b)), vmull_high_s16(a, b));
-        }
-
-        [[clang::always_inline]]
-        static Vector AccumulateDot(const Vector sum, const Vector left, const Vector right)
-        {
-            const auto a = std::bit_cast<V16_8>(left );
-            const auto b = std::bit_cast<V16_8>(right);
-
-            return vmlal_high_s16(vmlal_s16(sum, vget_low_s16(a), vget_low_s16(b)), a, b);
-        }
-
-        [[clang::always_inline]]
-        static i32 Sum(const Vector value) { return vaddvq_s32(value); }
+        static f32 ReduceF(const VectorF value)
+        { return vpadds_f32(vadd_f32(vget_low_f32(value), vget_high_f32(value))); }
 
     };
 
@@ -169,4 +140,4 @@ namespace MantaRay::Backend::ISA
 
 #endif
 
-#endif
+#endif //MANTARAY_BACKEND_ISA_NEON_H

@@ -1,0 +1,206 @@
+//
+// Copyright (c) 2026 Shaheryar Sohail
+// SPDX-License-Identifier: MIT
+//
+
+#ifndef MANTARAY_BACKEND_KERNEL_UPDATE_H
+#define MANTARAY_BACKEND_KERNEL_UPDATE_H
+
+#include <algorithm>
+#include <array>
+#include <span>
+#include <type_traits>
+
+#include "../../Architecture/Signal.h"
+#include "../../Common/Integral.h"
+
+namespace MantaRay::Backend::Kernel
+{
+
+    namespace Detail
+    {
+
+        template<typename ISA, s00 H, typename T>
+        consteval s00 Lanes()
+        {
+            static_assert(H * sizeof(T) % VectorBytes == 0, "kernel width must be a multiple of 64 bytes");
+            static_assert(VectorBytes   % ISA::Bytes  == 0, "ISA vector must divide 64 bytes"            );
+
+            return ISA::Bytes / sizeof(T);
+        }
+
+        consteval s00 Tile(const s00 vectors, const s00 limit)
+        {
+            for (s00 tile = std::min(vectors, limit); tile > 1; tile--) if (vectors % tile == 0) return tile;
+
+            return 1;
+        }
+
+        template<typename ISA, typename T>
+        [[clang::always_inline]]
+        ISA::Vector Add(const typename ISA::Vector left, const typename ISA::Vector right)
+        {
+            static_assert(std::is_same_v<T, i16> || std::is_same_v<T, i32>, "accumulators are i16 or i32");
+
+            if constexpr (std::is_same_v<T, i16>) return ISA::AddI16(left, right);
+            else                                  return ISA::AddI32(left, right);
+        }
+
+        template<typename ISA, typename T>
+        [[clang::always_inline]]
+        ISA::Vector Sub(const typename ISA::Vector left, const typename ISA::Vector right)
+        {
+            static_assert(std::is_same_v<T, i16> || std::is_same_v<T, i32>, "accumulators are i16 or i32");
+
+            if constexpr (std::is_same_v<T, i16>) return ISA::SubI16(left, right);
+            else                                  return ISA::SubI32(left, right);
+        }
+
+        template<typename ISA, typename T, s00 Subs, s00 Adds>
+        [[clang::always_inline]]
+        ISA::Vector Apply(
+                  typename ISA::Vector        value   ,
+            const std::array<const T*, Subs>& subtract,
+            const std::array<const T*, Adds>& add     ,
+            const s00                         offset
+        )
+        {
+            const auto row = [&](const T* pointer) { return ISA::Load(pointer + offset); };
+
+            if constexpr (Subs + Adds <= 2) {
+                for (const T* pointer : subtract) value = Sub<ISA, T>(value, row(pointer));
+                for (const T* pointer : add     ) value = Add<ISA, T>(value, row(pointer));
+
+                return value;
+            } else if constexpr (Adds == 1) {
+                const auto left  = Add<ISA, T>(value           , row(add     [0]));
+                const auto right = Add<ISA, T>(row(subtract[0]), row(subtract[1]));
+
+                return Sub<ISA, T>(left, right);
+            } else if constexpr (Subs == 1) {
+                const auto left  = Sub<ISA, T>(value      , row(subtract[0]));
+                const auto right = Add<ISA, T>(row(add[0]), row(add     [1]));
+
+                return Add<ISA, T>(left, right);
+            } else {
+                const auto left  = Add<ISA, T>(Sub<ISA, T>(value, row(subtract[0])), row(add     [0]));
+                const auto right = Sub<ISA, T>(row(add[1])                         , row(subtract[1]));
+
+                return Add<ISA, T>(left, right);
+            }
+        }
+
+    }
+
+    template<typename T, s00 Subs, s00 Adds>
+    struct Transition
+    {
+
+        std::array<const T*, 2> Sources     ;
+        std::array<      T*, 2> Destinations;
+
+        std::array<std::array<const T*, Subs>, 2> Subtract;
+        std::array<std::array<const T*, Adds>, 2> Add     ;
+
+        u08 SideToMove;
+
+    };
+
+    template<typename ISA, typename T, s00 Subs, s00 Adds>
+    [[clang::always_inline]]
+    ISA::Vector Advance(const Transition<T, Subs, Adds>& transition, const s00 perspective, const s00 offset)
+    {
+        static_assert(Subs + Adds > 0       , "a transition without rows is a Copy"       );
+        static_assert(Subs <= 2 && Adds <= 2, "a transition has at most two rows per side");
+
+        const auto value = Detail::Apply<ISA, T>(
+            ISA::Load(transition.Sources[perspective] + offset),
+            transition.Subtract[perspective],
+            transition.Add     [perspective],
+            offset
+        );
+
+        ISA::Store(transition.Destinations[perspective] + offset, value);
+
+        return value;
+    }
+
+    template<typename ISA, s00 H, s00 Subs, s00 Adds, typename T>
+    [[clang::always_inline]]
+    void Update(
+        const T*                          source     ,
+              T*                          destination,
+        const std::array<const T*, Subs>& subtract   ,
+        const std::array<const T*, Adds>& add
+    )
+    {
+        static_assert(Subs + Adds > 0       , "an update without rows is a Copy"       );
+        static_assert(Subs <= 2 && Adds <= 2, "an update has at most two rows per side");
+
+        constexpr s00 Lanes = Detail::Lanes<ISA, H, T>();
+
+        const std::array<const T*, Subs> subs = subtract;
+        const std::array<const T*, Adds> adds = add     ;
+
+        #pragma clang loop unroll(full)
+        for (s00 i = 0; i < H; i += Lanes)
+            ISA::Store(destination + i, Detail::Apply<ISA, T>(ISA::Load(source + i), subs, adds, i));
+    }
+
+    template<typename ISA, s00 H, typename T>
+    [[clang::always_inline]]
+    void Copy(const T* source, T* destination)
+    {
+        constexpr s00 Lanes = Detail::Lanes<ISA, H, T>();
+
+        #pragma clang loop unroll(full)
+        for (s00 i = 0; i < H; i += Lanes) ISA::Store(destination + i, ISA::Load(source + i));
+    }
+
+    template<typename ISA, s00 H, typename T>
+    [[clang::always_inline]]
+    void Refresh(
+        const T*                                              base       ,
+              T*                                              destination,
+                              std::type_identity_t<T>*        mirror     ,
+        const std::span<const std::type_identity_t<T>* const> subtract   ,
+        const std::span<const std::type_identity_t<T>* const> add
+    )
+    {
+        constexpr s00 Lanes = Detail::Lanes<ISA, H, T>();
+        constexpr s00 Tile  = Detail::Tile(H / Lanes, ISA::Registers - 4);
+        constexpr s00 Width = Tile * Lanes;
+
+        static_assert(H % Width == 0, "refresh tiles must cover the accumulator exactly");
+
+        for (s00 offset = 0; offset < H; offset += Width) {
+            std::array<typename ISA::Vector, Tile> values;
+
+            #pragma clang loop unroll(full)
+            for (s00 i = 0; i < Tile; i++) values[i] = ISA::Load(base + offset + i * Lanes);
+
+            for (const T* row : subtract) {
+                #pragma clang loop unroll(full)
+                for (s00 i = 0; i < Tile; i++)
+                    values[i] = Detail::Sub<ISA, T>(values[i], ISA::Load(row + offset + i * Lanes));
+            }
+
+            for (const T* row : add) {
+                #pragma clang loop unroll(full)
+                for (s00 i = 0; i < Tile; i++)
+                    values[i] = Detail::Add<ISA, T>(values[i], ISA::Load(row + offset + i * Lanes));
+            }
+
+            #pragma clang loop unroll(full)
+            for (s00 i = 0; i < Tile; i++) ISA::Store(destination + offset + i * Lanes, values[i]);
+
+            if (mirror == nullptr) continue;
+
+            #pragma clang loop unroll(full)
+            for (s00 i = 0; i < Tile; i++) ISA::Store(mirror + offset + i * Lanes, values[i]);
+        }
+    }
+
+}
+
+#endif //MANTARAY_BACKEND_KERNEL_UPDATE_H

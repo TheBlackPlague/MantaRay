@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2025-2026 Shaheryar Sohail
+// Copyright (c) 2026 Shaheryar Sohail
 // SPDX-License-Identifier: MIT
 //
 
@@ -13,14 +13,15 @@ namespace MantaRay
 
     constexpr inline s00 Alignment = 64;
 
+    template<u08>
+    struct Absent {};
+
 }
 
-#ifdef ALIGN
-
-#undef ALIGN
-
+#if defined(_MSC_VER)
+#define NO_UNIQUE_ADDRESS [[msvc::no_unique_address]]
+#else
+#define NO_UNIQUE_ADDRESS [[no_unique_address]]
 #endif
 
-#define ALIGN alignas(MantaRay::Alignment)
-
-#endif
+#endif //MANTARAY_COMMON_ALIGNMENT_H

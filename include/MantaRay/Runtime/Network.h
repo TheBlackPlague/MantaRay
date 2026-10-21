@@ -1,200 +1,252 @@
 //
-// Copyright (c) 2025-2026 Shaheryar Sohail
+// Copyright (c) 2026 Shaheryar Sohail
 // SPDX-License-Identifier: MIT
 //
 
 #ifndef MANTARAY_RUNTIME_NETWORK_H
 #define MANTARAY_RUNTIME_NETWORK_H
 
+#include <algorithm>
+#include <array>
+#include <atomic>
 #include <cassert>
+#include <cstddef>
 #include <memory>
+#include <span>
+#include <string_view>
+#include <type_traits>
+#include <vector>
 
-#include "State.h"
-#include "../Backend/Emitter.h"
-#include "../Backend/GraphBuilder.h"
-#include "../Backend/Kernel/ArrayAdd.h"
-#include "../Backend/Kernel/ArraySub.h"
-#include "../Backend/Kernel/ArraySubAdd.h"
-#include "../Backend/Storage/NetworkStorage.h"
-#include "../IO/Reader.h"
-#include "../IO/Writer.h"
+#include "../Architecture/Architecture.h"
+#include "../Architecture/FeatureSet.h"
+#include "../Architecture/OutputBuckets.h"
+#include "../Backend/Lowering.h"
+#include "../Backend/Target.h"
+#include "../Backend/Kernel/Update.h"
+#include "../Backend/Stage/Format.h"
+#include "../Common/Alignment.h"
+#include "../Common/Integral.h"
+#include "../Common/List.h"
+#include "../IO/Loader.h"
 
-namespace MantaRay::Runtime
+namespace MantaRay
 {
 
-    template<typename Architecture>
+    namespace Detail
+    {
+
+        inline std::atomic<u64> NextGeneration { 1 };
+
+        template<typename B>
+        consteval auto BucketsOf(List<>)
+        {
+            if constexpr (std::is_void_v<B>) return std::type_identity<MaterialCount<1>> {};
+            else                             return std::type_identity<B               > {};
+        }
+
+        template<typename B, typename L, typename... R>
+        consteval auto BucketsOf(List<L, R...>)
+        {
+            if constexpr (!Selecting<L>) return BucketsOf<B>(List<R...> {});
+            else {
+                static_assert(
+                    std::is_void_v<B> || std::is_same_v<B, typename L::Buckets>,
+                    "every Select must use the same output buckets"
+                );
+
+                return BucketsOf<typename L::Buckets>(List<R...> {});
+            }
+        }
+
+        template<typename L>
+        consteval s00 TensorBytes()
+        {
+            if constexpr (!Backend::Stage::IsAffine<L>) return 0;
+            else return L::InputSize * L::OutputSize * sizeof(typename L::WeightSpec::Type) +
+                                       L::OutputSize * sizeof(typename L::BiasSpec  ::Type);
+        }
+
+        template<typename A, typename... L>
+        consteval s00 PayloadBytes(List<L...>)
+        {
+            using T = A::Transformer;
+
+            return T::Features::InputSize * T::OutputSize * sizeof(typename T::WeightSpec::Type) +
+                                            T::OutputSize * sizeof(typename T::BiasSpec  ::Type) +
+                   (TensorBytes<L>() + ... + 0);
+        }
+
+        template<typename... L>
+        consteval u16 TensorCount(List<L...>)
+        {
+            return static_cast<u16>(2 + 2 * (s00 { Backend::Stage::IsAffine<L> } + ... + 0));
+        }
+
+    }
+
+    template<typename A, typename ISA = Backend::Native>
     class Network
     {
 
-        using Traits = Backend::ArchitectureTraits<Architecture>;
-        using Q      = Traits::Quantization;
+        using Program = Backend::Program<A, ISA>;
+        using T       = Program::Accumulator;
+        using F       = A::Transformer::Features;
+        using W       = A::Transformer::WeightSpec;
+        using B       = A::Transformer::BiasSpec;
 
-        static_assert(Backend::ValidArchitecture<Architecture>);
+        constexpr static s00  H         = A::Transformer::OutputSize;
+        constexpr static u08  MinPieces =  2;
+        constexpr static u08  MaxPieces = 32;
+        constexpr static bool Bucketed  = F::KeyCount > 1;
 
-        Backend::NetworkStorage<Architecture> Parameters_ {};
+        using Stamp = std::conditional_t<Bucketed, u64, Absent<0>>;
 
-        [[clang::always_inline]]
-        const auto& FeatureParameters() const requires Traits::HasAccumulator
+        constexpr static s00 Payload = Detail::PayloadBytes<A>(typename A::Layers {});
+        constexpr static u16 Tensors = Detail::TensorCount    (typename A::Layers {});
+
+        static_assert(H * sizeof(T) % Alignment == 0, "feature rows must stay 64-byte aligned");
+
+        alignas(Alignment) std::array<T, F::InputSize * H> FeatureWeights {};
+        alignas(Alignment) std::array<T,                H> FeatureBiases  {};
+
+        Program::Parameters StageParameters {};
+
+        NO_UNIQUE_ADDRESS Stamp LoadGeneration {};
+
+        LoadResult Decode(IO::Reader& reader)
         {
-            return *std::assume_aligned<Alignment>(&Parameters_.template Get<0>());
-        }
+            std::vector<typename W::Type> weights(F::InputSize * H);
+            std::vector<typename B::Type> biases (               H);
 
-        [[clang::always_inline]]
-        const auto& FeatureWeight(const s00 feature) const requires Traits::HasAccumulator
-        {
-            const auto& row = FeatureParameters().Weight[feature];
+            if (const LoadResult result = IO::ReadTensor<W>(reader, std::span(weights)); !result) return result;
+            if (const LoadResult result = IO::ReadTensor<B>(reader, std::span(biases )); !result) return result;
 
-            if (sizeof(row) % Alignment == 0) return *std::assume_aligned<Alignment>(&row);
+            for (s00 i = 0; i < F::InputSize; i++)
+            for (s00 j = 0; j < H           ; j++) {
+                const s00 index = Backend::Stage::BulletIndex<W>(F::InputSize, H, i, j);
 
-            return row;
-        }
+                FeatureWeights[i * H + j] = static_cast<T>(weights[index]);
+            }
 
-        constexpr static s00 Feature(const u08 piece, const u08 color, const u08 square)
-        {
-            return s00 { color } * 384 + s00 { piece } * 64 + square;
+            for (s00 j = 0; j < H; j++) FeatureBiases[j] = static_cast<T>(biases[j]);
+
+            return Program::Load(reader, StageParameters);
         }
 
         public:
-        using ArchitectureType = Architecture;
-        using QuantizationType = Q;
+        using Accumulator = T;
+        using Buckets     = decltype(Detail::BucketsOf<void>(typename A::Layers {}))::type;
 
-        constexpr static auto CompiledGraph = Backend::GraphBuilder<Architecture>::Optimized;
+        constexpr static s00  HiddenSize = H;
+        constexpr static bool Fusable    = Program::Fusable;
 
-        using State   = Backend::Accumulator   <Architecture>;
-        using Storage = Backend::NetworkStorage<Architecture>;
-
-        Network() = default;
-
-              Storage& Parameters()       noexcept { return Parameters_; }
-        const Storage& Parameters() const noexcept { return Parameters_; }
-
-        template<typename Stream>
-        bool ReadFrom(Stream& stream) { return IO::Read(stream, Parameters_); }
-
-        template<typename Stream>
-        bool ReadLegacyV2(Stream& stream) { return IO::ReadLegacyV2(stream, Parameters_); }
-
-        template<typename Stream>
-        bool WriteTo(Stream& stream) const { return IO::Write(stream, Parameters_); }
-
-        [[clang::always_inline]]
-        void Refresh(State& state) const requires Traits::HasAccumulator
+        [[nodiscard]]
+        LoadResult Load(const std::span<const std::byte> bytes)
         {
-            state.Bias(FeatureParameters().Bias);
+            if (const LoadResult result = IO::CheckSize(bytes, Payload, Tensors); !result) return result;
+
+            const auto staging = std::make_unique<Network>();
+
+            IO::Reader reader(bytes.first(Payload));
+
+            if (const LoadResult result = staging->Decode(reader); !result) return result;
+
+            assert(reader.Remaining() == 0 && reader.Tensor() == Tensors);
+
+            if constexpr (Bucketed)
+                staging->LoadGeneration = Detail::NextGeneration.fetch_add(1, std::memory_order_relaxed);
+
+            *this = *staging;
+
+            return {};
         }
 
-        [[clang::always_inline]]
-        void Insert(const s00 feature, State& state) const
-        requires (Traits::HasAccumulator && Traits::PerspectiveCount == 1)
-        {
-            assert(feature < Traits::Input::Size);
+        [[nodiscard]]
+        u64 Generation() const noexcept requires (Bucketed) { return LoadGeneration; }
 
-            Backend::Kernel::Add(state[0], FeatureWeight(feature));
+        [[nodiscard]]
+        constexpr static std::string_view Describe() { return Program::Describe(); }
+
+        [[nodiscard]]
+        i32 Evaluate(const std::span<const u16> pieces, const u08 stm) const
+        {
+            const auto king = [](const u16 code) { return PieceOf(code) == KingPiece; };
+
+            assert(pieces.size() <= F::MaxActive && stm < 2);
+            assert(F::KeyCount == 1 || std::ranges::count_if(pieces, king) == 2);
+
+            std::array<u08, 2> kings {};
+
+            for (const u16 code : pieces) if (king(code)) kings[ColorOf(code)] = SquareOf(code);
+
+            const s00 count = std::min<s00>(pieces.size(), F::MaxActive);
+
+            alignas(Alignment) std::array<std::array<T, H>, 2> values;
+
+            for (u08 perspective = 0; perspective < 2; perspective++) {
+                const u08 key = F::Key(perspective, kings[perspective]);
+
+                std::array<const T*, F::MaxActive> rows;
+
+                for (s00 i = 0; i < count; i++) rows[i] = FeatureRow(F::Index(perspective, key, pieces[i]));
+
+                Backend::Kernel::Refresh<ISA, H>(
+                    FeatureBias(),
+                    values[perspective].data(),
+                    nullptr,
+                    {},
+                    std::span(rows).first(count)
+                );
+            }
+
+            return Forward(values[stm].data(), values[stm ^ 1].data(), Bucket(static_cast<u08>(count)));
         }
 
-        [[clang::always_inline]]
-        void Remove(const s00 feature, State& state) const
-        requires (Traits::HasAccumulator && Traits::PerspectiveCount == 1)
+        [[nodiscard]]
+        constexpr static s00 Bucket(const u08 pieces) noexcept
         {
-            assert(feature < Traits::Input::Size);
+            if constexpr (Buckets::Count == 1) return 0;
+            else {
+                assert(pieces >= MinPieces);
+                assert(pieces <= MaxPieces);
 
-            Backend::Kernel::Sub(state[0], FeatureWeight(feature));
+                return Buckets::Of(std::clamp(pieces, MinPieces, MaxPieces));
+            }
         }
 
+        [[nodiscard]]
         [[clang::always_inline]]
-        void Move(const s00 from, const s00 to, State& state) const
-        requires (Traits::HasAccumulator && Traits::PerspectiveCount == 1)
+        const Accumulator* FeatureRow(const u32 index) const noexcept
         {
-            assert(from < Traits::Input::Size && to < Traits::Input::Size);
+            assert(index < F::InputSize);
 
-            Backend::Kernel::SubAdd(state[0], FeatureWeight(from), FeatureWeight(to));
+            return std::assume_aligned<Alignment>(FeatureWeights.data() + s00 { index } * H);
         }
 
+        [[nodiscard]]
         [[clang::always_inline]]
-        void Insert(const s00 first, const s00 second, State& state) const
-        requires (Traits::HasAccumulator && Traits::PerspectiveCount == 2)
-        {
-            assert(first < Traits::Input::Size && second < Traits::Input::Size);
+        const Accumulator* FeatureBias() const noexcept { return std::assume_aligned<Alignment>(FeatureBiases.data()); }
 
-            Backend::Kernel::Add(state[0], FeatureWeight(first ));
-            Backend::Kernel::Add(state[1], FeatureWeight(second));
+        [[nodiscard]]
+        [[clang::always_inline]]
+        i32 Forward(const Accumulator* stm, const Accumulator* ntm, const s00 bucket) const noexcept
+        {
+            return Program::Forward(StageParameters, stm, ntm, bucket);
         }
 
+        template<s00 Subs, s00 Adds>
+        [[nodiscard]]
         [[clang::always_inline]]
-        void Remove(const s00 first, const s00 second, State& state) const
-        requires (Traits::HasAccumulator && Traits::PerspectiveCount == 2)
+        i32 ForwardFused(
+            const Backend::Kernel::Transition<Accumulator, Subs, Adds>& transition,
+            const s00                                                   bucket
+        ) const noexcept requires (Fusable)
         {
-            assert(first < Traits::Input::Size && second < Traits::Input::Size);
-
-            Backend::Kernel::Sub(state[0], FeatureWeight(first ));
-            Backend::Kernel::Sub(state[1], FeatureWeight(second));
-        }
-
-        [[clang::always_inline]]
-        void MoveFeatures(const s00 f0, const s00 t0, const s00 f1, const s00 t1, State& state) const
-        requires (Traits::HasAccumulator && Traits::PerspectiveCount == 2)
-        {
-            assert(f0 < Traits::Input::Size && t0 < Traits::Input::Size);
-            assert(f1 < Traits::Input::Size && t1 < Traits::Input::Size);
-
-            Backend::Kernel::SubAdd(state[0], FeatureWeight(f0), FeatureWeight(t0));
-            Backend::Kernel::SubAdd(state[1], FeatureWeight(f1), FeatureWeight(t1));
-        }
-
-        [[clang::always_inline]]
-        void Insert(const u08 piece, const u08 color, const u08 square, State& state) const
-        requires (Traits::HasAccumulator && Traits::PerspectiveCount == 2 && Traits::Input::Size == 768)
-        {
-            assert(piece < 6 && color < 2 && square < 64);
-
-            Insert(Feature(piece, color, square), Feature(piece, color ^ 1, square ^ 56), state);
-        }
-
-        [[clang::always_inline]]
-        void Remove(const u08 piece, const u08 color, const u08 square, State& state) const
-        requires (Traits::HasAccumulator && Traits::PerspectiveCount == 2 && Traits::Input::Size == 768)
-        {
-            assert(piece < 6 && color < 2 && square < 64);
-
-            Remove(Feature(piece, color, square), Feature(piece, color ^ 1, square ^ 56), state);
-        }
-
-        [[clang::always_inline]]
-        void Move(const u08 piece, const u08 color, const u08 from, const u08 to, State& state) const
-        requires (Traits::HasAccumulator && Traits::PerspectiveCount == 2 && Traits::Input::Size == 768)
-        {
-            assert(piece < 6 && color < 2 && from < 64 && to < 64);
-
-            MoveFeatures(
-                Feature(piece, color    , from     ), Feature(piece, color    , to     ),
-                Feature(piece, color ^ 1, from ^ 56), Feature(piece, color ^ 1, to ^ 56),
-                state
-            );
-        }
-
-        [[clang::always_inline]]
-        auto Evaluate(const u08 perspective, const State& state) const requires Traits::HasAccumulator
-        {
-            assert(perspective < Traits::PerspectiveCount);
-
-            return Backend::Emitter<CompiledGraph, true>::Run(Parameters_, state, perspective);
-        }
-
-        [[clang::always_inline]]
-        auto Evaluate(const State& state) const requires (Traits::HasAccumulator && Traits::PerspectiveCount == 1)
-        {
-            return Evaluate(0, state);
-        }
-
-        [[clang::always_inline]]
-        auto Evaluate(const Array<typename Q::FeatureType, Traits::Input::Size>& input) const
-        requires (!Traits::HasAccumulator)
-        {
-            return Backend::Emitter<CompiledGraph, true>::Run(Parameters_, input);
+            return Program::template ForwardFused<Subs, Adds>(StageParameters, transition, bucket);
         }
 
     };
 
 }
 
-#endif
+#endif //MANTARAY_RUNTIME_NETWORK_H
