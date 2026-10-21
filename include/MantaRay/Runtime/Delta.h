@@ -55,7 +55,7 @@ namespace MantaRay
 
         constexpr void Insert(const u08 piece, const u08 color, const u08 square) noexcept
         {
-            assert(AddedCount() < 2 && piece < 6 && color < 2 && square < 64);
+            assert(InsertedCount() < 2 && piece < 6 && color < 2 && square < 64);
 
             Word += (u64 { PieceCode(piece, color, square) } << CodeBits * (2 + InsertedCount())) +
                     (u64 { 1 } << InsertionShift) + (u64 { ShapeOf(0, 1) } << ShapeShift);

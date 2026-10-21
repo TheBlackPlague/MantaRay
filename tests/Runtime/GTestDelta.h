@@ -148,7 +148,7 @@ TEST(DeltaDeathTest, Overflow)
     GTEST_SKIP() << "assertions are disabled";
 #else
     EXPECT_DEATH({ Delta delta = DeltaTest::Shape(2, 0); delta.Remove(0, 0, 0); }, "RemovedCount\\(\\) < 2");
-    EXPECT_DEATH({ Delta delta = DeltaTest::Shape(0, 2); delta.Insert   (0, 0, 0); }, "AddedCount\\(\\) < 2");
+    EXPECT_DEATH({ Delta delta = DeltaTest::Shape(0, 2); delta.Insert   (0, 0, 0); }, "InsertedCount\\(\\) < 2");
 #endif
 }
 

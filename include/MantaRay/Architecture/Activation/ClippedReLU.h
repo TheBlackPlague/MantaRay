@@ -58,9 +58,9 @@ namespace MantaRay
             Signal output = signal;
 
             if (signal.Domain == Domain::Integer) {
-                const auto [_, max] = Bounds(signal.Scale);
+                const auto [min, max] = Bounds(signal.Scale);
 
-                output.Range = Clamp(signal.Range, n, max);
+                output.Range = Clamp(signal.Range, min, max);
             }
 
             return output;
