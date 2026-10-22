@@ -486,7 +486,9 @@ namespace BucketedTest
 
         stack->Push(extra);
 
-        EXPECT_EQ(stack->Evaluate(0), forward(B::Of(32)));
+        const i32 actual = stack->Evaluate(0);
+
+        EXPECT_EQ(actual, forward(B::Of(32)));
     }
 
 }
