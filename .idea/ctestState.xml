@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CidrCTestProjectState">
+    <ctestState>
+      <lineNumber testId="path:Tests.cmake test:MantaRayDiagnostic-ConcatTwice" value="32" />
+      <lineNumber testId="path:Tests.cmake test:MantaRayDiagnostic-LastNotOutput" value="32" />
+      <lineNumber testId="path:Tests.cmake test:MantaRayDiagnostic-MissingRescale" value="32" />
+      <lineNumber testId="path:Tests.cmake test:MantaRayDiagnostic-NonSimdHidden" value="32" />
+      <lineNumber testId="path:Tests.cmake test:MantaRayDiagnostic-OutputMidChain" value="32" />
+      <lineNumber testId="path:Tests.cmake test:MantaRayDiagnostic-OutputNotLast" value="32" />
+      <lineNumber testId="path:Tests.cmake test:MantaRayDiagnostic-PairwiseShift" value="32" />
+      <lineNumber testId="path:Tests.cmake test:MantaRayDiagnostic-SelectNotDivisible" value="32" />
+      <lineNumber testId="path:Tests.cmake test:MantaRayDiagnostic-WrongAffineInput" value="32" />
+      <lineNumber testId="path:Tests.cmake test:MantaRayTest-arm64-native" value="26" />
+    </ctestState>
+  </component>
+</project>

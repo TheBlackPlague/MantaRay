@@ -1,5 +1,3 @@
-# === ARCHITECTURE DETECTION ===
-
 string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" ProcessorArchitectureDefinition)
 set(AMD64 FALSE)
 set(ARM64 FALSE)
@@ -28,18 +26,25 @@ endfunction()
 
 if(AMD64)
     message(STATUS "Platform: AMD64")
-    AddMantaRayMicroBench("x86-64" "sse2"     "-msse2"       )
-    AddMantaRayMicroBench("x86-64" "sse41"    "-msse4.1"     )
+    AddMantaRayMicroBench("x86-64" "sse2"       "-msse2"                 )
+    AddMantaRayMicroBench("x86-64" "sse41"      "-msse4.1"               )
 
-    AddMantaRayMicroBench("x86-64" "avx"      "-mavx"        )
-    AddMantaRayMicroBench("x86-64" "avx2"     "-mavx2"       )
+    AddMantaRayMicroBench("x86-64" "avx"        "-mavx"                  )
+    AddMantaRayMicroBench("x86-64" "avx2"       "-mavx2"                 )
 
-    AddMantaRayMicroBench("x86-64" "avx512f"  "-mavx512f"    )
-    AddMantaRayMicroBench("x86-64" "avx512bw" "-mavx512bw"   )
+    AddMantaRayMicroBench("x86-64" "avx512f"    "-mavx512f"              )
+    AddMantaRayMicroBench("x86-64" "avx512bw"   "-mavx512bw"             )
+    AddMantaRayMicroBench("x86-64" "avx512vnni" "-mavx512bw;-mavx512vnni")
 
-    AddMantaRayMicroBench("x86-64" "native"   "-march=native")
+    AddMantaRayMicroBench("x86-64" "native"     "-march=native"          )
 elseif(ARM64)
-    AddMantaRayMicroBench("arm64" "native" "-mcpu=native")
+    message(STATUS "Platform: ARM64")
+
+    if(CMAKE_CROSSCOMPILING)
+        AddMantaRayMicroBench("arm64" "native" "-mcpu=cortex-a76")
+    else()
+        AddMantaRayMicroBench("arm64" "native" "-mcpu=native"    )
+    endif()
 else()
     AddMantaRayMicroBench("portable" "scalar" "")
 endif()
