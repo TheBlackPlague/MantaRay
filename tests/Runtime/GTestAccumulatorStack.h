@@ -6,313 +6,183 @@
 #ifndef MANTARAY_RUNTIME_GTESTACCUMULATORSTACK_H
 #define MANTARAY_RUNTIME_GTESTACCUMULATORSTACK_H
 
-#include <cstdint>
+#include <algorithm>
+#include <array>
 #include <memory>
-#include <random>
-#include <type_traits>
+#include <span>
+#include <string_view>
 #include <vector>
 
 #include <gtest/gtest.h>
 
-#include <MantaRay/Architecture/FeatureSet.h>
-#include <MantaRay/Runtime/AccumulatorStack.h>
-#include <MantaRay/Runtime/Delta.h>
-#include <MantaRay/Runtime/Network.h>
+#include <MantaRay/MantaRay.h>
+#include <MantaRay/Reference/Position.h>
 
 #include "../Architecture/Examples.h"
 #include "NetworkUtil.h"
 
 using namespace MantaRay;
 
-template<typename S>
-constexpr bool EvaluatesWithoutBoards = requires (S& stack) { stack.Evaluate(u08 {}); };
-
-template<typename A>
-constexpr bool FusedWhenLazy = Stack<A, UpdatePolicy::Lazy>::Fused && !Stack<A, UpdatePolicy::Eager>::Fused;
-
-template<UpdatePolicy Policy>
-void CheckResetAndDuplicates()
+namespace AccumulatorStackTest
 {
-    using A = Examples::Starshard;
 
-    std::mt19937_64 random(0x5245534554445550);
+    constexpr std::string_view Start = "r3k2r/1P1p2P1/8/4P3/8/8/8/R3K2R w KQkq - 0 1";
 
-    const auto network = RandomNetwork<A>(random);
-    const auto stack   = std::make_unique<Stack<A, Policy, 16>>(*network);
+    constexpr std::array<s00, 7> Checked { 1, 2, 3, 5, 6, 9, 12 };
 
-    Oracle<A> oracle(*network);
+    constexpr u08 Square(const char (&name)[3]) { return static_cast<u08>(name[0] - 'a' + 8 * (name[1] - '1')); }
 
-    std::vector<std::vector<u16>> positions { StartPosition() };
+    constexpr std::array<PieceDelta, 12> Line = [] {
+        std::array<PieceDelta, 12> line;
 
-    const auto push = [&](const Delta& delta) {
-        positions.push_back(Apply(positions.back(), delta));
+        line[ 0].Move  (Piece::King , White, Square("e1"), Square("c1"));
+        line[ 0].Move  (Piece::Rook , White, Square("a1"), Square("d1"));
 
-        stack->Push(delta);
-    };
+        line[ 1].Move  (Piece::Pawn , Black, Square("d7"), Square("d5"));
 
-    const auto pop = [&] {
-        positions.pop_back();
+        line[ 2].Move  (Piece::Pawn , White, Square("e5"), Square("d6"));
+        line[ 2].Remove(Piece::Pawn , Black, Square("d5")              );
 
-        stack->Pop();
-    };
+        line[ 3].Remove(Piece::Rook , White, Square("h1")              );
+        line[ 3].Move  (Piece::Rook , Black, Square("h8"), Square("h1"));
 
-    const auto check = [&](const u08 stm) {
-        ASSERT_EQ(stack->Depth(), positions.size() - 1);
+        line[ 4].Remove(Piece::Rook , Black, Square("h1")              );
+        line[ 4].Move  (Piece::Rook , White, Square("d1"), Square("h1"));
 
-        EXPECT_TRUE(oracle.Check(*stack, positions.back(), stm)) << "depth " << stack->Depth();
-    };
+        line[ 5].Move  (Piece::King , Black, Square("e8"), Square("d7"));
 
-    const auto move = [](const u08 piece, const u08 color, const u08 from, const u08 to) {
-        Delta delta;
+        line[ 6].Remove(Piece::Pawn , White, Square("g7")              );
+        line[ 6].Insert(Piece::Queen, White, Square("g8")              );
 
-        delta.Move(piece, color, from, to);
+        line[ 7].Move  (Piece::King , Black, Square("d7"), Square("c6"));
 
-        return delta;
-    };
+        line[ 8].Remove(Piece::Pawn , White, Square("b7")              );
+        line[ 8].Remove(Piece::Rook , Black, Square("a8")              );
+        line[ 8].Insert(Piece::Queen, White, Square("a8")              );
 
-    const auto capture = [](const u08 piece, const u08 color, const u08 from, const u08 to, const u08 victim) {
-        Delta delta;
+        line[ 9].Move  (Piece::King , Black, Square("c6"), Square("c5"));
 
-        delta.Remove(victim, color ^ 1, to  );
-        delta.Move  (piece , color    , from, to);
+        line[10].Move  (Piece::Pawn , White, Square("d6"), Square("d7"));
 
-        return delta;
-    };
+        line[11].Move  (Piece::King , Black, Square("c5"), Square("b4"));
 
-    ResetFromPieces(*stack, positions.back());
+        return line;
+    }();
 
-    check(0); check(0); check(1); check(0);
+    constexpr std::array<PieceDelta, 3> Branch = [] {
+        std::array<PieceDelta, 3> branch;
 
-    push(move(0, 0, 12, 28));
+        branch[0].Remove(Piece::Pawn , White, Square("g7")              );
+        branch[0].Insert(Piece::Queen, White, Square("g8")              );
 
-    check(1); check(1); check(0);
+        branch[1].Move  (Piece::King , Black, Square("e8"), Square("d7"));
 
-    push(move   (0, 1, 51, 35));
-    push(capture(0, 0, 28, 35, 0));
+        branch[2].Remove(Piece::Rook , Black, Square("a8")              );
+        branch[2].Move  (Piece::Queen, White, Square("g8"), Square("a8"));
 
-    check(1); check(1); check(0);
+        return branch;
+    }();
 
-    pop();
+    inline void Apply(Reference::Position& position, const PieceDelta& delta)
+    {
+        for (s00 i = 0; i < delta.RemovedCount(); i++) {
+            const PieceChange change = delta.Removed(i);
 
-    check(0); check(1);
-
-    push(Delta {});
-
-    check(1); check(0);
-
-    push(move(1, 1, 62, 45));
-    push(move(5, 0,  4, 12));
-    push(Delta {});
-    push(move(0, 1, 52, 36));
-
-    check(0); check(1);
-
-    pop(); pop();
-
-    check(1); check(1);
-
-    while (stack->Depth() > 0) pop();
-
-    check(0); check(1);
-
-    push(move(1, 0,  6, 21));
-    push(move(0, 1, 52, 36));
-
-    positions = { { PieceCode(5, 0, 4), PieceCode(3, 0, 7), PieceCode(5, 1, 60), PieceCode(0, 0, 49),
-                    PieceCode(0, 1, 51), PieceCode(0, 0, 36), PieceCode(4, 1, 58) } };
-
-    ResetFromPieces(*stack, positions.back());
-
-    check(1); check(0);
-
-    Delta castle;
-
-    castle.Move(5, 0, 4, 6);
-    castle.Move(3, 0, 7, 5);
-
-    push(castle);
-    push(move(0, 1, 51, 35));
-
-    Delta passant;
-
-    passant.Remove(0, 1, 35);
-    passant.Move  (0, 0, 36, 43);
-
-    push(passant);
-
-    Delta promotion;
-
-    promotion.Remove(0, 0, 49);
-    promotion.Insert   (4, 0, 57);
-
-    push(promotion);
-
-    check(1); check(0);
-
-    pop();
-
-    Delta capturePromotion;
-
-    capturePromotion.Remove(4, 1, 58);
-    capturePromotion.Remove(0, 0, 49);
-    capturePromotion.Insert   (3, 0, 58);
-
-    push(capturePromotion);
-
-    check(1); check(1); check(0);
-}
-
-template<UpdatePolicy Policy>
-void CheckVectorAlignment()
-{
-    using A = Examples::Flare;
-    using S = Stack<A, Policy, 247>;
-
-    static_assert(alignof(S) == Alignment);
-
-    std::mt19937_64 random(0x414C49474E4D454E);
-
-    const auto network = RandomNetwork<A>(random);
-
-    Oracle<A> oracle(*network);
-
-    std::vector<S> stacks;
-
-    for (s00 i = 0; i < 3; i++) {
-        stacks.emplace_back(*network);
-
-        for (const S& stack : stacks) {
-            EXPECT_EQ(reinterpret_cast<std::uintptr_t>(&stack                ) % Alignment, std::uintptr_t { 0 });
-            EXPECT_EQ(reinterpret_cast<std::uintptr_t>(stack.Values(0).data()) % Alignment, std::uintptr_t { 0 });
-            EXPECT_EQ(reinterpret_cast<std::uintptr_t>(stack.Values(1).data()) % Alignment, std::uintptr_t { 0 });
+            position.Remove(change.Side, change.Type, change.Square);
         }
+
+        for (s00 i = 0; i < delta.InsertedCount(); i++) {
+            const PieceChange change = delta.Inserted(i);
+
+            position.Place(change.Side, change.Type, change.Square);
+        }
+
+        position.Pass();
     }
 
-    const std::vector<u16> pieces = StartPosition();
+    inline std::vector<Reference::Position> Played(
+        const Reference::Position&        root  ,
+        const std::span<const PieceDelta> deltas
+    )
+    {
+        std::vector<Reference::Position> positions { root };
 
-    Delta delta;
+        for (const PieceDelta& delta : deltas) {
+            Reference::Position next = positions.back();
 
-    delta.Move(1, 0, 6, 21);
+            Apply(next, delta);
 
-    const std::vector<u16> child = Apply(pieces, delta);
+            positions.push_back(next);
+        }
 
-    for (S& stack : stacks) {
-        ResetFromPieces(stack, pieces);
-
-        stack.Push(delta);
-
-        EXPECT_TRUE(oracle.Check(stack, child, 1));
-        EXPECT_EQ(reinterpret_cast<std::uintptr_t>(stack.Values(0).data()) % Alignment, std::uintptr_t { 0 });
-    }
-}
-
-TEST(AccumulatorStack, Shape)
-{
-    using Lazy  = AccumulatorStack<Examples::Flare, 247>;
-    using Eager = AccumulatorStack<Examples::Flare, 247, UpdatePolicy::Eager>;
-
-    static_assert(alignof(Lazy) == Alignment && alignof(Eager) == Alignment);
-    static_assert(std::is_same_v<Lazy::Accumulator, i16>);
-    static_assert(sizeof(Lazy) == 761024 && sizeof(Eager) == 761024);
-
-    static_assert(std::is_same_v<Stack<Examples::WideAccumulator, UpdatePolicy::Lazy>::Accumulator, i32>);
-
-    using N = Network<Examples::Flare>;
-
-    static_assert( std::is_constructible_v<Lazy , const N& >);
-    static_assert(!std::is_constructible_v<Lazy , const N&&>);
-    static_assert(!std::is_constructible_v<Eager,       N  >);
-
-    static_assert( FusedWhenLazy<Examples::Starshard        >);
-    static_assert( FusedWhenLazy<Examples::Aurora           >);
-    static_assert( FusedWhenLazy<Examples::Flare            >);
-    static_assert( FusedWhenLazy<Examples::SimpleSCReLU     >);
-    static_assert( FusedWhenLazy<Examples::WideSCReLU       >);
-    static_assert( FusedWhenLazy<Examples::SquareFirstSCReLU>);
-    static_assert( FusedWhenLazy<Examples::WidenedSCReLU    >);
-    static_assert( FusedWhenLazy<Examples::LinearReLU       >);
-    static_assert( FusedWhenLazy<Examples::WidenedSqrReLU   >);
-    static_assert( FusedWhenLazy<Examples::OutputBucketed   >);
-    static_assert( FusedWhenLazy<Examples::KingBucketed     >);
-    static_assert(!Stack<Examples::MultiLayer     , UpdatePolicy::Lazy>::Fused);
-    static_assert(!Stack<Examples::PackedPairwise , UpdatePolicy::Lazy>::Fused);
-    static_assert(!Stack<Examples::ShiftedPairwise, UpdatePolicy::Lazy>::Fused);
-    static_assert(!Stack<Examples::WideAccumulator, UpdatePolicy::Lazy>::Fused);
-
-    static_assert( EvaluatesWithoutBoards<Stack<Examples::Flare         , UpdatePolicy::Lazy >>);
-    static_assert( EvaluatesWithoutBoards<Stack<Examples::OutputBucketed, UpdatePolicy::Eager>>);
-    static_assert(!EvaluatesWithoutBoards<Stack<Examples::KingBucketed  , UpdatePolicy::Lazy >>);
-    static_assert(!EvaluatesWithoutBoards<Stack<Examples::KingBucketed  , UpdatePolicy::Eager>>);
-    static_assert(!EvaluatesWithoutBoards<Stack<Examples::MultiLayer    , UpdatePolicy::Lazy >>);
-}
-
-TEST(AccumulatorStack, LazyEqualsEagerEqualsReset)
-{
-    LazyEqualsEagerEqualsReset<Examples::Starshard      >(0x4C415A5945414745, 3000);
-    LazyEqualsEagerEqualsReset<Examples::Flare          >(0x464C415245574B31, 1000);
-    LazyEqualsEagerEqualsReset<Examples::SimpleSCReLU   >(0x5343524555574B31, 3000);
-    LazyEqualsEagerEqualsReset<Examples::WideSCReLU     >(0x574944454C5A5244, 1000);
-    LazyEqualsEagerEqualsReset<Examples::WideAccumulator>(0x5749444541434331, 3000);
-}
-
-TEST(AccumulatorStack, EvaluateAfterResetAndDuplicates)
-{
-    CheckResetAndDuplicates<UpdatePolicy::Lazy >();
-    CheckResetAndDuplicates<UpdatePolicy::Eager>();
-}
-
-TEST(AccumulatorStack, VectorAlignment)
-{
-    CheckVectorAlignment<UpdatePolicy::Lazy >();
-    CheckVectorAlignment<UpdatePolicy::Eager>();
-}
-
-TEST(AccumulatorStackDeathTest, PopAtRoot)
-{
-#ifdef NDEBUG
-    GTEST_SKIP() << "assertions are disabled";
-#else
-    using A = Examples::SimpleSCReLU;
-
-    const auto network = std::make_unique<Network<A>>();
-    const auto lazy    = std::make_unique<Stack<A, UpdatePolicy::Lazy , 4>>(*network);
-    const auto eager   = std::make_unique<Stack<A, UpdatePolicy::Eager, 4>>(*network);
-
-    EXPECT_DEATH(lazy ->Pop(), "Top > 0");
-    EXPECT_DEATH(eager->Pop(), "Top > 0");
-
-    lazy ->Push(Delta {});
-    eager->Push(Delta {});
-    lazy ->Pop();
-    eager->Pop();
-
-    EXPECT_DEATH(lazy ->Pop(), "Top > 0");
-    EXPECT_DEATH(eager->Pop(), "Top > 0");
-#endif
-}
-
-TEST(AccumulatorStackDeathTest, PushBeyondCapacity)
-{
-#ifdef NDEBUG
-    GTEST_SKIP() << "assertions are disabled";
-#else
-    using A = Examples::SimpleSCReLU;
-
-    const auto network = std::make_unique<Network<A>>();
-    const auto lazy    = std::make_unique<Stack<A, UpdatePolicy::Lazy , 4>>(*network);
-    const auto eager   = std::make_unique<Stack<A, UpdatePolicy::Eager, 4>>(*network);
-
-    for (s00 i = 0; i < 3; i++) {
-        lazy ->Push(Delta {});
-        eager->Push(Delta {});
+        return positions;
     }
 
-    EXPECT_EQ(lazy ->Depth(), s00 { 3 });
-    EXPECT_EQ(eager->Depth(), s00 { 3 });
+    template<auto D, UpdatePolicy Policy>
+    void CheckPolicy(const Network<D>& network)
+    {
+        const auto stack = std::make_unique<AccumulatorStack<D, 16, Policy>>(network);
 
-    EXPECT_DEATH(lazy ->Push(Delta {}), "Top < Capacity - 1");
-    EXPECT_DEATH(eager->Push(Delta {}), "Top < Capacity - 1");
-#endif
+        const std::vector<Reference::Position> trunk  = Played(Reference::Position { Start }, Line);
+        const std::vector<Reference::Position> branch = Played(trunk[4], Branch);
+
+        const auto expect = [&](const Reference::Position& position) {
+            EXPECT_EQ(stack->Evaluate(position.SideToMove()), network.Evaluate(position))
+                << "depth " << stack->Depth();
+        };
+
+        const auto pop = [&](const s00 depth) {
+            while (stack->Depth() > depth) stack->Pop();
+
+            expect(trunk[depth]);
+        };
+
+        stack->Reset(trunk[0]);
+
+        for (s00 ply = 1; ply <= 12; ply++) {
+            stack->Push(Line[ply - 1]);
+
+            if (std::ranges::contains(Checked, ply)) expect(trunk[ply]);
+        }
+
+        pop(9);
+        pop(4);
+
+        for (s00 ply = 1; ply <= 3; ply++) {
+            stack->Push(Branch[ply - 1]);
+
+            if (ply != 2) expect(branch[ply]);
+        }
+
+        pop(0);
+
+        for (s00 ply = 1; ply <= 12; ply++) stack->Push(Line[ply - 1]);
+
+        expect(trunk[12]);
+    }
+
+    template<auto D>
+    void Check(Random& random)
+    {
+        const auto network = std::make_unique<Network<D>>();
+
+        const LoadResult result = network->Load(RandomBytes<D>(random));
+
+        ASSERT_TRUE(result) << result.Message();
+
+        CheckPolicy<D, UpdatePolicy::Eager>(*network);
+        CheckPolicy<D, UpdatePolicy::Lazy >(*network);
+    }
+
+}
+
+TEST(AccumulatorStack, Perspective)
+{
+    Random random(0x535441434B504552);
+
+    AccumulatorStackTest::Check<Examples::Starshard>(random);
+    AccumulatorStackTest::Check<Examples::Aurora   >(random);
+    AccumulatorStackTest::Check<Examples::Flare    >(random);
 }
 
 #endif //MANTARAY_RUNTIME_GTESTACCUMULATORSTACK_H

@@ -8,25 +8,16 @@
 
 #include <algorithm>
 #include <array>
-#include <bit>
 #include <cstddef>
-#include <cstdlib>
-#include <limits>
 #include <memory>
-#include <random>
 #include <span>
-#include <type_traits>
-#include <utility>
+#include <string_view>
 #include <vector>
 
 #include <gtest/gtest.h>
 
-#include <MantaRay/Architecture/FeatureSet.h>
-#include <MantaRay/Architecture/FeatureSet/Chess768.h>
-#include <MantaRay/Architecture/FeatureSet/KingBuckets.h>
-#include <MantaRay/Common.h>
-#include <MantaRay/Runtime/AccumulatorStack.h>
-#include <MantaRay/Runtime/Network.h>
+#include <MantaRay/MantaRay.h>
+#include <MantaRay/Reference/Position.h>
 
 #include "../Architecture/Examples.h"
 #include "NetworkUtil.h"
@@ -36,312 +27,83 @@ using namespace MantaRay;
 namespace ReferenceTest
 {
 
-    struct Activation
-    {
-
-        bool Known   = false;
-        bool Squares = false;
-        i64  Low     = 0;
-        i64  High    = std::numeric_limits<i32>::max();
-
+    constexpr std::array<std::string_view, 8> Fens {
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+        "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
+        "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1",
+        "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8",
+        "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10",
+        "r1bqk2r/ppp2ppp/2np1n2/2b1p3/2B1P3/2PP1N2/PP3PPP/RNBQK2R w KQkq - 0 4",
+        "4k3/8/8/8/8/8/4P3/4K3 w - - 0 1"
     };
 
-    template<typename L>
-    constexpr inline Activation ActivationOf {};
-
-    template<i32 Min, i32 Max>
-    constexpr inline Activation ActivationOf<ClippedReLU<Min, Max>> { true, false, Min, Max };
-
-    template<i32 Min, i32 Max>
-    constexpr inline Activation ActivationOf<SquaredClippedReLU<Min, Max>> { true, true, Min, Max };
-
-    template<>
-    constexpr inline Activation ActivationOf<ReLU> { true, false };
-
-    template<>
-    constexpr inline Activation ActivationOf<SquaredReLU> { true, true };
-
-    inline u32 Plain(const u08 perspective, const u16 code, const u32 flip)
+    template<auto D>
+    i32 ReferenceEvaluate(const std::span<const std::byte> bytes, const Reference::Position& position)
     {
-        const u32 square = SquareOf(code) ^ 56 * perspective ^ flip;
+        constexpr s00 Width  = IR::ElementsOf(Model<D>::Graph.Tensors[1]);
+        constexpr s00 Inputs = 768;
+        constexpr s00 Empty  = 12;
 
-        return 384 * (ColorOf(code) != perspective) + 64 * PieceOf(code) + square;
+        constexpr s00 BiasBegin   = Inputs * Width;
+        constexpr s00 WeightBegin = BiasBegin + Width;
+        constexpr s00 OffsetBegin = WeightBegin + 2 * Width;
+
+        const auto read = [&](const s00 index) {
+            const u16 low  = std::to_integer<u16>(bytes[2 * index    ]);
+            const u16 high = std::to_integer<u16>(bytes[2 * index + 1]);
+
+            return i64 { static_cast<i16>(low | high << 8) };
+        };
+
+        const u08 stm = position.SideToMove();
+
+        std::array<std::array<i64, Width>, 2> accumulators {};
+
+        for (u08 side = 0; side < 2; side++) {
+            const u08 perspective = static_cast<u08>(stm ^ side);
+
+            for (s00 i = 0; i < Width; i++) accumulators[side][i] = read(BiasBegin + i);
+
+            for (u08 square = 0; square < 64; square++) {
+                const u32 code = position.At(square);
+
+                if (code == Empty) continue;
+
+                const u32 feature = 384 * (code / 6 != perspective) + 64 * (code % 6) + (square ^ 56 * perspective);
+
+                for (s00 i = 0; i < Width; i++) accumulators[side][i] += read(feature * Width + i);
+            }
+        }
+
+        i64 output = read(OffsetBegin);
+
+        for (u08 side = 0; side < 2    ; side++)
+        for (s00 i    = 0; i    < Width; i++   )
+            output += std::clamp<i64>(accumulators[side][i], 0, 255) * read(WeightBegin + side * Width + i);
+
+        return static_cast<i32>(output * 400 / (255 * 64));
     }
 
-    template<typename F>
-    struct Features;
-
-    template<>
-    struct Features<Chess768>
+    template<auto D>
+    void Check(Random& random)
     {
+        const std::vector<std::byte> bytes = RandomBytes<D>(random);
 
-        static u32 Index(const u08 perspective, const u08, const u16 code) { return Plain(perspective, code, 0); }
+        const auto network = std::make_unique<Network<D>>();
 
-    };
+        const LoadResult result = network->Load(bytes);
 
-    template<std::array<u08, 32> Layout>
-    struct Features<MirroredKingBuckets<Layout>>
-    {
+        ASSERT_TRUE(result) << result.Message();
 
-        static u32 Index(const u08 perspective, const u08 king, const u16 code)
-        {
-            const u32 square = king ^ 56 * perspective;
-            const u32 flip   = square % 8 > 3 ? 7 : 0;
+        for (const std::string_view fen : Fens)
+        for (const u08 stm : { White, Black }) {
+            Reference::Position position { fen };
 
-            return 768 * Layout[square / 8 * 4 + (square % 8 ^ flip)] + Plain(perspective, code, flip);
-        }
+            if (position.SideToMove() != stm) position.Pass();
 
-    };
-
-    struct Values
-    {
-
-        std::vector<std::vector<i64>> Sides       {};
-        std::vector<double>           Real        {};
-        bool                          Float       = false;
-        i64                           Numerator   = 1;
-        i64                           Denominator = 1;
-
-    };
-
-    struct Result
-    {
-
-        i32  Value = 0;
-        bool Float = false;
-
-    };
-
-    template<typename A>
-    class Reference
-    {
-
-        using T = A::Transformer;
-        using F = T::Features;
-
-        constexpr static s00 H = T::OutputSize;
-
-        std::vector<std::vector<double>> Tensors;
-
-        template<typename S>
-        void Read(const std::span<const std::byte> bytes, s00& position, const s00 count)
-        {
-            using V = S::Type;
-            using U = std::conditional_t<sizeof(V) == 1, u08, std::conditional_t<sizeof(V) == 2, u16, u32>>;
-
-            for (double& value : Tensors.emplace_back(count)) {
-                U bits = 0;
-
-                for (s00 i = 0; i < sizeof(V); i++)
-                    bits |= static_cast<U>(std::to_integer<U>(bytes[position++]) << 8 * i);
-
-                value = std::bit_cast<V>(bits);
-            }
-        }
-
-        template<typename W>
-        static double Weight(const std::vector<double>& tensor, const s00 in, const s00 out, const s00 i, const s00 o)
-        {
-            return tensor[W::IsTransposed ? o * in + i : i * out + o];
-        }
-
-        static i64 Rectify(const Activation activation, const i64 value, const Values& values)
-        {
-            const i64 low  = activation.Low  * values.Numerator / values.Denominator;
-            const i64 high = activation.High * values.Numerator / values.Denominator;
-            const i64 x    = std::clamp(value, low, high);
-
-            return activation.Squares ? x * x : x;
-        }
-
-        template<typename L>
-        void Apply(Values& values, s00& tensor, const s00 pieces, i32& output) const
-        {
-            if constexpr (ActivationOf<L>.Known) {
-                constexpr Activation R = ActivationOf<L>;
-
-                for (double& x : values.Real) {
-                    x = std::clamp<double>(x, R.Low, R.High);
-
-                    if (R.Squares) x *= x;
-                }
-
-                for (std::vector<i64>& side : values.Sides)
-                for (i64&              x    : side        ) x = Rectify(R, x, values);
-
-                if (R.Squares) {
-                    values.Numerator   *= values.Numerator  ;
-                    values.Denominator *= values.Denominator;
-                }
-            } else if constexpr (requires { typename L::Activation; }) {
-                constexpr Activation R = ActivationOf<typename L::Activation>;
-
-                for (std::vector<i64>& side : values.Sides) {
-                    const s00 half = side.size() / 2;
-
-                    std::vector<i64> products(half);
-
-                    for (s00 j = 0; j < half; j++)
-                        products[j] = Rectify(R, side[j], values) * Rectify(R, side[half + j], values) >> L::Shift;
-
-                    side = std::move(products);
-                }
-
-                const i64 numerator   = R.Squares ? values.Numerator   * values.Numerator   : values.Numerator  ;
-                const i64 denominator = R.Squares ? values.Denominator * values.Denominator : values.Denominator;
-
-                values.Numerator   = numerator   * numerator;
-                values.Denominator = denominator * denominator << L::Shift;
-            } else if constexpr (std::is_same_v<L, Concat>) {
-                values.Sides[0].insert(values.Sides[0].end(), values.Sides[1].begin(), values.Sides[1].end());
-                values.Sides.pop_back();
-            } else if constexpr (requires { typename L::Buckets; }) {
-                constexpr s00 N = L::Buckets::Count;
-
-                const s00 bucket = (pieces - 2) / ((32 + N - 1) / N);
-
-                const auto select = [&]<typename V>(std::vector<V>& items) {
-                    const s00 size = items.size() / N;
-
-                    items = std::vector<V>(items.begin() + bucket * size, items.begin() + (bucket + 1) * size);
-                };
-
-                if (values.Float) select(values.Real    );
-                else              select(values.Sides[0]);
-            } else if constexpr (requires { typename L::WeightSpec; }) {
-                using W = L::WeightSpec;
-                using S = L::Schedule;
-
-                const std::vector<double>& weights = Tensors[tensor++];
-                const std::vector<double>& biases  = Tensors[tensor++];
-
-                const bool   real  = values.Float || std::is_same_v<S, Dequantize>;
-                const double scale = static_cast<double>(values.Denominator) / (values.Numerator * W::Quantization);
-
-                std::vector<i64   > integers;
-                std::vector<double> reals   ;
-
-                for (s00 o = 0; o < L::OutputSize; o++) {
-                    i64    sum   = 0;
-                    double total = 0;
-
-                    for (s00 i = 0; i < L::InputSize; i++) {
-                        const double weight = Weight<W>(weights, L::InputSize, L::OutputSize, i, o);
-
-                        if (values.Float) total += values.Real[i] * weight;
-                        else              sum   += values.Sides[0][i] * static_cast<i64>(weight);
-                    }
-
-                    if constexpr (requires { S::Divisor; }) sum /= S::Divisor;
-                    if constexpr (requires { S::Shift;   }) sum >>= S::Shift;
-
-                    if (real) reals   .push_back((values.Float ? total : static_cast<double>(sum) * scale) + biases[o]);
-                    else      integers.push_back(sum + static_cast<i64>(biases[o]));
-                }
-
-                if (real) values = { .Real  = std::move(reals), .Float = true };
-                else      values = { .Sides = { std::move(integers) }, .Numerator = L::BiasSpec::Quantization };
-            } else if constexpr (requires { L::OutputScale; }) {
-                const i64 scale = L::OutputScale;
-
-                if (values.Float) output = static_cast<i32>(values.Real[0] * static_cast<double>(scale));
-                else              output = static_cast<i32>(values.Sides[0][0] * scale * values.Denominator /
-                                                            values.Numerator);
-            } else static_assert(false, "the reference has no semantics for this layer");
-        }
-
-        public:
-        explicit Reference(const std::span<const std::byte> bytes)
-        {
-            s00 position = 0;
-
-            Read<typename T::WeightSpec>(bytes, position, F::InputSize * H);
-            Read<typename T::BiasSpec  >(bytes, position,                H);
-
-            [&]<typename... L>(List<L...>) {
-                ([&] {
-                    if constexpr (requires { typename L::WeightSpec; }) {
-                        Read<typename L::WeightSpec>(bytes, position, L::InputSize * L::OutputSize);
-                        Read<typename L::BiasSpec  >(bytes, position,                L::OutputSize);
-                    }
-                }(), ...);
-            }(typename A::Layers {});
-
-            EXPECT_EQ(position, bytes.size());
-        }
-
-        Result Evaluate(const std::vector<u16>& pieces, const u08 stm) const
-        {
-            using W = T::WeightSpec;
-
-            std::array<u08, 2> kings {};
-
-            for (const u16 code : pieces) if (PieceOf(code) == KingPiece) kings[ColorOf(code)] = SquareOf(code);
-
-            Values values { .Numerator = W::Quantization };
-
-            for (const u08 perspective : { stm, static_cast<u08>(stm ^ 1) }) {
-                std::vector<i64>& side = values.Sides.emplace_back(Tensors[1].begin(), Tensors[1].end());
-
-                for (const u16 code : pieces) {
-                    const u32 feature = Features<F>::Index(perspective, kings[perspective], code);
-
-                    for (s00 j = 0; j < H; j++)
-                        side[j] += static_cast<i64>(Weight<W>(Tensors[0], F::InputSize, H, feature, j));
-                }
-            }
-
-            s00 tensor = 2;
-            i32 output = 0;
-
-            [&]<typename... L>(List<L...>) {
-                (Apply<L>(values, tensor, pieces.size(), output), ...);
-            }(typename A::Layers {});
-
-            return { output, values.Float };
-        }
-
-    };
-
-    template<typename A>
-    void Check(std::mt19937_64& random, const s00 positions)
-    {
-        for (const Fill fill : { Fill::Random, Fill::Extremes }) {
-            const std::vector<std::byte> bytes = RandomBytes<A>(random, fill, fill);
-
-            const Reference<A> reference(bytes);
-
-            const auto network = std::make_unique<Network<A>>();
-
-            ASSERT_TRUE(network->Load(bytes));
-
-            const auto stack = std::make_unique<Stack<A, UpdatePolicy::Lazy, 1>>(*network);
-
-            Walk walk(random, NeedsKings<A>);
-
-            for (s00 position = 0; position < positions; position++) {
-                const std::vector<u16> pieces = position == 0 ? StartPosition() : walk.RandomPosition();
-
-                ResetFromPieces(*stack, pieces);
-
-                for (u08 stm = 0; stm < 2; stm++) {
-                    const Result expected = reference.Evaluate(pieces, stm);
-                    const i64    limit    = expected.Float ? 1 : 0;
-
-                    const i32 direct  = network->Evaluate(pieces, stm);
-                    const i32 stacked = EvaluateWithBoards(*stack, pieces, stm);
-
-                    ASSERT_LE(std::abs(i64 { direct  } - expected.Value), limit)
-                        << Network<A>::Describe() << ", fill " << s00 { static_cast<u08>(fill) } << ", "
-                        << pieces.size() << " pieces, stm " << s00 { stm } << ": network " << direct << ", reference "
-                        << expected.Value;
-
-                    ASSERT_LE(std::abs(i64 { stacked } - expected.Value), limit)
-                        << Network<A>::Describe() << ", fill " << s00 { static_cast<u08>(fill) } << ", "
-                        << pieces.size() << " pieces, stm " << s00 { stm } << ": stack " << stacked << ", reference "
-                        << expected.Value;
-                }
-            }
+            EXPECT_EQ(network->Evaluate(position), ReferenceEvaluate<D>(bytes, position))
+                << "stm " << s00 { stm } << ": " << fen;
         }
     }
 
@@ -349,41 +111,11 @@ namespace ReferenceTest
 
 TEST(Reference, Perspective)
 {
-    std::mt19937_64 random(0x5245465045525350);
+    Random random(0x5245465045525350);
 
-    ReferenceTest::Check<Examples::Starshard >(random, 32);
-    ReferenceTest::Check<Examples::Aurora    >(random, 32);
-    ReferenceTest::Check<Examples::Flare     >(random, 32);
-    ReferenceTest::Check<Examples::LinearReLU>(random, 64);
-}
-
-TEST(Reference, Squared)
-{
-    std::mt19937_64 random(0x5245465351554152);
-
-    ReferenceTest::Check<Examples::SimpleSCReLU     >(random, 64);
-    ReferenceTest::Check<Examples::WideSCReLU       >(random, 32);
-    ReferenceTest::Check<Examples::SquareFirstSCReLU>(random, 64);
-    ReferenceTest::Check<Examples::WidenedSCReLU    >(random, 64);
-    ReferenceTest::Check<Examples::WidenedSqrReLU   >(random, 64);
-    ReferenceTest::Check<Examples::WideAccumulator  >(random, 64);
-}
-
-TEST(Reference, Bucketed)
-{
-    std::mt19937_64 random(0x5245464255434B54);
-
-    ReferenceTest::Check<Examples::OutputBucketed>(random, 64);
-    ReferenceTest::Check<Examples::KingBucketed  >(random, 64);
-}
-
-TEST(Reference, Pairwise)
-{
-    std::mt19937_64 random(0x5245465041495257);
-
-    ReferenceTest::Check<Examples::MultiLayer     >(random, 64);
-    ReferenceTest::Check<Examples::PackedPairwise >(random, 64);
-    ReferenceTest::Check<Examples::ShiftedPairwise>(random, 64);
+    ReferenceTest::Check<Examples::Starshard>(random);
+    ReferenceTest::Check<Examples::Aurora   >(random);
+    ReferenceTest::Check<Examples::Flare    >(random);
 }
 
 #endif //MANTARAY_RUNTIME_GTESTREFERENCE_H

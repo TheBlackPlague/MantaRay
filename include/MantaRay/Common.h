@@ -15,6 +15,7 @@
 #include <limits>
 #include <string_view>
 #include <type_traits>
+#include <utility>
 
 namespace MantaRay
 {
@@ -34,8 +35,7 @@ namespace MantaRay
     using i08 = std:: int8_t;
 
     using f32 = float;
-
-    static_assert(sizeof(f32) == 4);
+    using f64 = double;
 
     template<typename T>
     constexpr T WrapAdd(const T left, const T right)
@@ -66,6 +66,12 @@ namespace MantaRay
     template<u08>
     struct Absent {};
 
+    template<typename T, typename W>
+    constexpr inline bool IsWidening =  std::is_same_v<T, W>                              ||
+                                       (std::is_same_v<T, i16> && std::is_same_v<W, i08>) ||
+                                       (std::is_same_v<T, i32> && std::is_same_v<W, i16>) ||
+                                       (std::is_same_v<T, i32> && std::is_same_v<W, i08>)  ;
+
     namespace Detail
     {
 
@@ -80,6 +86,78 @@ namespace MantaRay
     template<typename T, s00... Ns>
     using Array = Detail::Nest<T, Ns...>::Type;
 
+    namespace Detail
+    {
+
+        template<typename T>
+        class Buffer
+        {
+
+            T*  Items    = nullptr;
+            s00 Count    = 0;
+            s00 Capacity = 0;
+
+            constexpr explicit Buffer(
+                T* const  items   ,
+                const s00 count   ,
+                const s00 capacity
+            ) : Items(items), Count(count), Capacity(capacity) {}
+
+            constexpr static Buffer Zeroed(const s00 count, const s00 capacity)
+            { return Buffer(new T[capacity](), count, capacity); }
+
+            constexpr static Buffer Uninitialized(const s00 count, const s00 capacity)
+            { return Buffer(new T[capacity], count, capacity); }
+
+            public:
+            constexpr Buffer() = default;
+
+            constexpr explicit Buffer(const s00 count) : Buffer(Zeroed(count, count)) {}
+
+            constexpr explicit Buffer(const s00 count, const T fill) : Buffer(Uninitialized(count, count))
+            {
+                for (s00 i = 0; i < count; i++) Items[i] = fill;
+            }
+
+            constexpr static Buffer Reserved(const s00 capacity) { return Uninitialized(0, capacity); }
+
+            constexpr Buffer(Buffer&& other) noexcept : Items   (std::exchange(other.Items   , nullptr)),
+                                                        Count   (std::exchange(other.Count   , 0      )),
+                                                        Capacity(std::exchange(other.Capacity, 0      )) {}
+
+            constexpr Buffer& operator =(Buffer&& other) noexcept
+            {
+                std::swap(Items   , other.Items   );
+                std::swap(Count   , other.Count   );
+                std::swap(Capacity, other.Capacity);
+
+                return *this;
+            }
+
+            Buffer(const Buffer&) = delete;
+
+            Buffer& operator =(const Buffer&) = delete;
+
+            constexpr ~Buffer() { delete[] Items; }
+
+            constexpr void Push(const T& item) { Items[Count++] = item; }
+
+            constexpr s00 size() const { return Count; }
+
+            constexpr const T* data() const { return Items; }
+
+            constexpr       T& operator [](const s00 i)       { return Items[i]; }
+            constexpr const T& operator [](const s00 i) const { return Items[i]; }
+
+            constexpr       T* begin()       { return Items; }
+            constexpr const T* begin() const { return Items; }
+            constexpr       T* end  ()       { return Items + Count; }
+            constexpr const T* end  () const { return Items + Count; }
+
+        };
+
+    }
+
     struct Interval
     {
 
@@ -90,13 +168,13 @@ namespace MantaRay
 
     };
 
-    struct Scale
+    struct Rational
     {
 
-        i64 Numerator   = 1;
-        i64 Denominator = 1;
+        i64 Numerator   = 0;
+        i64 Denominator = 0;
 
-        constexpr bool operator ==(const Scale&) const = default;
+        constexpr bool operator ==(const Rational&) const = default;
 
     };
 
@@ -105,7 +183,7 @@ namespace MantaRay
 
         using i128 = __int128;
 
-        constexpr inline i64 Saturation = i64 { 1 } << 62;
+        constexpr inline i64 Saturation = std::numeric_limits<i64>::max();
 
         constexpr i64 Saturate(const i128 value)
         {
@@ -131,10 +209,10 @@ namespace MantaRay
                 right = rest ;
             }
 
-            return left;
+            return left < 0 ? -left : left;
         }
 
-        constexpr Scale Reduce(i128 numerator, i128 denominator)
+        constexpr Rational Reduce(i128 numerator, i128 denominator)
         {
             if (denominator == 0) __builtin_trap();
 
@@ -143,11 +221,148 @@ namespace MantaRay
                 denominator = -denominator;
             }
 
-            const i128 divisor = Gcd(numerator < 0 ? -numerator : numerator, denominator);
+            const i128 divisor = numerator == 0 ? denominator : Gcd(numerator, denominator);
 
             return { .Numerator = Narrow(numerator / divisor), .Denominator = Narrow(denominator / divisor) };
         }
 
+    }
+
+    constexpr Rational Ratio(const i64 numerator, const i64 denominator = 1)
+    {
+        return Detail::Reduce(numerator, denominator);
+    }
+
+    constexpr bool Defined(const Rational value) { return value.Denominator != 0; }
+
+    constexpr bool Integral(const Rational value) { return value.Denominator == 1; }
+
+    constexpr Rational operator *(const Rational left, const Rational right)
+    {
+        return Detail::Reduce(
+            Detail::i128 { left.Numerator   } * right.Numerator  ,
+            Detail::i128 { left.Denominator } * right.Denominator
+        );
+    }
+
+    constexpr Rational operator /(const Rational left, const Rational right)
+    {
+        return Detail::Reduce(
+            Detail::i128 { left.Numerator   } * right.Denominator,
+            Detail::i128 { left.Denominator } * right.Numerator
+        );
+    }
+
+    constexpr Rational operator +(const Rational left, const Rational right)
+    {
+        return Detail::Reduce(
+            Detail::i128 { left.Numerator } * right.Denominator + Detail::i128 { right.Numerator } * left.Denominator,
+            Detail::i128 { left.Denominator } * right.Denominator
+        );
+    }
+
+    constexpr bool operator <(const Rational left, const Rational right)
+    {
+        const Detail::i128 lhs = Detail::i128 { left .Numerator } * right.Denominator;
+        const Detail::i128 rhs = Detail::i128 { right.Numerator } * left .Denominator;
+
+        return lhs < rhs;
+    }
+
+    constexpr Rational ShiftDown(const Rational value, const s00 shift)
+    {
+        return Detail::Reduce(value.Numerator, Detail::i128 { value.Denominator } << shift);
+    }
+
+    constexpr Rational ShiftUp(const Rational value, const s00 shift)
+    {
+        return Detail::Reduce(Detail::i128 { value.Numerator } << shift, value.Denominator);
+    }
+
+    constexpr i64 Floor(const Rational value)
+    {
+        const i64 quotient = value.Numerator / value.Denominator;
+
+        return quotient * value.Denominator > value.Numerator ? quotient - 1 : quotient;
+    }
+
+    constexpr i64 Ceil(const Rational value)
+    {
+        return -Floor({ .Numerator = -value.Numerator, .Denominator = value.Denominator });
+    }
+
+    constexpr i64 RoundHalfAway(const Rational value)
+    {
+        const Rational half = value.Numerator < 0 ? Ratio(-1, 2) : Ratio(1, 2);
+        const Rational sum  = value + half;
+
+        return sum.Numerator / sum.Denominator;
+    }
+
+    constexpr f64 ToDouble(const Rational value)
+    {
+        return static_cast<f64>(value.Numerator) / static_cast<f64>(value.Denominator);
+    }
+
+    namespace Detail
+    {
+
+        constexpr f64 Magnitude(const f64 value) { return value < 0 ? -value : value; }
+
+        constexpr Rational Approximate(const f64 value)
+        {
+            i128 previousNumerator   = 1;
+            i128 previousDenominator = 0;
+
+            i128 numerator           = static_cast<i64>(value);
+            i128 denominator         = 1;
+
+            f64 rest = value - static_cast<f64>(static_cast<i64>(value));
+
+            for (s00 i = 0; i < 40; i++) {
+                const f64 error = Magnitude(static_cast<f64>(numerator) / static_cast<f64>(denominator) - value);
+
+                if (error <= Magnitude(value) * 1e-13 || rest == 0) break;
+
+                const f64 inverse = 1 / rest;
+                const i64 term    = static_cast<i64>(inverse);
+
+                const i128 nextNumerator   = term * numerator   + previousNumerator  ;
+                const i128 nextDenominator = term * denominator + previousDenominator;
+
+                previousNumerator   = numerator      ;
+                previousDenominator = denominator    ;
+
+                numerator           = nextNumerator  ;
+                denominator         = nextDenominator;
+
+                rest = inverse - static_cast<f64>(term);
+            }
+
+            return Reduce(numerator, denominator);
+        }
+
+    }
+
+    constexpr Rational RationalOf(const f64 value)
+    {
+        if (value < 0) {
+            const Rational positive = RationalOf(-value);
+
+            return { .Numerator = -positive.Numerator, .Denominator = positive.Denominator };
+        }
+
+        f64 scaled      = value;
+        i64 denominator = 1;
+
+        for (s00 i = 0; i < 24 && scaled != static_cast<f64>(static_cast<i64>(scaled)); i++) {
+            scaled      *= 2;
+            denominator *= 2;
+        }
+
+        if (scaled == static_cast<f64>(static_cast<i64>(scaled))) return Ratio(static_cast<i64>(scaled), denominator);
+
+        return Detail::Approximate(value);
     }
 
     constexpr Interval operator +(const Interval left, const Interval right)
@@ -155,6 +370,14 @@ namespace MantaRay
         return {
             .Min = Detail::Saturate(Detail::i128 { left.Min } + right.Min),
             .Max = Detail::Saturate(Detail::i128 { left.Max } + right.Max)
+        };
+    }
+
+    constexpr Interval operator -(const Interval left, const Interval right)
+    {
+        return {
+            .Min = Detail::Saturate(Detail::i128 { left.Min } - right.Max),
+            .Max = Detail::Saturate(Detail::i128 { left.Max } - right.Min)
         };
     }
 
@@ -204,6 +427,14 @@ namespace MantaRay
         return { .Min = interval.Min >> amount, .Max = interval.Max >> amount };
     }
 
+    constexpr Interval ShiftUp(const Interval interval, const s00 shift)
+    {
+        return {
+            .Min = Detail::Saturate(Detail::i128 { interval.Min } << shift),
+            .Max = Detail::Saturate(Detail::i128 { interval.Max } << shift)
+        };
+    }
+
     constexpr Interval Divide(const Interval interval, const i64 divisor)
     {
         const i64 low  = interval.Min / divisor;
@@ -224,22 +455,9 @@ namespace MantaRay
                Detail::i128 { interval.Max } <= std::numeric_limits<T>::max() ;
     }
 
-    constexpr Scale operator *(const Scale left, const Scale right)
+    constexpr bool Bounded(const Interval interval)
     {
-        return Detail::Reduce(
-            Detail::i128 { left.Numerator   } * right.Numerator  ,
-            Detail::i128 { left.Denominator } * right.Denominator
-        );
-    }
-
-    constexpr Scale Divide(const Scale scale, const i64 divisor)
-    {
-        return Detail::Reduce(scale.Numerator, Detail::i128 { scale.Denominator } * divisor);
-    }
-
-    constexpr Scale ShiftDown(const Scale scale, const s00 shift)
-    {
-        return Detail::Reduce(scale.Numerator, Detail::i128 { scale.Denominator } << shift);
+        return interval.Min > -Detail::Saturation && interval.Max < Detail::Saturation;
     }
 
     template<typename... T>
@@ -252,21 +470,6 @@ namespace MantaRay
 
     template<s00 I, typename... T>
     using At = __type_pack_element<I, T...>;
-
-    namespace Detail
-    {
-
-        template<s00 I, typename... T>
-        consteval auto Pick(List<T...>)
-        {
-            if constexpr (I < sizeof...(T)) return std::type_identity<At<I, T...>> {};
-            else                            return std::type_identity<void       > {};
-        }
-
-    }
-
-    template<typename L, s00 I>
-    using ItemAt = decltype(Detail::Pick<I>(L {}))::type;
 
     class Message
     {
@@ -311,6 +514,15 @@ namespace MantaRay
             return *this;
         }
 
+        constexpr Message& operator <<(const Rational value)
+        {
+            *this << value.Numerator;
+
+            if (value.Denominator != 1) *this << "/" << value.Denominator;
+
+            return *this;
+        }
+
         constexpr const char* data() const { return Buffer.data(); }
 
         constexpr s00 size() const { return Length; }
@@ -323,6 +535,18 @@ namespace MantaRay
 #define NO_UNIQUE_ADDRESS [[msvc::no_unique_address]]
 #else
 #define NO_UNIQUE_ADDRESS [[no_unique_address]]
+#endif
+
+#define ALIGN_4  alignas(4)
+#define ALIGN_8  alignas(8)
+#define ALIGN_16 alignas(16)
+#define ALIGN_32 alignas(32)
+#define ALIGN_64 alignas(64)
+
+#if defined(__x86_64__)
+#define ALIGN_ARRAY ALIGN_16
+#else
+#define ALIGN_ARRAY
 #endif
 
 #define PRAGMA(x) _Pragma(#x)

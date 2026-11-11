@@ -6,95 +6,74 @@
 #ifndef MANTARAY_RUNTIME_DELTA_H
 #define MANTARAY_RUNTIME_DELTA_H
 
-#include <cassert>
+#include <tuple>
+#include <type_traits>
 
 #include "../Common.h"
-#include "../Architecture/FeatureSet.h"
+#include "../Model.h"
+#include "../FeatureSet/Changes.h"
+#include "../FeatureSet/FeatureSet.h"
 
 namespace MantaRay
 {
 
-    class Delta
+    namespace Detail
     {
 
-        constexpr static s00 CodeBits = 10;
-        constexpr static u64 CodeMask = (u64 { 1 } << CodeBits) - 1;
+        template<typename F>
+        consteval auto RecordingOf()
+        {
+            if constexpr (DerivedFeatureSet<F>) return std::tuple<Changes<F>> {};
+            else                                return std::tuple<>           {};
+        }
 
-        constexpr static s00   RemovalShift = 4 * CodeBits;
-        constexpr static s00 InsertionShift = RemovalShift + 2;
+        template<typename... All>
+        consteval auto RecordingsOf(List<All...>) { return std::tuple_cat(RecordingOf<All>()...); }
 
-        constexpr static s00 ShapeShift = 48;
-        constexpr static s00 ShapeBits  =  4;
+        template<typename... All>
+        consteval bool AnyDerived(List<All...>) { return (DerivedFeatureSet<All> || ...); }
 
-        static_assert(PieceCode(5, 1, 63) <= CodeMask, "every piece code fits a code slot"  );
-        static_assert(InsertionShift + 2 <= ShapeShift, "the two counters precede the shape" );
-        static_assert(ShapeShift + ShapeBits <= 64   , "the shape (at most 8) fits the word");
+        template<typename F, typename... All>
+        consteval u32 MarkOf(List<All...>)
+        {
+            constexpr Array<bool, sizeof...(All)> Same { std::is_same_v<F, All>... };
 
-        u64 Word = 0;
+            u32 index = 0;
 
+            while (!Same[index]) index++;
+
+            return u32 { 1 } << index;
+        }
+
+    }
+
+    template<auto D>
+    struct Delta
+    {
+
+        using Bindings = Detail::Pipeline<D>::Bindings;
+
+        PieceDelta Pieces {};
+
+        NO_UNIQUE_ADDRESS           decltype(Detail::RecordingsOf(Bindings {}))                 Recordings {};
+        NO_UNIQUE_ADDRESS std::conditional_t<Detail::AnyDerived  (Bindings {}), u32, Absent<0>> Fills      {};
+
+        template<DerivedFeatureSet F>
         [[nodiscard]]
-        constexpr u16 Code(const s00 slot) const noexcept
+        constexpr Changes<F>& Recorded() noexcept
         {
-            return static_cast<u16>(Word >> CodeBits * slot & CodeMask);
+            Fills |= Detail::MarkOf<F>(Bindings {});
+
+            return std::get<Changes<F>>(Recordings);
         }
 
-        public:
+        template<DerivedFeatureSet F>
         [[nodiscard]]
-        constexpr static i32 ShapeOf(const u08 removals, const u08 additions) noexcept
-        {
-            return removals * 3 + additions;
-        }
+        constexpr const Changes<F>& Recorded() const noexcept { return std::get<Changes<F>>(Recordings); }
 
-        constexpr void Remove(const u08 piece, const u08 color, const u08 square) noexcept
-        {
-            assert(RemovedCount() < 2 && piece < 6 && color < 2 && square < 64);
-
-            Word += (u64 { PieceCode(piece, color, square) } << CodeBits * RemovedCount()) +
-                    (u64 { 1 } <<   RemovalShift) + (u64 { ShapeOf(1, 0) } << ShapeShift);
-        }
-
-        constexpr void Insert(const u08 piece, const u08 color, const u08 square) noexcept
-        {
-            assert(InsertedCount() < 2 && piece < 6 && color < 2 && square < 64);
-
-            Word += (u64 { PieceCode(piece, color, square) } << CodeBits * (2 + InsertedCount())) +
-                    (u64 { 1 } << InsertionShift) + (u64 { ShapeOf(0, 1) } << ShapeShift);
-        }
-
-        constexpr void Move(const u08 piece, const u08 color, const u08 from, const u08 to) noexcept
-        {
-            Remove(piece, color, from);
-            Insert(piece, color, to  );
-        }
-
+        template<DerivedFeatureSet F>
         [[nodiscard]]
-        constexpr u08  RemovedCount() const noexcept { return static_cast<u08>(Word >>   RemovalShift & 3); }
-        [[nodiscard]]
-        constexpr u08 InsertedCount() const noexcept { return static_cast<u08>(Word >> InsertionShift & 3); }
-
-        [[nodiscard]]
-        constexpr i32 Shape() const noexcept
-        {
-            static_assert(ShapeOf(2, 2) < 1 << ShapeBits, "ShapeBits must hold every shape");
-
-            return static_cast<i32>(Word >> ShapeShift);
-        }
-
-        [[nodiscard]]
-        constexpr u16  Removed(const s00 index) const noexcept
-        {
-            assert(index <  RemovedCount());
-
-            return Code(    index);
-        }
-
-        [[nodiscard]]
-        constexpr u16 Inserted(const s00 index) const noexcept
-        {
-            assert(index < InsertedCount());
-
-            return Code(2 + index);
-        }
+        constexpr bool Filled() const noexcept { return (Fills & Detail::MarkOf<F>(Bindings {})) != 0; }
 
     };
 

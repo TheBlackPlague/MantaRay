@@ -20,9 +20,19 @@ namespace MantaRay::Backend::ISA
 
         constexpr static bool VNNI = true;
 
+        constexpr static s00 DotInFlight = 4;
+
         [[clang::always_inline]]
-        static Vector DotU8I8(const Vector sum, const Vector u8, const Vector i8)
+        static Vector DotU08I08(const Vector sum, const Vector u8, const Vector i8) noexcept
         { return _mm512_dpbusd_epi32(sum, u8, i8); }
+
+        [[clang::always_inline]]
+        static Vector DotU08I08Wide(const Vector sum, const Vector u8, const Vector i8) noexcept
+        { return _mm512_dpbusd_epi32(sum, u8, i8); }
+
+        [[clang::always_inline]]
+        static Vector DotI16(const Vector sum, const Vector left, const Vector right) noexcept
+        { return _mm512_dpwssd_epi32(sum, left, right); }
 
     };
 
