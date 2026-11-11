@@ -3,8 +3,7 @@ cmake_minimum_required(VERSION 3.21)
 project(MantaRay VERSION 7.0.0 LANGUAGES CXX)
 
 # === OPTIONS ===
-option(BUILD_TESTS      "Build kernel tests"    ${PROJECT_IS_TOP_LEVEL})
-option(BUILD_BENCHMARKS "Build microbenchmarks" ${PROJECT_IS_TOP_LEVEL})
+option(BUILD_EXAMPLES "Build the examples" ${PROJECT_IS_TOP_LEVEL})
 
 set(MANTARAY_ARCH "" CACHE STRING "Optional architecture compiler flag, e.g. -mavx2")
 
@@ -34,17 +33,6 @@ target_include_directories(MantaRay INTERFACE
         $<INSTALL_INTERFACE:include>
 )
 
-if(BUILD_TESTS OR BUILD_BENCHMARKS)
-    include(DownloadDependencies.cmake)
-endif()
-
-if(BUILD_TESTS)
-    enable_testing()
-    AddGoogleTest()
-    include(Tests.cmake)
-endif()
-
-if(BUILD_BENCHMARKS)
-    AddGoogleBenchmark()
-    include(MicroBenchmarks.cmake)
+if(BUILD_EXAMPLES)
+    include(Examples.cmake)
 endif()

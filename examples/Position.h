@@ -3,17 +3,27 @@
 // SPDX-License-Identifier: MIT
 //
 
-#ifndef MANTARAY_REFERENCE_POSITION_H
-#define MANTARAY_REFERENCE_POSITION_H
+#ifndef MANTARAY_EXAMPLES_POSITION_H
+#define MANTARAY_EXAMPLES_POSITION_H
 
 #include <bit>
 #include <string_view>
 
-#include "../Common.h"
-#include "../FeatureSet/FeatureSet.h"
+#include <MantaRay/MantaRay.h>
 
-namespace MantaRay::Reference
+namespace Example
 {
+
+    using MantaRay::Array;
+
+    using MantaRay::Black;
+    using MantaRay::White;
+
+    using MantaRay::Piece;
+
+    using MantaRay::s00;
+    using MantaRay::u08;
+    using MantaRay::u64;
 
     class Position
     {
@@ -21,8 +31,7 @@ namespace MantaRay::Reference
         Array<u64, 2, 6> Boards {};
         Array<u08, 64>   Codes  {};
 
-        u08 Stm   = White;
-        u08 Moves = 0;
+        u08 Stm = White;
 
         public:
         constexpr explicit Position(const std::string_view fen)
@@ -61,18 +70,6 @@ namespace MantaRay::Reference
             }
 
             Stm = i + 1 < fen.size() && fen[i + 1] == 'b' ? Black : White;
-
-            s00 fields = 0;
-
-            for (; i < fen.size(); i++) {
-                if (fen[i] == ' ') {
-                    fields++;
-
-                    continue;
-                }
-
-                if (fields == 4) Moves = static_cast<u08>(Moves * 10 + (fen[i] - '0'));
-            }
         }
 
         constexpr void Remove(const u08 side, const Piece piece, const u08 square)
@@ -109,10 +106,8 @@ namespace MantaRay::Reference
 
         constexpr u08 SideToMove() const { return Stm; }
 
-        constexpr u08 Clock() const { return Moves; }
-
     };
 
 }
 
-#endif //MANTARAY_REFERENCE_POSITION_H
+#endif //MANTARAY_EXAMPLES_POSITION_H

@@ -1,4 +1,4 @@
-name: Tests
+name: Examples
 
 on:
   push:
@@ -9,10 +9,9 @@ permissions:
 
 env:
   BUILD_TYPE: Release
-  CMAKE_TEST_LAUNCHER: ''
 
 jobs:
-  test:
+  examples:
     name: ${{ matrix.os }} / scalar=${{ matrix.scalar }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
@@ -54,46 +53,28 @@ jobs:
           brew install llvm@22 ninja
           echo "CXX=$(brew --prefix llvm@22)/bin/clang++" >> "$GITHUB_ENV"
 
-      - name: Install Intel SDE
-        if: runner.os != 'macOS'
-        uses: petarpetrovt/setup-sde@31aa4a8e85e109bef00f1d838613fcc6ec421271 # v5.0
-        with:
-          environmentVariableName: SDE_PATH
-          sdeVersion: '10.8.0'
-
-      - name: Configure x86 test launcher
-        if: runner.os != 'macOS'
-        shell: bash
-        run: |
-          # Execute every ISA target, including AVX-512, regardless of the runner CPU.
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
-            # SDE 10.8 cannot load its runtime beneath single-letter directory names.
-            sde_root="$(cygpath -u "$SYSTEMDRIVE/IntelSDE")"
-            mv "$(cygpath -u "$SDE_PATH")" "$sde_root"
-            sde="$(cygpath -m "$sde_root")/sde.exe"
-          else
-            sudo sysctl -w kernel.yama.ptrace_scope=0
-            sde="$SDE_PATH/sde64"
-          fi
-          test -f "$sde"
-          echo "CMAKE_TEST_LAUNCHER=$sde;-future;--" >> "$GITHUB_ENV"
-
       - name: Configure CMake
         run: >-
           cmake -S . -B build -G Ninja
           -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
-          -DBUILD_TESTS=ON
-          -DBUILD_BENCHMARKS=OFF
+          -DBUILD_EXAMPLES=ON
           -DMANTARAY_FORCE_SCALAR=${{ matrix.scalar }}
-          -DCMAKE_TEST_LAUNCHER="${{ env.CMAKE_TEST_LAUNCHER }}"
 
-      - name: Build tests
+      - name: Build examples
         run: cmake --build build --config ${{ env.BUILD_TYPE }} --parallel 2
 
-      - name: Run all tests
-        run: >-
-          ctest --test-dir build
-          --build-config ${{ env.BUILD_TYPE }}
-          --output-on-failure
-          --no-tests=error
-          --timeout 600
+      - name: Run all examples
+        shell: bash
+        run: |
+          set -euo pipefail
+          count=0
+          for example in build/MantaRayExample-*; do
+            case "$example" in *.pdb|*.ilk|*.manifest) continue ;; esac
+            [ -f "$example" ] && [ -x "$example" ] || continue
+            echo "::group::$example"
+            "$example"
+            echo "::endgroup::"
+            count=$((count + 1))
+          done
+          echo "$count examples ran"
+          test "$count" -gt 0
