@@ -26,6 +26,9 @@ namespace MantaRay::Backend::ISA
         using Vector  = __m512i;
         using VectorF = __m512 ;
 
+        static_assert(alignof(Array<Vector , 2>) == alignof(Vector ), "arrays of vectors keep the vector's alignment");
+        static_assert(alignof(Array<VectorF, 2>) == alignof(VectorF), "arrays of vectors keep the vector's alignment");
+
         constexpr static s00 Bytes     = 64;
         constexpr static s00 Registers = 32;
         constexpr static s00 DotChains =  2;

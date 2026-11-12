@@ -75,11 +75,20 @@ namespace MantaRay
     namespace Detail
     {
 
-        template<typename T, s00 N, s00... Ns>
-        struct Nest { using Type = std::array<typename Nest<T, Ns...>::Type, N>; };
+        template<typename T>
+        constexpr inline bool UnderAligned = alignof(std::array<T, 1>) < alignof(T);
 
         template<typename T, s00 N>
-        struct Nest<T, N> { using Type = std::array<T, N>; };
+        struct alignas(T) Realigned : std::array<T, N> {};
+
+        template<typename T, s00 N>
+        using Flat = std::conditional_t<UnderAligned<T>, Realigned<T, N>, std::array<T, N>>;
+
+        template<typename T, s00 N, s00... Ns>
+        struct Nest { using Type = Flat<typename Nest<T, Ns...>::Type, N>; };
+
+        template<typename T, s00 N>
+        struct Nest<T, N> { using Type = Flat<T, N>; };
 
     }
 
