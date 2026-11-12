@@ -7,6 +7,7 @@
 #define MANTARAY_FEATURESET_THREATS_H
 
 #include <bit>
+#include <cassert>
 
 #include "Attacks.h"
 #include "Changes.h"
@@ -169,6 +170,24 @@ namespace MantaRay
         alignas(Alignment) constexpr static Array<u08,  2, 12    > Flips    = FlipsOf   ();
         alignas(Alignment) constexpr static Array<u08, 12, 64, 64> Ordinals = OrdinalsOf();
         alignas(Alignment) constexpr static Array<u08, 64        > Squares  = SquaresOf ();
+
+        consteval static Array<u64, 2, 2, 64> BelowOf()
+        {
+            Array<u64, 2, 2, 64> below {};
+
+            for (s00 perspective = 0; perspective < 2 ; perspective++)
+            for (s00 key         = 0; key         < 2 ; key++        )
+            for (s00 from        = 0; from        < 64; from++       ) {
+                const s00 orient = 56 * perspective ^ 7 * key;
+
+                for (s00 to = 0; to < 64; to++)
+                    if ((to ^ orient) < (from ^ orient)) below[perspective][key][from] |= u64 { 1 } << to;
+            }
+
+            return below;
+        }
+
+        alignas(Alignment) constexpr static Array<u64, 2, 2, 64> Below = BelowOf();
 
         template<typename ISA>
         constexpr static Lowering::Tier FlipOf =
@@ -434,20 +453,74 @@ namespace MantaRay
         template<typename ISA = Backend::ISAOf<Lowering::Native>, typename Board, typename Emit>
         constexpr static void Active(const u08 perspective, const Board& board, Emit&& emit) noexcept
         {
-            const u32 key      = Trigger::Key(perspective, board);
+            static_assert(Trigger::KeyCount == 2, "the orientation of a threat index is a mirror and a colour flip");
+
+            const u32 key    = Trigger::Key(perspective, board);
+            const u32 orient = 56 * perspective ^ 7 * key;
+
             const u64 occupied = board.Occupied();
 
-            const auto row = [&](const Change& change) {
-                const u32 index = Index<ISA>(perspective, key, change);
+            Array<u64, 2, 6> pieces;
+            Array<u64,    6> types ;
 
-                if (index != NoRow) emit(index);
-            };
-
-            for (u08 attacker = 0; attacker < 12; attacker++) {
-                u64 sources = board.Pieces(attacker / 6, static_cast<Piece>(attacker % 6));
-
-                while (sources) Outgoing(board, occupied, attacker, Attacks::PopLowest(sources), row);
+            for (u08 piece = 0; piece < 6; piece++) {
+                pieces[White][piece] = board.Pieces(White, static_cast<Piece>(piece));
+                pieces[Black][piece] = board.Pieces(Black, static_cast<Piece>(piece));
+                types        [piece] = pieces[White][piece] | pieces[Black][piece];
             }
+
+            const Array<u64, 64>& below = Below[perspective][key];
+
+            [&]<u08... P>(const std::integer_sequence<u08, P...>) {
+                ([&] {
+                    constexpr u08 Others = [] {
+                        u08 others = 0;
+
+                        for (u08 victim = 0; victim < 6; victim++)
+                            if (victim != P && M.Targets[P][victim] >= 0) others |= static_cast<u08>(1 << victim);
+
+                        return others;
+                    }();
+
+                    if constexpr (Others == 0 && M.Targets[P][P] < 0) return;
+
+                    constexpr bool Pawn   = P == static_cast<u08>(Piece::Pawn);
+                    constexpr bool Mutual = M.Targets[P][P] >= 0;
+
+                    u64 other = 0;
+
+                    for (u08 victim = 0; victim < 6; victim++) if (Others >> victim & 1) other |= types[victim];
+
+                    for (u08 side = 0; side < 2; side++) {
+                        const u64 both = Pawn && Mutual ? other | pieces[side][P] : other;
+                        const u64 once = !Mutual ? 0 : Pawn ? pieces[side ^ 1][P] : types[P];
+
+                        const u32 attacker = Flip<FlipOf<ISA>>(perspective, static_cast<u08>(side * 6 + P));
+
+                        u64 sources = pieces[side][P];
+
+                        while (sources) {
+                            const u08 from   = Attacks::PopLowest(sources);
+                            const u32 source = from ^ orient;
+                            const u32 offset = Table.Offsets[attacker][source];
+
+                            u64 targets = Attacks::Of(side, static_cast<Piece>(P), from, occupied) &
+                                          (both | (once & below[from]));
+
+                            while (targets) {
+                                const u08 to       = Attacks::PopLowest(targets);
+                                const u32 target   = to ^ orient;
+                                const u32 attacked = Flip<FlipOf<ISA>>(perspective, board.At(to));
+                                const u32 pair     = Table.Pairs[attacker][attacked][source < target];
+
+                                assert(pair != NoRow);
+
+                                emit(pair + offset + Ordinal<OrdinalOf<ISA>>(attacker, source, target));
+                            }
+                        }
+                    }
+                }(), ...);
+            }(std::make_integer_sequence<u08, 6> {});
         }
 
         template<typename Emit>

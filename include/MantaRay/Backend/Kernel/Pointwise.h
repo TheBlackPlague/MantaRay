@@ -10,6 +10,7 @@
 #include <array>
 #include <bit>
 #include <cmath>
+#include <cstring>
 #include <limits>
 #include <type_traits>
 #include <utility>
@@ -87,7 +88,11 @@ namespace MantaRay::Backend::Kernel
             else if constexpr (T == IR::DType::I32) return I32.data();
             else if constexpr (T == IR::DType::I64) return I64.data();
             else if constexpr (T == IR::DType::F32) return F32.data();
-            else static_assert(false, "an arena holds i08, u08, i16, u16, i32, i64 or f32");
+            else {
+                static_assert(false, "an arena holds i08, u08, i16, u16, i32, i64 or f32");
+
+                std::unreachable();
+            }
         }
 
         template<IR::DType T>
@@ -101,7 +106,11 @@ namespace MantaRay::Backend::Kernel
             else if constexpr (T == IR::DType::I32) return I32.data();
             else if constexpr (T == IR::DType::I64) return I64.data();
             else if constexpr (T == IR::DType::F32) return F32.data();
-            else static_assert(false, "an arena holds i08, u08, i16, u16, i32, i64 or f32");
+            else {
+                static_assert(false, "an arena holds i08, u08, i16, u16, i32, i64 or f32");
+
+                std::unreachable();
+            }
         }
 
     };
@@ -115,6 +124,97 @@ namespace MantaRay::Backend::Kernel
         Array<u32       , Bindings> Buckets {};
 
     };
+
+    template<typename A, typename H>
+    struct Scratch
+    {
+
+        A& Values;
+        H& Held  ;
+
+        template<IR::DType T>
+        [[clang::always_inline]]
+        auto* Data() noexcept { return Values.template Data<T>(); }
+
+        template<IR::DType T>
+        [[clang::always_inline]]
+        const auto* Data() const noexcept { return std::as_const(Values).template Data<T>(); }
+
+    };
+
+    constexpr inline u32 KeptBlocks = 4;
+
+    template<s00 N>
+    consteval bool Whole(const Plan<N>& plan, const u16 node, const u32 bytes)
+    {
+        const u16   owner = plan.Owner [node];
+        const Place spot  = plan.Places[node];
+        const u32   size  = plan.Facts [node].Size;
+
+        if (owner == 0 || spot.Source != Source::Buffer || spot.Type != IR::DType::U08) return false;
+
+        if (plan.Stages[owner - 1].Kind != Lowering::Kind::Pointwise || !plan.Stages[owner - 1].Vector) return false;
+
+        return spot.Offset % bytes == 0 && size % bytes == 0 && size <= KeptBlocks * bytes;
+    }
+
+    template<typename ISA, s00 N>
+    consteval bool Held(const Plan<N>& plan, const s00 stage)
+    {
+        constexpr u32 Bytes = static_cast<u32>(ISA::Bytes);
+
+        const Lowering::Stage& spec = plan.Stages[stage];
+
+        if (!Holdable<ISA>(spec)) return false;
+
+        const Place from = plan.Places[plan.Nodes[spec.Node].Inputs[0]];
+
+        if (from.Source != Source::Buffer || from.Type != IR::DType::U08 || from.Offset % Bytes != 0) return false;
+
+        for (u32 block = from.Offset; block < from.Offset + spec.Width; block += Bytes) {
+            bool whole = false;
+
+            for (s00 node = 0; node < N; node++) {
+                const Place spot = plan.Places[node];
+
+                whole = whole || (Whole(plan, static_cast<u16>(node), Bytes) && plan.Owner[node] <= stage &&
+                                  spot.Offset <= block && block < spot.Offset + plan.Facts[node].Size);
+            }
+
+            if (!whole) return false;
+        }
+
+        return true;
+    }
+
+    template<typename ISA, s00 N>
+    consteval bool Kept(const Plan<N>& plan, const u16 node)
+    {
+        constexpr u32 Bytes = static_cast<u32>(ISA::Bytes);
+
+        if (!Whole(plan, node, Bytes)) return false;
+
+        const Place spot = plan.Places[node];
+
+        for (s00 stage = plan.Owner[node]; stage < plan.StageCount; stage++) {
+            if (!Held<ISA>(plan, stage)) continue;
+
+            const Place from = plan.Places[plan.Nodes[plan.Stages[stage].Node].Inputs[0]];
+            const u32   end  = from.Offset + plan.Stages[stage].Width;
+
+            if (from.Offset < spot.Offset + plan.Facts[node].Size && spot.Offset < end) return true;
+        }
+
+        return false;
+    }
+
+    template<typename ISA, s00 N>
+    consteval bool Holds(const Plan<N>& plan)
+    {
+        for (s00 stage = 0; stage < plan.StageCount; stage++) if (Held<ISA>(plan, stage)) return true;
+
+        return false;
+    }
 
     namespace Detail
     {
@@ -747,6 +847,72 @@ namespace MantaRay::Backend::Kernel
             }
         }
 
+        template<u16 Out, u32 Low, u32 High, typename F>
+        [[clang::always_inline]]
+        static void EmitTo(const F& frame, u08* const output) noexcept
+        {
+            constexpr u32 Middle = Cut(Out, Out, Low, High);
+
+            if constexpr (Middle != 0) {
+                EmitTo<Out, Low   , Middle>(frame, output);
+                EmitTo<Out, Middle, High  >(frame, output);
+            } else {
+                const auto sources = frame.Sources;
+                const F    local   { .Values = frame.Values, .Constants = frame.Constants, .Sources = sources };
+
+                PRAGMA(clang loop vectorize_width(ISA::Bytes / 4))
+                for (u32 k = Low; k < High; k++) output[k] = static_cast<u08>(Value<Out, Out, Low, High>(local, k));
+            }
+        }
+
+        template<typename V, s00... K>
+        [[clang::always_inline]]
+        static auto Join(const V low, const V high, const std::index_sequence<K...>) noexcept
+        { return __builtin_shufflevector(low, high, K...); }
+
+        template<u16 Out, typename F>
+        [[clang::always_inline]]
+        static void Keep(const F& frame) noexcept
+        {
+            constexpr Place Spot  = Program.Places[Out];
+            constexpr u32   Bytes = static_cast<u32>(ISA::Bytes);
+            constexpr u32   Piece = Bytes / 4;
+            constexpr u32   Size  = Program.Facts[Out].Size;
+
+            using Quarter [[gnu::vector_size(Piece)]] = u08;
+
+            alignas(Alignment) Array<u08, Size> scratch;
+
+            EmitTo<Out, 0, Size>(frame, scratch.data());
+
+            u08* output = frame.Values.template Data<IR::DType::U08>() + Spot.Offset;
+
+            for (u32 block = 0; block < Size / Bytes; block++) {
+                Array<Quarter, 4> pieces;
+
+                for (u32 p = 0; p < 4; p++)
+                    std::memcpy(&pieces[p], scratch.data() + block * Bytes + p * Piece, Piece);
+
+                const auto low  = Join(pieces[0], pieces[1], std::make_index_sequence<2 * Piece> {});
+                const auto high = Join(pieces[2], pieces[3], std::make_index_sequence<2 * Piece> {});
+                const auto kept = std::bit_cast<typename ISA::Vector>(
+                    Join(low, high, std::make_index_sequence<4 * Piece> {})
+                );
+
+                frame.Values.Held[Spot.Offset / Bytes + block] = kept;
+
+                ISA::Store(output + block * Bytes, kept);
+            }
+        }
+
+        template<u16 Out, typename F>
+        [[clang::always_inline]]
+        static void Write(const F& frame) noexcept
+        {
+            if constexpr (Lanewise && Kept<ISA>(Program, Out) && requires { frame.Values.Held; }) Keep<Out>(frame);
+            else Emit<Out, 0, Program.Facts[Out].Size>(frame);
+        }
+
         template<typename A, typename C, typename S>
         [[clang::always_inline]]
         static void Run(A& values, const C& constants, const S& sources) noexcept
@@ -754,7 +920,7 @@ namespace MantaRay::Backend::Kernel
             const Detail::Frame<A, C, S> frame { .Values = values, .Constants = constants, .Sources = sources };
 
             [&]<s00... O> [[clang::always_inline]] (const std::index_sequence<O...>) {
-                (Emit<Outputs[O], 0, Program.Facts[Outputs[O]].Size>(frame), ...);
+                (Write<Outputs[O]>(frame), ...);
             }(std::make_index_sequence<Count> {});
         }
 

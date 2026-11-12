@@ -84,12 +84,34 @@ namespace MantaRay
                   MantaRay::Changes<PawnPairs>& out
         ) noexcept
         {
-            Array<u64, 2> before = after.Pawns;
+            u64 white = 0;
+            u64 black = 0;
 
-            for (s00 i = 0; i < delta.RemovedCount (); i++) Toggle(before, delta.Removed (i));
-            for (s00 i = 0; i < delta.InsertedCount(); i++) Toggle(before, delta.Inserted(i));
+            const auto toggle = [&](const PieceChange change) {
+                if (change.Type != Piece::Pawn) return;
 
-            const u64 touched = (before[White] ^ after.Pawns[White]) | (before[Black] ^ after.Pawns[Black]);
+                const u64 bit = u64 { 1 } << change.Square;
+
+                if (change.Side == White) white ^= bit;
+                else                      black ^= bit;
+            };
+
+            UNROLL(full)
+            for (s00 i = 0; i < PieceDelta::MaxRemoved; i++) {
+                if (i == delta.RemovedCount()) break;
+
+                toggle(delta.Removed(i));
+            }
+
+            UNROLL(full)
+            for (s00 i = 0; i < PieceDelta::MaxInserted; i++) {
+                if (i == delta.InsertedCount()) break;
+
+                toggle(delta.Inserted(i));
+            }
+
+            const u64           touched = white | black;
+            const Array<u64, 2> before  { after.Pawns[White] ^ white, after.Pawns[Black] ^ black };
 
             T::template Pairs<Masks>(before     , touched, Polarity::Remove, out);
             T::template Pairs<Masks>(after.Pawns, touched, Polarity::Add   , out);
@@ -186,6 +208,14 @@ namespace MantaRay
         constexpr static void Toggle(Array<u64, 2>& pawns, const PieceChange change) noexcept
         {
             if (change.Type == Piece::Pawn) pawns[change.Side] ^= u64 { 1 } << change.Square;
+        }
+
+        constexpr static bool Inert(const PieceDelta& delta) noexcept
+        {
+            for (s00 i = 0; i < delta.RemovedCount(); i++) if (delta.Removed(i).Type == Piece::Pawn) return false;
+            for (s00 i = 0; i < delta.InsertedCount(); i++) if (delta.Inserted(i).Type == Piece::Pawn) return false;
+
+            return true;
         }
 
     };

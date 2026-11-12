@@ -1403,6 +1403,21 @@ namespace MantaRay
 
             Backend::Kernel::Elementwise<P, I, ISA>::RunCopies(values, Constants, sources);
 
+            if constexpr (Backend::Kernel::Held<ISA>(P, I)) {
+                const typename K::Held held { .Blocks = values.Held.data() + From.Offset / ISA::Bytes };
+
+                if (M::Facts[Exit].Size == Spec.Rows) {
+                    K::Run(std::get<I>(Layers), held, output, Bucket<I>(sources));
+
+                    return;
+                }
+
+                for (u32 bucket = 0; bucket < Spec.Buckets; bucket++)
+                    K::Run(std::get<I>(Layers), held, output + bucket * Spec.Rows, bucket);
+
+                return;
+            }
+
             if (M::Facts[Exit].Size == Spec.Rows) {
                 K::Run(std::get<I>(Layers), input, output, Bucket<I>(sources));
 
@@ -1516,7 +1531,15 @@ namespace MantaRay
             static_assert(P.Supported                    , "the program's buffers cannot be placed for this runtime");
             static_assert(P.Parameters == Plan.Parameters, "every grouping reads the same constants");
 
-            Backend::Kernel::Arena<P.Values> values;
+            using Arena = Backend::Kernel::Arena<P.Values>;
+            using Held  = Array<typename ISA::Vector, P.Values[static_cast<s00>(IR::DType::U08)] / ISA::Bytes + 1>;
+
+            Arena arena;
+            Held  held ;
+
+            Backend::Kernel::Scratch<Arena, Held> scratch { .Values = arena, .Held = held };
+
+            auto& values = std::get<Backend::Kernel::Holds<ISA>(P) ? 1 : 0>(std::tie(arena, scratch));
 
             [&]<s00... I>(const std::index_sequence<I...>) {
                 (Step<L, P, I>(values, sources), ...);

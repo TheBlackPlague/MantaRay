@@ -6,6 +6,9 @@
 #ifndef MANTARAY_BACKEND_KERNEL_SPARSE_H
 #define MANTARAY_BACKEND_KERNEL_SPARSE_H
 
+#include <cstring>
+#include <type_traits>
+
 #include "Nnz.h"
 #include "../../Common.h"
 #include "../../Lowering/Facts.h"
@@ -101,6 +104,162 @@ namespace MantaRay::Backend::Kernel
             }
         }
 
+        template<typename ISA>
+        [[clang::always_inline]]
+        ISA::Vector SparseWord(const u08* input, const u32 word) noexcept
+        {
+            u16 value;
+
+            std::memcpy(&value, input + word * 2, sizeof(value));
+
+            return ISA::BroadcastI32(static_cast<i32>(value));
+        }
+
+        template<typename ISA>
+        [[clang::always_inline]]
+        ISA::Vector SparseTwin(const u08* input, const u32 first, const u32 next) noexcept
+        {
+            u16 low ;
+            u16 high;
+
+            std::memcpy(&low , input + first * 2, sizeof(low ));
+            std::memcpy(&high, input + next  * 2, sizeof(high));
+
+            return ISA::BroadcastI32(static_cast<i32>(u32 { low } | u32 { high } << 16));
+        }
+
+        template<typename ISA, Lowering::Dot D>
+        [[clang::always_inline]]
+        void SparseWoven(
+                  Array<typename ISA::Vector, 2>& sums   ,
+            const typename ISA::Vector            x      ,
+            const i08*                            weights,
+            const u32                             first  ,
+            const u32                             next
+        ) noexcept
+        {
+            const auto left  = ISA::Load(weights + first * ISA::Bytes);
+            const auto right = ISA::Load(weights + next  * ISA::Bytes);
+
+            sums[0] = SparseDot<ISA, D>(sums[0], x, ISA::UnpackLoI16(left, right));
+            sums[1] = SparseDot<ISA, D>(sums[1], x, ISA::UnpackHiI16(left, right));
+        }
+
+        template<typename ISA, Lowering::Dot D>
+        [[clang::always_inline]]
+        void SparseWovenLast(
+                  Array<typename ISA::Vector, 2>& sums   ,
+            const u08*                            input  ,
+            const i08*                            weights,
+            const u32                             word
+        ) noexcept
+        {
+            const auto x    = SparseWord<ISA>(input, word);
+            const auto left = ISA::Load(weights + word * ISA::Bytes);
+
+            sums[0] = SparseDot<ISA, D>(sums[0], x, ISA::UnpackLoI16(left, ISA::Zero()));
+            sums[1] = SparseDot<ISA, D>(sums[1], x, ISA::UnpackHiI16(left, ISA::Zero()));
+        }
+
+        template<typename ISA>
+        [[clang::always_inline]]
+        void SparseWovenPair(
+                  Array<typename ISA::Vector, 2>& sums   ,
+            const typename ISA::Vector            x      ,
+            const typename ISA::Vector            y      ,
+            const i08*                            weights,
+            const u16*                            words
+        ) noexcept
+        {
+            const auto ones = ISA::BroadcastI16(1);
+
+            const auto a = ISA::Load(weights + words[0] * ISA::Bytes);
+            const auto b = ISA::Load(weights + words[1] * ISA::Bytes);
+            const auto c = ISA::Load(weights + words[2] * ISA::Bytes);
+            const auto d = ISA::Load(weights + words[3] * ISA::Bytes);
+
+            const auto low  = ISA::AddI16(
+                ISA::MaddubsI16(x, ISA::UnpackLoI16(a, b)), ISA::MaddubsI16(y, ISA::UnpackLoI16(c, d))
+            );
+            const auto high = ISA::AddI16(
+                ISA::MaddubsI16(x, ISA::UnpackHiI16(a, b)), ISA::MaddubsI16(y, ISA::UnpackHiI16(c, d))
+            );
+
+            sums[0] = ISA::AddI32(sums[0], ISA::MaddI16(low , ones));
+            sums[1] = ISA::AddI32(sums[1], ISA::MaddI16(high, ones));
+        }
+
+        template<const Lowering::Stage& S, typename ISA>
+        [[clang::always_inline]]
+        void SparseLines(
+            const u08*                            input  ,
+            const i08*                            weights,
+                  Array<typename ISA::Vector, 2>& sums
+        ) noexcept
+        {
+            constexpr u32  Words  = S.Width / 2;
+            constexpr s00  Sets   = S.Sets;
+            constexpr u32  Take   = S.Pairs ? 4 : 2;
+            constexpr u32  Step   = Sets * Take;
+            constexpr bool Valued = NnzValued<ISA, Words>;
+
+            static_assert(Lowering::Woven(S, ISA::Bytes), "a woven sparse stage has two sum vectors of one line");
+
+            alignas(Alignment) NnzList<Words> list;
+
+            alignas(Alignment) std::conditional_t<Valued, NnzList<Words>, Absent<0>> values;
+
+            const u32 count = [&] {
+                if constexpr (Valued) return NnzWords<ISA, Words, true >(input, list.data(), values.data());
+                else                  return NnzWords<ISA, Words, false>(input, list.data(), nullptr      );
+            }();
+
+            const auto twin = [&](const u32 at) {
+                if constexpr (Valued) return ISA::BroadcastU32(reinterpret_cast<const u08*>(values.data() + at));
+                else                  return SparseTwin<ISA>(input, list[at], list[at + 1]);
+            };
+
+            Array<typename ISA::Vector, Sets, 2> sets;
+
+            sets[0] = sums;
+
+            for (s00 s = 1; s < Sets; s++)
+            for (s00 t = 0; t < 2   ; t++) sets[s][t] = ISA::Zero();
+
+            u32 i = 0;
+
+            UNROLL(disable)
+            for (; i + Step <= count; i += Step) {
+                UNROLL(full)
+                for (s00 s = 0; s < Sets; s++) {
+                    const u32 first = i + static_cast<u32>(s) * Take;
+
+                    if constexpr (S.Pairs)
+                        SparseWovenPair<ISA>(sets[s], twin(first), twin(first + 2), weights, list.data() + first);
+                    else
+                        SparseWoven<ISA, S.Dot>(sets[s], twin(first), weights, list[first], list[first + 1]);
+                }
+            }
+
+            if constexpr (S.Pairs) {
+                UNROLL(disable)
+                for (; i + 4 <= count; i += 4)
+                    SparseWovenPair<ISA>(sets[0], twin(i), twin(i + 2), weights, list.data() + i);
+            }
+
+            UNROLL(disable)
+            for (; i + 2 <= count; i += 2)
+                SparseWoven<ISA, S.Dot>(sets[0], twin(i), weights, list[i], list[i + 1]);
+
+            if (i < count) SparseWovenLast<ISA, S.Dot>(sets[0], input, weights, list[i]);
+
+            for (s00 t = 0; t < 2; t++) {
+                sums[t] = sets[0][t];
+
+                for (s00 s = 1; s < Sets; s++) sums[t] = ISA::AddI32(sums[t], sets[s][t]);
+            }
+        }
+
     }
 
     template<const Lowering::Stage& S, typename ISA>
@@ -131,6 +290,12 @@ namespace MantaRay::Backend::Kernel
         static_assert(S.Padded >= S.Rows && Sets >= 1, "padding only adds rows, and a sparse stage has a set");
         static_assert(S.Test != Lowering::Test::None, "a sparse stage names its NNZ test");
         static_assert(!Positive || Lowering::NnzCmpgtSafe(X), "the cmpgt NNZ test needs NnzCmpgtSafe");
+
+        if constexpr (Lowering::Woven(S, ISA::Bytes)) {
+            Detail::SparseLines<S, ISA>(input, weights, sums);
+
+            return;
+        }
 
         static_assert(
             S.Dot == Lowering::Dot::Dpbusd || S.Dot == Lowering::Dot::Maddubs || S.Dot == Lowering::Dot::Wide,

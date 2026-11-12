@@ -173,6 +173,65 @@ namespace MantaRay::Backend::Kernel
             return count;
         }
 
+        template<typename ISA, u32 Count, Lowering::Tier T, bool Valued, typename B>
+        [[clang::always_inline]]
+        void NnzWordSpan(const u08* input, u16* list, u16* values, u32& count, B& base) noexcept
+        {
+            const auto x = ISA::Load(input);
+
+            u32 mask = ISA::NonzeroMaskI16(x);
+
+            if constexpr (Count < 32) mask &= (u32 { 1 } << Count) - 1;
+
+            if constexpr (T == Lowering::Tier::Compress) {
+                ISA::StoreUnaligned(list + count, ISA::CompressU16(mask, base));
+
+                if constexpr (Valued) ISA::StoreUnaligned(values + count, ISA::CompressU16(mask, x));
+
+                count += static_cast<u32>(std::popcount(mask));
+                base   = ISA::AddI16(base, ISA::BroadcastI16(32));
+            } else {
+                constexpr NnzRow Eight { 8, 8, 8, 8, 8, 8, 8, 8 };
+
+                UNROLL(full)
+                for (u32 slice = 0; slice < (Count + 7) / 8; slice++) {
+                    const u32 byte = mask >> slice * 8 & 0xFF;
+
+                    NnzEmit(list + count, byte, base);
+
+                    count += static_cast<u32>(std::popcount(byte));
+                    base  += Eight;
+                }
+            }
+        }
+
+        template<typename ISA, u32 Words, Lowering::Tier T, bool Valued>
+        [[clang::always_inline]]
+        u32 NnzWordScan(const u08* input, u16* list, u16* values) noexcept
+        {
+            static_assert(ISA::Bytes == 64, "2-byte lanes are scanned 32 at a time, one 64-byte load each");
+            static_assert(!Valued || T == Lowering::Tier::Compress, "the value list is compressed beside the list");
+
+            constexpr u32 Full = Words / 32;
+            constexpr u32 Rest = Words % 32;
+
+            u32 count = 0;
+
+            auto base = [] {
+                if constexpr (T == Lowering::Tier::Compress) return ISA::Load(NnzIota, 0);
+                else                                         return NnzRow {};
+            }();
+
+            UNROLL(disable)
+            for (u32 load = 0; load < Full; load++)
+                NnzWordSpan<ISA, 32, T, Valued>(input + load * ISA::Bytes, list, values, count, base);
+
+            if constexpr (Rest != 0)
+                NnzWordSpan<ISA, Rest, T, Valued>(input + Full * ISA::Bytes, list, values, count, base);
+
+            return count;
+        }
+
     }
 
     template<u32 Groups>
@@ -194,6 +253,23 @@ namespace MantaRay::Backend::Kernel
 
             return Detail::NnzCompress<ISA, Groups, Positive>(input, list);
         } else return Detail::NnzTable<ISA, Groups, Positive>(input, list);
+    }
+
+    template<typename ISA, u32 Words>
+    constexpr inline bool NnzValued = Detail::NnzTier<ISA>(Words) == Lowering::Tier::Compress;
+
+    template<typename ISA, u32 Words, bool Valued, Lowering::Tier T = Detail::NnzTier<ISA>(Words)>
+    [[clang::always_inline]]
+    u32 NnzWords(const u08* input, u16* list, u16* values) noexcept
+    {
+        static_assert(Words <= 65536, "NNZ indices are u16");
+        static_assert(
+            T == Lowering::Tier::Compress || T == Lowering::Tier::IndexTable,
+            "the NNZ list is built by Compress or by the index table"
+        );
+        static_assert(T != Lowering::Tier::Compress || ISA::Compress, "the Compress tier needs vpcompressw");
+
+        return Detail::NnzWordScan<ISA, Words, T, Valued>(input, list, values);
     }
 
 }

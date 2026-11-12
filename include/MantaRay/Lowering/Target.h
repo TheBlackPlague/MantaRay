@@ -18,9 +18,10 @@ namespace MantaRay::Lowering
 
         std::string_view Name {};
 
-        s00 Bytes     = 0;
-        s00 Registers = 0;
-        s00 DotChains = 2;
+        s00 Bytes       = 0;
+        s00 Registers   = 0;
+        s00 DotChains   = 2;
+        s00 DotInFlight = 1;
 
         bool VNNI    = false;
         bool Maddubs = false;
@@ -62,11 +63,12 @@ namespace MantaRay::Lowering
     };
 
     constexpr inline Target AVX512VNNI {
-        .Name      = "AVX512VNNI",
-        .Bytes     = 64,
-        .Registers = 32,
-        .VNNI      = true,
-        .Maddubs   = true
+        .Name        = "AVX512VNNI",
+        .Bytes       = 64,
+        .Registers   = 32,
+        .DotInFlight = 6,
+        .VNNI        = true,
+        .Maddubs     = true
     };
 
     constexpr inline Target NEON {

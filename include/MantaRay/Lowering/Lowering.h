@@ -609,12 +609,15 @@ namespace MantaRay::Lowering
             const u16         selector = facts[matmul].Selector;
             const u32         buckets  = selector ? graph.Bindings[selector - 1].Count : 1;
 
+            const bool narrowed = input.Storage == IR::DType::I16 && tensor.Type == IR::DType::I32 &&
+                                  NarrowsTo16(Licensed(input), IR::TensorBounds(graph, weights));
+
             Stage stage {
                 .Node    = matmul,
                 .Rows    = (node.End - node.Begin) / buckets,
                 .Buckets = buckets,
                 .Input   = input.Storage,
-                .Weight  = tensor.Type,
+                .Weight  = narrowed ? IR::DType::I16 : tensor.Type,
                 .Output  = facts[matmul].Storage
             };
 
@@ -807,7 +810,7 @@ namespace MantaRay::Lowering
             const s00 tile = columns                   ? stage.Padded / lanes :
                              stage.Form == Form::Lanes ? 16 / lanes           : 0;
 
-            const s00 inflight = target.VNNI ? 4 : 1;
+            const s00 inflight = target.DotInFlight;
             const s00 budget   = tile ? (target.Registers - 4) / tile : 0;
             const s00 sets     = chunks ? std::max<s00>(1, std::min((inflight + tile - 1) / tile, budget)) : 1;
 

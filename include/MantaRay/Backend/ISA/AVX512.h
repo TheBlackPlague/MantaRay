@@ -255,6 +255,17 @@ namespace MantaRay::Backend::ISA
         [[clang::always_inline]]
         static u32 NonzeroMaskI32(const Vector value) noexcept { return _mm512_test_epi32_mask(value, value); }
 
+        [[clang::always_inline]]
+        static u32 NonzeroMaskI16(const Vector value) noexcept { return _mm512_test_epi16_mask(value, value); }
+
+        [[clang::always_inline]]
+        static Vector UnpackLoI16(const Vector left, const Vector right) noexcept
+        { return _mm512_unpacklo_epi16(left, right); }
+
+        [[clang::always_inline]]
+        static Vector UnpackHiI16(const Vector left, const Vector right) noexcept
+        { return _mm512_unpackhi_epi16(left, right); }
+
 #if defined(__AVX512VBMI2__)
         [[clang::always_inline]]
         static Vector CompressU16(const u32 mask, const Vector value) noexcept

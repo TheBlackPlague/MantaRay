@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <cassert>
 #include <cmath>
 #include <cstring>
@@ -25,6 +26,22 @@
 
 namespace MantaRay::Backend::Kernel
 {
+
+    template<typename ISA>
+    consteval bool Holdable(const Lowering::Stage& stage)
+    {
+        const bool emulated = !ISA::PairDot && (stage.Dot == Lowering::Dot::Dpbusd  ||
+                                                stage.Dot == Lowering::Dot::Maddubs ||
+                                                stage.Dot == Lowering::Dot::Wide    ||
+                                                stage.Dot == Lowering::Dot::Madd    );
+
+        const bool forms = stage.Form == Lowering::Form::Grouped || stage.Form == Lowering::Form::Broadcast ||
+                           stage.Form == Lowering::Form::RowDot;
+
+        return stage.Kind == Lowering::Kind::Dense && !std::is_same_v<ISA, Backend::ISA::Scalar> && !emulated &&
+               forms && stage.Input == IR::DType::U08 && stage.Weight == IR::DType::I08 &&
+               ISA::Bytes == Alignment && stage.Width % ISA::Bytes == 0;
+    }
 
     template<const auto& Program, s00 I, typename ISA>
     struct Dense
@@ -87,6 +104,10 @@ namespace MantaRay::Backend::Kernel
         constexpr static u32 Columns = (Inputs + Depth - 1) / Depth * Depth;
         constexpr static u32 Stride  = Spread || Blocked ? Padded : Rows;
         constexpr static u64 Column  = u64 { Padded } * Depth;
+
+        constexpr static bool Woven = Tiled && Lowering::Woven(Stage, ISA::Bytes);
+
+        static_assert(!Woven || Padded * 2 == ISA::Bytes, "a woven column is one line of every row's 2-byte word");
 
         constexpr static bool Widened = Stage.Dot == Lowering::Dot::Wide ||
                                         (Stage.Dot == Lowering::Dot::Maddubs && !ISA::Maddubs);
@@ -216,6 +237,36 @@ namespace MantaRay::Backend::Kernel
 
         };
 
+        constexpr static bool Holdable = Kernel::Holdable<ISA>(Stage);
+
+        static_assert(
+            !Holdable || ((Blocked || Dotted) && Octets && Inputs % ISA::Bytes == 0),
+            "a Holdable stage runs the Grouped, Broadcast or RowDot kernel on whole u08 vectors"
+        );
+
+        struct Held
+        {
+
+            const ISA::Vector* Blocks;
+            u32                At = 0;
+
+            [[clang::always_inline]]
+            constexpr Held operator +(const u32 offset) const noexcept
+            { return { .Blocks = Blocks, .At = At + offset }; }
+
+            [[clang::always_inline]]
+            ISA::Vector Block() const noexcept { return Blocks[At / ISA::Bytes]; }
+
+            [[clang::always_inline]]
+            u08 operator [](const u32 k) const noexcept
+            {
+                using Lanes08 [[gnu::vector_size(ISA::Bytes)]] = u08;
+
+                return std::bit_cast<Lanes08>((*this + k).Block())[(At + k) % ISA::Bytes];
+            }
+
+        };
+
         constexpr static u64 Generic(const u32 row, const u32 column) noexcept
         {
             if (Chunked       ) return (u64 { column } / 4 * Rows + row) * 4 + column % 4;
@@ -226,6 +277,13 @@ namespace MantaRay::Backend::Kernel
 
         constexpr static u64 Position(const u32 row, const u32 column) noexcept
         {
+            if (Woven) {
+                const u32 lane = row % Lanes;
+                const u32 word = lane / 4 * 8 + row / Lanes * 4 + lane % 4;
+
+                return u64 { column / 2 } * ISA::Bytes + u64 { word } * 2 + column % 2;
+            }
+
             if (Form == Lowering::Form::Sparse) return (u64 { column } / 4 * Padded + row) * 4 + column % 4;
 
             if (Spread) return u64 { column } * Padded + row;
@@ -410,6 +468,19 @@ namespace MantaRay::Backend::Kernel
         { return ISA::BroadcastU32(reinterpret_cast<const u08*>(address)); }
 
         [[clang::always_inline]]
+        static ISA::Vector Fetch(const Held input) noexcept { return input.Block(); }
+
+        [[clang::always_inline]]
+        static ISA::Vector Splat(const Held input) noexcept
+        {
+            using Lanes32 [[gnu::vector_size(ISA::Bytes)]] = u32;
+
+            const Lanes32 groups = std::bit_cast<Lanes32>(input.Block());
+
+            return ISA::BroadcastI32(static_cast<i32>(groups[input.At % ISA::Bytes / 4]));
+        }
+
+        [[clang::always_inline]]
         static ISA::Vector Product(const ISA::Vector sum, const ISA::Vector x, const ISA::Vector w) noexcept
         {
             static_assert(
@@ -436,10 +507,11 @@ namespace MantaRay::Backend::Kernel
                 sums[t] = Product(sums[t], x, ISA::Load(column + t * Each));
         }
 
+        template<typename In>
         [[clang::always_inline]]
         static void Paired(
                   Array<Accumulator, Tile>& sums  ,
-            const Input* const              input ,
+            const In                        input ,
             const Weight* const             column,
             const u32                       first
         ) noexcept
@@ -458,10 +530,11 @@ namespace MantaRay::Backend::Kernel
             }
         }
 
+        template<typename In>
         [[clang::always_inline]]
         static void Advance(
                   Array<Accumulator, Stage.Sets, Tile>& sets   ,
-            const Input* const                          input  ,
+            const In                                    input  ,
             const Weight* const                         weights,
             const u32                                   block  ,
             const u32                                   first
@@ -476,9 +549,10 @@ namespace MantaRay::Backend::Kernel
             }
         }
 
+        template<typename In>
         [[clang::always_inline]]
         static void Columnar(
-            const Input* const              input  ,
+            const In                        input  ,
             const Weight* const             weights,
                   Array<Accumulator, Tile>& sums
         ) noexcept
@@ -531,10 +605,11 @@ namespace MantaRay::Backend::Kernel
             }
         }
 
+        template<typename In>
         [[clang::always_inline]]
         static void Across(
                   Array<typename ISA::Vector, Rows>& sums   ,
-            const Input* const                       input  ,
+            const In                                 input  ,
             const Weight* const                      weights,
             const u32                                column
         ) noexcept
@@ -549,10 +624,11 @@ namespace MantaRay::Backend::Kernel
             }
         }
 
+        template<typename In>
         [[clang::always_inline]]
         static void Rowwise(
             const Parameters&   parameters,
-            const Input* const  input     ,
+            const In            input     ,
                   Output* const output    ,
             const u32           bucket
         ) noexcept
@@ -585,11 +661,11 @@ namespace MantaRay::Backend::Kernel
             }
         }
 
-        template<Lowering::Form F>
+        template<Lowering::Form F, typename In>
         [[clang::always_inline]]
         static void Accumulate(
             const Parameters&               parameters,
-            const Input* const              input     ,
+            const In                        input     ,
             const u32                       bucket    ,
                   Array<Accumulator, Tile>& sums
         ) noexcept
@@ -889,10 +965,11 @@ namespace MantaRay::Backend::Kernel
             for (u32 row = 0; row < Rows; row++) output[row] = Finish(lanes[row], parameters.Biases[bucket][row]);
         }
 
+        template<typename In>
         [[clang::always_inline]]
         static void Run(
             const Parameters&   parameters,
-            const Input* const  input     ,
+            const In            input     ,
                   Output* const output    ,
             const u32           bucket
         ) noexcept

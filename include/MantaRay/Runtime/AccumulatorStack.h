@@ -10,6 +10,7 @@
 #include <bit>
 #include <cassert>
 #include <concepts>
+#include <cstring>
 #include <span>
 #include <tuple>
 #include <type_traits>
@@ -136,6 +137,7 @@ namespace MantaRay
             Array<typename F::Record, Capacity          > Records {};
             Array<typename F::Change, Capacity * Typical> Arena   {};
             Array<Extent            , Capacity          > Extents {};
+            Array<bool              , Capacity          > Linked  {};
 
         };
 
@@ -143,13 +145,14 @@ namespace MantaRay
         [[clang::always_inline]]
         void Spread(const std::span<const T> from, T* to) noexcept
         {
-            [&]<u32... K>(const std::integer_sequence<u32, K...>) {
-                ([&] {
-                    if (K * Slack >= from.size()) return;
+            static_assert(std::is_trivially_copyable_v<T>, "a block of changes is copied as bytes");
 
-                    std::ranges::copy_n(from.data() + K * Slack, Slack, to + K * Slack);
-                }(), ...);
-            }(std::make_integer_sequence<u32, (N + Slack - 1) / Slack> {});
+            UNROLL(full)
+            for (u32 block = 0; block < (N + Slack - 1) / Slack; block++) {
+                if (block * Slack >= from.size()) break;
+
+                std::memcpy(to + block * Slack, from.data() + block * Slack, Slack * sizeof(T));
+            }
         }
 
         template<typename F, s00 Capacity>
@@ -1132,9 +1135,37 @@ namespace MantaRay
         constexpr static bool Joint = Cacheable<U> && Terms<U> > 1;
 
         template<s00 U>
+        constexpr static bool Partial = !Cacheable<U> && AnyCached<U> && Group<U>.Incremental && Indexed<U>;
+
+        template<s00 U>
+        constexpr static bool Termwise = Partial<U> && Lazy && Keyed<U>;
+
+        constexpr static u32 StepOccupancy = 15;
+
+        template<s00 U, s00 K>
+        constexpr static bool Keying = []<s00... J>(const std::index_sequence<J...>) {
+            return ((Class<U>.Of[J] == K && F<U, J>::Cached) || ...);
+        }(std::make_index_sequence<Terms<U>> {});
+
+        template<s00 U>
+        constexpr static u32 Loose = []<s00... J>(const std::index_sequence<J...>) {
+            return ((!F<U, J>::Cached && Class<U>.Of[J] != Detail::Unkeyed ? u32 { 1 } << Class<U>.Of[J] : u32 { 0 }) |
+                    ... | u32 { 0 });
+        }(std::make_index_sequence<Terms<U>> {});
+
+        template<s00 U>
+        constexpr static bool CachedDerived = []<s00... J>(const std::index_sequence<J...>) {
+            return ((F<U, J>::Cached && DerivedFeatureSet<F<U, J>>) || ...);
+        }(std::make_index_sequence<Terms<U>> {});
+
+        template<s00 U>
         constexpr static u64 Combos = []<s00... K>(const std::index_sequence<K...>) {
-            return (u64 { 1 } * ... * Trigger<U, K>::KeyCount);
+            return (u64 { 1 } * ... * (Keying<U, K> ? Trigger<U, K>::KeyCount : 1));
         }(std::make_index_sequence<Class<U>.Count> {});
+
+        constexpr static bool Underived = []<s00... U>(const std::index_sequence<U...>) {
+            return !(CachedDerived<U> || ...);
+        }(std::make_index_sequence<Units.Count> {});
 
         template<s00 U, typename Weight>
         constexpr static u32 Room = []<s00... J>(const std::index_sequence<J...>) {
@@ -1145,6 +1176,15 @@ namespace MantaRay
         constexpr static u32 Reach = []<s00... J>(const std::index_sequence<J...>) {
             return ((std::is_same_v<W<U, J>, Weight> ? F<U, J>::MaxActive : u32 { 0 }) + ... + u32 { 0 });
         }(std::make_index_sequence<Terms<U>> {});
+
+        template<s00 U, typename Weight>
+        constexpr static u32 Kept = []<s00... J>(const std::index_sequence<J...>) {
+            return ((std::is_same_v<W<U, J>, Weight> && F<U, J>::Cached ? F<U, J>::MaxActive : u32 { 0 }) + ... +
+                    u32 { 0 });
+        }(std::make_index_sequence<Terms<U>> {});
+
+        template<s00 U, typename Weight>
+        constexpr static u32 Swept = Reach<U, Weight> - Kept<U, Weight>;
 
         template<s00 U, typename Weight>
         constexpr static bool Last = Reach<U, Weight> > 0 && (std::is_same_v<Weight, i32> || Reach<U, i32> == 0) &&
@@ -1178,11 +1218,12 @@ namespace MantaRay
             Applicable,
             "a keyed or cached incremental slot needs Index(perspective, key, change) on each non-derived family"
         );
+        static_assert(Underived, "a cached family is mended from piece changes, so it cannot be derived");
 
         template<s00 U, s00... J>
-        static std::tuple<typename Detail::Snapshots<F<U, J>>::Snapshot...> SnapshotsOf(
-            const std::index_sequence<J...>
-        );
+        static std::tuple<
+            std::conditional_t<F<U, J>::Cached, typename Detail::Snapshots<F<U, J>>::Snapshot, Absent<J>>...
+        > SnapshotsOf(const std::index_sequence<J...>);
 
         template<s00 U>
         struct Entry
@@ -1203,7 +1244,10 @@ namespace MantaRay
             constexpr static bool Incremental = Group<U>.Incremental;
             constexpr static s00  Sides       = Group<U>.Shared ? 1 : 2;
 
-            static_assert(!Joint<U> || Combos<U> <= 0xFFFFFFFF, "an accumulator cache's key tuples fit a u32");
+            static_assert(
+                !(Joint<U> || Partial<U>) || Combos<U> <= 0xFFFFFFFF,
+                "an accumulator cache's key tuples fit a u32"
+            );
 
             using Single = AccumulatorCache<F<U, 0>, S<U>, W<U, 0>, Width<U>, 1, ISA>;
             using Joints = Array<Entry<U>, 2, Combos<U>>;
@@ -1215,13 +1259,78 @@ namespace MantaRay
             using FlagArray = std::conditional_t<Incremental, Array<u08, Capacity>                   , Absent<0>>;
             using  KeyArray = std::conditional_t<Keyed<U>   , Array<u32, Capacity, 2, Class<U>.Count>, Absent<1>>;
 
-            using Table = std::conditional_t<Cached<U>, Single, std::conditional_t<Joint<U>, Joints, Absent<2>>>;
+            using Table = std::conditional_t<
+                Cached<U>, Single, std::conditional_t<Joint<U> || Partial<U>, Joints, Absent<2>>
+            >;
 
             alignas(Alignment) ValueArray Values {};
 
             NO_UNIQUE_ADDRESS FlagArray Flags {};
             NO_UNIQUE_ADDRESS KeyArray  Keys  {};
             NO_UNIQUE_ADDRESS Table     Cache {};
+
+        };
+
+        template<s00 U, typename R>
+        struct Mends
+        {
+
+            Array<const R*, std::max(Kept<U, R>, u32 { 1 })> Removed ;
+            Array<const R*, std::max(Kept<U, R>, u32 { 1 })> Inserted;
+            Array<const R*, Reach<U, R> + 1                > Active  ;
+
+            u32 Removals   = 0;
+            u32 Insertions = 0;
+            u32 Count      = 0;
+
+        };
+
+        struct Rewound
+        {
+
+            Array<u64, 12> Sets {};
+
+            template<typename Board>
+            static Rewound Of(const Board& board) noexcept
+            {
+                Rewound rewound {};
+
+                for (u08 side  = 0; side  < 2; side++ )
+                for (u08 piece = 0; piece < 6; piece++)
+                    rewound.Sets[side * 6 + piece] = board.Pieces(side, static_cast<Piece>(piece));
+
+                return rewound;
+            }
+
+            void Undo(const PieceDelta& delta) noexcept
+            {
+                for (s00 i = 0; i < delta.InsertedCount(); i++) {
+                    const PieceChange change = delta.Inserted(i);
+
+                    Sets[change.Side * 6 + static_cast<u08>(change.Type)] &= ~(u64 { 1 } << change.Square);
+                }
+
+                for (s00 i = 0; i < delta.RemovedCount(); i++) {
+                    const PieceChange change = delta.Removed(i);
+
+                    Sets[change.Side * 6 + static_cast<u08>(change.Type)] |= u64 { 1 } << change.Square;
+                }
+            }
+
+            u64 Pieces(const u08 side, const Piece piece) const noexcept
+            { return Sets[side * 6 + static_cast<u08>(piece)]; }
+
+            u08 King(const u08 side) const noexcept
+            { return static_cast<u08>(std::countr_zero(Pieces(side, Piece::King))); }
+
+            u64 Occupied() const noexcept
+            {
+                u64 occupied = 0;
+
+                for (s00 set = 0; set < 12; set++) occupied |= Sets[set];
+
+                return occupied;
+            }
 
         };
 
@@ -1383,9 +1492,18 @@ namespace MantaRay
                 auto& store = std::get<B>(Stores);
 
                 if constexpr (Chained<G>) {
-                    const bool parent = ply > 1 || Rooted;
+                    if (delta.template Filled<G>()) {
+                        store.Linked[ply] = false;
+
+                        Keep<B>(ply, delta.template Recorded<G>());
+
+                        return;
+                    }
+
+                    const bool parent = (ply > 1 || Rooted) && store.Linked[ply - 1];
 
                     store.Records[ply] = parent ? G::Next(store.Records[ply - 1], delta.Pieces) : G::Capture(after);
+                    store.Linked [ply] = true;
 
                     assert(store.Records[ply] == G::Capture(after));
                 }
@@ -1395,6 +1513,13 @@ namespace MantaRay
 
                     return;
                 }
+
+                if constexpr (!Chained<G> && requires { { G::Inert(delta.Pieces) } -> std::convertible_to<bool>; })
+                    if (G::Inert(delta.Pieces)) {
+                        store.Extents[ply] = { .State = Detail::Phase::Stored };
+
+                        return;
+                    }
 
                 if constexpr (!Chained<G>) store.Records[ply] = G::Capture(after);
 
@@ -1832,7 +1957,7 @@ namespace MantaRay
                 const auto& keys = StateOf<U>().Keys[ply][side];
 
                 [&]<s00... K>(const std::index_sequence<K...>) {
-                    ((combo = combo * Trigger<U, K>::KeyCount + keys[K]), ...);
+                    ((combo = Keying<U, K> ? combo * Trigger<U, K>::KeyCount + keys[K] : combo), ...);
                 }(std::make_index_sequence<Class<U>.Count> {});
             }
 
@@ -1939,6 +2064,106 @@ namespace MantaRay
             }
         }
 
+        template<s00 U, typename R, typename Board>
+        [[clang::always_inline]]
+        u32 Enumerate(const u08 side, const Board& board, Array<const R*, Reach<U, R> + 1>& rows) const noexcept
+        {
+            constexpr u32 Limit = Swept<U, R>;
+
+            u32 count = 0;
+
+            [&]<s00... J>(const std::index_sequence<J...>) {
+                ([&] {
+                    if constexpr (std::is_same_v<W<U, J>, R> && !F<U, J>::Cached) {
+                        const auto emit = [&](const u32 feature) {
+                            assert(count < Limit);
+
+                            if (count == Limit) return;
+
+                            const R* row = Row<U, J>(feature);
+
+                            Fetch<U, J>(row);
+
+                            rows[count++] = row;
+                        };
+
+                        if constexpr (requires { F<U, J>::template Active<ISA>(side, board, emit); })
+                            F<U, J>::template Active<ISA>(side, board, emit);
+                        else F<U, J>::Active(side, board, emit);
+                    }
+                }(), ...);
+            }(std::make_index_sequence<Terms<U>> {});
+
+            return count;
+        }
+
+        template<s00 U, typename R, typename Board>
+        [[clang::always_inline]]
+        void MendRows(
+                  Entry<U>&    entry,
+            const s00          ply  ,
+            const u08          side ,
+            const Board&       board,
+                  Mends<U, R>& rows
+        ) const noexcept
+        {
+            constexpr u32 L = Kept<U, R>;
+
+            if constexpr (L > 0) {
+                S<U>* values = entry.Values.data();
+
+                const auto flush = [&] {
+                    Backend::Kernel::Update<ISA, Width<U>, S<U>, R>(
+                        values,
+                        std::span(rows.Removed ).first(rows.Removals  ),
+                        std::span(rows.Inserted).first(rows.Insertions),
+                        values
+                    );
+
+                    rows.Removals   = 0;
+                    rows.Insertions = 0;
+                };
+
+                [&]<s00... J>(const std::index_sequence<J...>) {
+                    ([&] {
+                        if constexpr (std::is_same_v<W<U, J>, R> && F<U, J>::Cached) {
+                            const u32 removals   = rows.Removals;
+                            const u32 insertions = rows.Insertions;
+
+                            MendTerm<U, J, R, L>(
+                                entry,
+                                ply,
+                                side,
+                                board,
+                                rows.Removed,
+                                rows.Inserted,
+                                rows.Removals,
+                                rows.Insertions,
+                                flush
+                            );
+
+                            for (u32 i = removals   < rows.Removals   ? removals   : 0; i < rows.Removals  ; i++)
+                                Fetch<U, J>(rows.Removed [i]);
+                            for (u32 i = insertions < rows.Insertions ? insertions : 0; i < rows.Insertions; i++)
+                                Fetch<U, J>(rows.Inserted[i]);
+                        }
+                    }(), ...);
+                }(std::make_index_sequence<Terms<U>> {});
+            }
+        }
+
+        template<s00 U, typename R>
+        [[clang::always_inline]]
+        static auto Views(const Mends<U, R>& rows) noexcept
+        {
+            if constexpr (Reach<U, R> == 0) return std::tuple<> {};
+            else return std::tuple(Backend::Kernel::Mending<R> {
+                .Removed  = std::span(rows.Removed ).first(rows.Removals  ),
+                .Inserted = std::span(rows.Inserted).first(rows.Insertions),
+                .Active   = std::span(rows.Active  ).first(rows.Count     )
+            });
+        }
+
         template<s00 U, typename Board>
         void Restore(const s00 ply, const u08 side, const Board& board) noexcept
         {
@@ -1948,9 +2173,30 @@ namespace MantaRay
 
             Array<S<U>, Width<U>>& destination = At<U>(ply, side);
 
-            Mend<U, i08>(entry, ply, side, board, destination);
-            Mend<U, i16>(entry, ply, side, board, destination);
-            Mend<U, i32>(entry, ply, side, board, destination);
+            if constexpr (Partial<U>) {
+                Mends<U, i08> rows08;
+                Mends<U, i16> rows16;
+                Mends<U, i32> rows32;
+
+                MendRows<U>(entry, ply, side, board, rows08);
+                MendRows<U>(entry, ply, side, board, rows16);
+                MendRows<U>(entry, ply, side, board, rows32);
+
+                rows08.Count = Enumerate<U, i08>(side, board, rows08.Active);
+                rows16.Count = Enumerate<U, i16>(side, board, rows16.Active);
+                rows32.Count = Enumerate<U, i32>(side, board, rows32.Active);
+
+                std::apply(
+                    [&](const auto&... lists) {
+                        Backend::Kernel::Mend<ISA, Width<U>>(entry.Values.data(), destination.data(), lists...);
+                    },
+                    std::tuple_cat(Views<U>(rows08), Views<U>(rows16), Views<U>(rows32))
+                );
+            } else {
+                Mend<U, i08>(entry, ply, side, board, destination);
+                Mend<U, i16>(entry, ply, side, board, destination);
+                Mend<U, i32>(entry, ply, side, board, destination);
+            }
         }
 
         template<s00 U, typename Board>
@@ -1965,7 +2211,7 @@ namespace MantaRay
                     const typename Net::template SlotRows<From<U, 0>.Slot> rows(*Model);
 
                     StateOf<U>().Cache.Refresh(rows, 0, side, Key<U, 0>(ply, side), board, At<U>(ply, side));
-                } else if constexpr (Joint<U>) Restore<U>(ply, side, board);
+                } else if constexpr (Joint<U> || Partial<U>) Restore<U>(ply, side, board);
                 else Fill<U>(side, board, At<U>(ply, side).data());
             }
         }
@@ -1994,6 +2240,153 @@ namespace MantaRay
         bool Continues(const s00 ply, const u08 side) noexcept
         { return (Unchanged<U>(ply) >> side & 1) && Fits<U>(ply); }
 
+        template<s00 U, typename Weight>
+        [[clang::noinline]]
+        static void Shift(
+            const S<U>* const                    base       ,
+            const std::span<const Weight* const> removed    ,
+            const std::span<const Weight* const> inserted   ,
+                  S<U>* const                    destination
+        ) noexcept
+        { Backend::Kernel::Update<ISA, Width<U>, S<U>, Weight>(base, removed, inserted, destination); }
+
+        template<s00 U, typename Weight, typename Board>
+        [[clang::always_inline]]
+        void MendEntry(Entry<U>& entry, const s00 ply, const u08 side, const Board& board) const noexcept
+        {
+            constexpr u32 L = Kept<U, Weight>;
+
+            if constexpr (L > 0) {
+                Array<const Weight*, L> removed ;
+                Array<const Weight*, L> inserted;
+
+                u32 removals   = 0;
+                u32 insertions = 0;
+
+                S<U>* values = entry.Values.data();
+
+                const auto flush = [&] {
+                    Shift<U, Weight>(
+                        values, std::span(removed).first(removals), std::span(inserted).first(insertions), values
+                    );
+
+                    removals   = 0;
+                    insertions = 0;
+                };
+
+                [&]<s00... J>(const std::index_sequence<J...>) {
+                    ([&] {
+                        if constexpr (std::is_same_v<W<U, J>, Weight> && F<U, J>::Cached)
+                            MendTerm<U, J, Weight, L>(
+                                entry,
+                                ply,
+                                side,
+                                board,
+                                removed,
+                                inserted,
+                                removals,
+                                insertions,
+                                flush
+                            );
+                    }(), ...);
+                }(std::make_index_sequence<Terms<U>> {});
+
+                if (removals + insertions > 0) flush();
+            }
+        }
+
+        template<s00 U, typename Weight>
+        [[clang::always_inline]]
+        void Transfer(const s00 ply, const u08 side) noexcept
+        {
+            constexpr u32 L = Room<U, Weight>;
+
+            if constexpr (L > 0 && Swept<U, Weight> > 0) {
+                Array<const Weight*, L> removed ;
+                Array<const Weight*, L> inserted;
+
+                u32 removals   = 0;
+                u32 insertions = 0;
+
+                [&]<s00... J>(const std::index_sequence<J...>) {
+                    ([&] {
+                        if constexpr (std::is_same_v<W<U, J>, Weight> && !F<U, J>::Cached)
+                            Collect<U, J, Weight, L>(ply, side, removed, inserted, removals, insertions);
+                    }(), ...);
+                }(std::make_index_sequence<Terms<U>> {});
+
+                S<U>* child = At<U>(ply, side).data();
+
+                if (removals + insertions > 0)
+                    Shift<U, Weight>(
+                        child, std::span(removed).first(removals), std::span(inserted).first(insertions), child
+                    );
+            }
+        }
+
+        template<s00 U>
+        [[clang::always_inline]]
+        bool Steady(const s00 ply, const u08 side) const noexcept
+        {
+            const auto& keys = StateOf<U>().Keys;
+
+            return [&]<s00... K>(const std::index_sequence<K...>) {
+                return ((!(Loose<U> >> K & 1) || keys[ply][side][K] == keys[ply - 1][side][K]) && ...);
+            }(std::make_index_sequence<Class<U>.Count> {});
+        }
+
+        template<s00 U, typename Board>
+        [[clang::noinline]]
+        bool Swap(const s00 ply, const u08 side, const Board& board) noexcept
+        {
+            Rewound now = Rewound::Of(board);
+
+            for (s00 above = Top; above > ply; above--) now.Undo(Deltas[above]);
+
+            if (static_cast<u32>(std::popcount(now.Occupied())) < StepOccupancy) return false;
+            if (!Fits<U>(ply)) return false;
+
+            Rewound then = now;
+
+            then.Undo(Deltas[ply]);
+
+            Entry<U>& stale = StateOf<U>().Cache[side][Combo<U>(ply - 1, side)];
+            Entry<U>& fresh = StateOf<U>().Cache[side][Combo<U>(ply    , side)];
+
+            assert(&stale != &fresh);
+
+            if (stale.Generation != Model->Generation()) Blank<U>(stale);
+            if (fresh.Generation != Model->Generation()) Blank<U>(fresh);
+
+            MendEntry<U, i08>(stale, ply - 1, side, then);
+            MendEntry<U, i16>(stale, ply - 1, side, then);
+            MendEntry<U, i32>(stale, ply - 1, side, then);
+            MendEntry<U, i08>(fresh, ply    , side, now );
+            MendEntry<U, i16>(fresh, ply    , side, now );
+            MendEntry<U, i32>(fresh, ply    , side, now );
+
+            const Array<const S<U>*, 1> minus { stale.Values.data() };
+            const Array<const S<U>*, 1> plus  { fresh.Values.data() };
+
+            Shift<U, S<U>>(At<U>(ply - 1, side).data(), std::span(minus), std::span(plus), At<U>(ply, side).data());
+
+            Transfer<U, i08>(ply, side);
+            Transfer<U, i16>(ply, side);
+            Transfer<U, i32>(ply, side);
+
+            return true;
+        }
+
+        template<s00 U, typename Board>
+        [[clang::always_inline]]
+        bool Stepped(const s00 ply, const u08 side, const Board& board) noexcept
+        {
+            if constexpr (Termwise<U>)
+                return (ply > 1 || Rooted) && (StateOf<U>().Flags[ply - 1] >> side & 1) && Steady<U>(ply, side) &&
+                       Swap<U>(ply, side, board);
+            else return false;
+        }
+
         template<s00 U, typename Board>
         [[clang::noinline]]
         void CatchUp(const Board& board) noexcept
@@ -2010,7 +2403,10 @@ namespace MantaRay
                 while (!(flags[ply] >> side & 1) && Continues<U>(ply, side)) ply--;
 
                 if (flags[ply] >> side & 1) base[side] = ply;
-                else {
+                else if (Stepped<U>(ply, side, board)) {
+                    flags[ply] |= 1 << side;
+                    base [side] = ply;
+                } else {
                     Refresh<U>(top, static_cast<u08>(1 << side), board);
 
                     flags[top] |= 1 << side;
@@ -2194,8 +2590,10 @@ namespace MantaRay
                 ([&] {
                     using G = M::template Binding<B>;
 
-                    if constexpr (DerivedFeatureSet<G> && Chained<G>)
+                    if constexpr (DerivedFeatureSet<G> && Chained<G>) {
                         std::get<B>(Stores).Records[0] = G::Capture(board);
+                        std::get<B>(Stores).Linked [0] = true;
+                    }
                 }(), ...);
             }(std::make_integer_sequence<u16, BindingCount> {});
 
@@ -2284,7 +2682,7 @@ namespace MantaRay
             Each([&]<s00 U> {
                 if constexpr (Cached<U>)
                     StateOf<U>().Cache.Clear(typename Net::template SlotRows<From<U, 0>.Slot>(*Model));
-                else if constexpr (Joint<U>)
+                else if constexpr (Joint<U> || Partial<U>)
                     for (Array<Entry<U>, Combos<U>>& perspective : StateOf<U>().Cache)
                     for (Entry<U>& entry : perspective) Blank<U>(entry);
             });

@@ -20,7 +20,7 @@ namespace MantaRay::Backend::ISA
 
         constexpr static bool VNNI = true;
 
-        constexpr static s00 DotInFlight = 4;
+        constexpr static s00 DotInFlight = 6;
 
         [[clang::always_inline]]
         static Vector DotU08I08(const Vector sum, const Vector u8, const Vector i8) noexcept

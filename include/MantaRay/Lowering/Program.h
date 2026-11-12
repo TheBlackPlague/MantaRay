@@ -174,6 +174,9 @@ namespace MantaRay::Lowering
         return result.Min >= output.Min && result.Max <= output.Max;
     }
 
+    constexpr bool Woven(const Stage& stage, const s00 bytes)
+    { return stage.Form == Form::Sparse && stage.Tile == 2 && bytes == Alignment; }
+
     constexpr bool BiasInit(const Stage& stage)
     {
         return stage.Kind == Kind::Dense && stage.Requant == IR::Op::None && EpilogueFits32(stage);
