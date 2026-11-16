@@ -12,7 +12,7 @@ namespace MantaRay::Backend::Kernel
 {
 
     template<typename ISA>
-    constexpr Array<u08, ISA::Bytes> PackPermutation()
+    constexpr Array<u08, ISA::Bytes> PackPermutation() noexcept
     {
         constexpr s00 Half = ISA::Bytes / 2;
 
@@ -24,7 +24,7 @@ namespace MantaRay::Backend::Kernel
     }
 
     template<typename ISA, bool Packed>
-    constexpr s00 LogicalIndex(const s00 position)
+    constexpr s00 LogicalIndex(const s00 position) noexcept
     {
         if (!Packed) return position;
 

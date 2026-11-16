@@ -1,0 +1,80 @@
+name: Examples
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  examples:
+    name: ${{ matrix.os }} / scalar=${{ matrix.scalar }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-24.04, windows-2025-vs2026, macos-26 ]
+        scalar: [ 'OFF', 'ON' ]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build
+          wget -q https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 22
+          echo "CXX=clang++-22" >> "$GITHUB_ENV"
+
+      - name: Install Windows dependencies
+        if: runner.os == 'Windows'
+        run: |
+          choco install ninja -y --no-progress
+          choco install llvm --version 22.1.8 --force -y --no-progress
+          "C:/Program Files/LLVM/bin" >> $env:GITHUB_PATH
+          "CXX=clang++" >> $env:GITHUB_ENV
+
+      - name: Install macOS dependencies
+        if: runner.os == 'macOS'
+        run: |
+          brew update
+          brew install llvm@22 ninja
+          echo "CXX=$(brew --prefix llvm@22)/bin/clang++" >> "$GITHUB_ENV"
+
+      - name: Configure CMake
+        run: >-
+          cmake -S . -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+          -DBUILD_EXAMPLES=ON
+          -DMANTARAY_FORCE_SCALAR=${{ matrix.scalar }}
+
+      - name: Build examples
+        run: cmake --build build --config ${{ env.BUILD_TYPE }} --parallel 2
+
+      - name: Run all examples
+        shell: bash
+        run: |
+          set -euo pipefail
+          count=0
+          for example in build/MantaRayExample-*; do
+            case "$example" in *.pdb|*.ilk|*.manifest) continue ;; esac
+            [ -f "$example" ] && [ -x "$example" ] || continue
+            echo "::group::$example"
+            "$example"
+            echo "::endgroup::"
+            count=$((count + 1))
+          done
+          echo "$count examples ran"
+          test "$count" -gt 0

@@ -13,7 +13,7 @@ namespace MantaRay::Backend::Kernel
 
     template<typename ISA, s00 K>
     [[clang::always_inline]]
-    i32 ReduceI32(Array<typename ISA::Vector, K> sums)
+    i32 ReduceI32(Array<typename ISA::Vector, K> sums) noexcept
     {
         for (s00 width = K; width > 1        ; width = (width + 1) / 2)
         for (s00 i     = 0; i     < width / 2;                     i++)
@@ -24,7 +24,7 @@ namespace MantaRay::Backend::Kernel
 
     template<typename ISA, s00 K>
     [[clang::always_inline]]
-    i64 ReduceI64(const Array<typename ISA::Vector, K>& sums)
+    i64 ReduceI64(const Array<typename ISA::Vector, K>& sums) noexcept
     {
         i64 sum = 0;
 
@@ -35,11 +35,11 @@ namespace MantaRay::Backend::Kernel
 
     template<typename ISA, s00 N>
     [[clang::always_inline]]
-    f32 ReduceF(Array<typename ISA::VectorF, N> partials)
+    f32 ReduceF(Array<typename ISA::VectorF, N> partials) noexcept
     {
         #pragma clang fp contract(off)
 
-        static_assert(N * ISA::Bytes == 16 * sizeof(f32), "float reductions take 16 canonical partial sums");
+        static_assert(N * ISA::Bytes == 16 * sizeof(f32), "f32 reductions take 16 canonical partial sums");
 
         for (s00 width = N; width > 1        ; width /= 2)
         for (s00 i     = 0; i     < width / 2;        i++)
